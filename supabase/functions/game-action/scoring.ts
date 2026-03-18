@@ -1,0 +1,74 @@
+interface Vote {
+  voter_id: string
+  card_id: string
+}
+
+interface PlayedCard {
+  id: string
+  player_id: string
+}
+
+export interface ScoreEntry {
+  player_id: string
+  points: number
+  reason: string
+}
+
+interface ScoreInput {
+  narratorId: string
+  players: string[] // all active player_ids including narrator
+  votes: Vote[]
+  playedCards: PlayedCard[]
+}
+
+export function calculateScores({
+  narratorId,
+  players,
+  votes,
+  playedCards,
+}: ScoreInput): ScoreEntry[] {
+  const nonNarrators = players.filter((p) => p !== narratorId)
+  const narratorCard = playedCards.find((c) => c.player_id === narratorId)
+  if (!narratorCard) return []
+
+  const correctVoters = votes
+    .filter((v) => v.card_id === narratorCard.id)
+    .map((v) => v.voter_id)
+
+  const allCorrect = correctVoters.length === nonNarrators.length
+  const noneCorrect = correctVoters.length === 0
+  const narratorFails = allCorrect || noneCorrect
+
+  const entries: ScoreEntry[] = []
+
+  // Narrator
+  entries.push({
+    player_id: narratorId,
+    points: narratorFails ? 0 : 3,
+    reason: narratorFails ? 'narrator_fail' : 'narrator_success',
+  })
+
+  // Non-narrators: correct vote or consolation
+  for (const pid of nonNarrators) {
+    if (narratorFails) {
+      entries.push({ player_id: pid, points: 2, reason: 'consolation_bonus' })
+    } else if (correctVoters.includes(pid)) {
+      entries.push({ player_id: pid, points: 3, reason: 'correct_vote' })
+    }
+  }
+
+  // Received votes (non-narrator cards only, cannot vote for your own card)
+  const cardToPlayer = new Map(
+    playedCards
+      .filter((c) => c.player_id !== narratorId)
+      .map((c) => [c.id, c.player_id]),
+  )
+  for (const vote of votes) {
+    const owner = cardToPlayer.get(vote.card_id)
+    if (owner && owner !== vote.voter_id) {
+      entries.push({ player_id: owner, points: 1, reason: 'received_vote' })
+    }
+  }
+
+  return entries
+}

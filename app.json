@@ -32,7 +32,7 @@
     ],
     "extra": {
       "supabaseUrl": "https://ctjelsuchvzvdjvqdzub.supabase.co",
-      "supabaseAnonKey": "REPLACE_WITH_ANON_KEY"
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0amVsc3VjaHZ6dmRqdnFkenViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTA0NDMsImV4cCI6MjA4OTM2NjQ0M30.U5khT6G5EbD92poOIZj0n2r5HYs0P5oAVPdPF1m2Ql4"
     }
   }
 }

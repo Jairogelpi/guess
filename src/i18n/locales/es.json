@@ -1,0 +1,105 @@
+{
+  "welcome": {
+    "title": "Guess The Pront",
+    "subtitle": "El juego de las cartas misteriosas",
+    "enterAsGuest": "Entrar como invitado",
+    "signIn": "Iniciar sesión"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "back": "Volver"
+  },
+  "home": {
+    "createRoom": "Crear sala",
+    "joinRoom": "Unirse",
+    "codePlaceholder": "Código de sala",
+    "yourName": "Tu nombre",
+    "or": "O"
+  },
+  "lobby": {
+    "title": "Sala de Espera",
+    "waitingForPlayers": "Esperando jugadores...",
+    "ready": "Listo",
+    "notReady": "No listo",
+    "startGame": "¡Empezar!",
+    "shareCode": "Compartir código",
+    "tapToShare": "toca para compartir",
+    "copied": "¡Copiado!",
+    "chat": "Chat",
+    "messagePlaceholder": "Escribe un mensaje...",
+    "leave": "Salir",
+    "playerCount_one": "{{count}} jugador",
+    "playerCount_other": "{{count}} jugadores"
+  },
+  "game": {
+    "narrator": "Narrador",
+    "yourTurn": "Tu turno",
+    "round": "Ronda {{current}} de {{total}}",
+    "generateCard": "Generar carta",
+    "promptPlaceholder": "Describe tu carta...",
+    "regenerate": "Regenerar",
+    "chooseCard": "Elegir esta carta",
+    "writeClue": "Escribe una pista para tu carta",
+    "cluePlaceholder": "Una palabra, frase o sonido...",
+    "submitClue": "Enviar pista",
+    "submitCard": "Jugar esta carta",
+    "voting": "¡Vota! ¿Cuál es la carta del narrador?",
+    "vote": "Votar",
+    "results": "Resultados",
+    "nextRound": "Siguiente ronda",
+    "points": "{{count}} pts",
+    "waiting": "Esperando a los demás...",
+    "narratorClue": "Pista del narrador",
+    "narratorCard": "Carta del Narrador",
+    "score": "Puntuación",
+    "suggestIdea": "Sugerir idea Dixit",
+    "generatingIdea": "Generando idea…",
+    "imageGenError": "Error al generar imagen",
+    "suggestError": "No se pudo generar sugerencia",
+    "phaseNarrator": "✦ Narrador",
+    "phaseChoose": "✦ Elige carta",
+    "phaseVote": "✦ ¡Vota!",
+    "phaseResults": "✦ Resultados"
+  },
+  "gallery": {
+    "title": "Mi galería",
+    "generate": "Generar carta",
+    "noCards": "Aún no tienes cartas. ¡Genera tu primera!",
+    "titlePlaceholder": "Título de la carta",
+    "saveToGallery": "Guardar en galería",
+    "savedSuccess": "Carta guardada en tu galería",
+    "deleteTitle": "Eliminar carta",
+    "deleteConfirm": "¿Seguro que quieres eliminar esta carta?"
+  },
+  "profile": {
+    "title": "Perfil",
+    "displayName": "Nombre",
+    "email": "Email",
+    "password": "Contraseña",
+    "save": "Guardar",
+    "logout": "Cerrar sesión",
+    "deleteAccount": "Eliminar cuenta",
+    "deleteConfirm": "¿Seguro? Esta acción no se puede deshacer.",
+    "upgradeAccount": "Crear cuenta",
+    "upgradeSubtitle": "Guarda tu progreso entre sesiones",
+    "emailVerify": "Verifica tu email para confirmar el cambio",
+    "passwordTooShort": "Contraseña demasiado corta (mínimo 6 caracteres)",
+    "passwordUpdated": "Contraseña actualizada"
+  },
+  "ended": {
+    "title": "Fin del Juego",
+    "gameOver": "✦ FIN DEL JUEGO ✦",
+    "finalScore": "Puntuación Final",
+    "goHome": "Volver al inicio"
+  },
+  "errors": {
+    "ROOM_FULL": "La sala está llena",
+    "NOT_YOUR_TURN": "No es tu turno",
+    "INVALID_STATE": "Estado de juego inválido",
+    "ROOM_NOT_FOUND": "Sala no encontrada",
+    "MIN_PLAYERS_REQUIRED": "Se necesitan al menos 3 jugadores",
+    "INVALID_CARD": "Carta inválida",
+    "generic": "Algo salió mal. Inténtalo de nuevo."
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "welcome": {
+    "title": "Guess The Pront",
+    "subtitle": "The mysterious card game",
+    "enterAsGuest": "Enter as guest",
+    "signIn": "Sign in"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "back": "Back"
+  },
+  "home": {
+    "createRoom": "Create room",
+    "joinRoom": "Join",
+    "codePlaceholder": "Room code",
+    "yourName": "Your name",
+    "or": "Or"
+  },
+  "lobby": {
+    "title": "Waiting Room",
+    "waitingForPlayers": "Waiting for players...",
+    "ready": "Ready",
+    "notReady": "Not ready",
+    "startGame": "Start!",
+    "shareCode": "Share code",
+    "tapToShare": "tap to share",
+    "copied": "Copied!",
+    "chat": "Chat",
+    "messagePlaceholder": "Write a message...",
+    "leave": "Leave",
+    "playerCount_one": "{{count}} player",
+    "playerCount_other": "{{count}} players"
+  },
+  "game": {
+    "narrator": "Narrator",
+    "yourTurn": "Your turn",
+    "round": "Round {{current}} of {{total}}",
+    "generateCard": "Generate card",
+    "promptPlaceholder": "Describe your card...",
+    "regenerate": "Regenerate",
+    "chooseCard": "Choose this card",
+    "writeClue": "Write a clue for your card",
+    "cluePlaceholder": "A word, phrase or sound...",
+    "submitClue": "Submit clue",
+    "submitCard": "Play this card",
+    "voting": "Vote! Which card is the narrator's?",
+    "vote": "Vote",
+    "results": "Results",
+    "nextRound": "Next round",
+    "points": "{{count}} pts",
+    "waiting": "Waiting for others...",
+    "narratorClue": "Narrator's clue",
+    "narratorCard": "Narrator's card",
+    "score": "Score",
+    "suggestIdea": "Suggest Dixit idea",
+    "generatingIdea": "Generating idea…",
+    "imageGenError": "Failed to generate image",
+    "suggestError": "Could not generate suggestion",
+    "phaseNarrator": "✦ Narrator",
+    "phaseChoose": "✦ Choose card",
+    "phaseVote": "✦ Vote!",
+    "phaseResults": "✦ Results"
+  },
+  "gallery": {
+    "title": "My gallery",
+    "generate": "Generate card",
+    "noCards": "You have no cards yet. Generate your first!",
+    "titlePlaceholder": "Card title",
+    "saveToGallery": "Save to gallery",
+    "savedSuccess": "Card saved to your gallery",
+    "deleteTitle": "Delete card",
+    "deleteConfirm": "Are you sure you want to delete this card?"
+  },
+  "profile": {
+    "title": "Profile",
+    "displayName": "Name",
+    "email": "Email",
+    "password": "Password",
+    "save": "Save",
+    "logout": "Log out",
+    "deleteAccount": "Delete account",
+    "deleteConfirm": "Are you sure? This action cannot be undone.",
+    "upgradeAccount": "Create account",
+    "upgradeSubtitle": "Save your progress across sessions",
+    "emailVerify": "Check your email to confirm the change",
+    "passwordTooShort": "Password too short (minimum 6 characters)",
+    "passwordUpdated": "Password updated"
+  },
+  "ended": {
+    "title": "Game Over",
+    "gameOver": "✦ GAME OVER ✦",
+    "finalScore": "Final Score",
+    "goHome": "Go home"
+  },
+  "errors": {
+    "ROOM_FULL": "Room is full",
+    "NOT_YOUR_TURN": "Not your turn",
+    "INVALID_STATE": "Invalid game state",
+    "ROOM_NOT_FOUND": "Room not found",
+    "MIN_PLAYERS_REQUIRED": "At least 3 players required",
+    "INVALID_CARD": "Invalid card",
+    "generic": "Something went wrong. Please try again."
+  }
+}
