@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { brandTypography } from '@/constants/brand'
 import { colors } from '@/constants/theme'
 
 interface Props {
@@ -43,9 +44,10 @@ const styles = StyleSheet.create({
   },
   round: {
     color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 1,
+    fontFamily: brandTypography.eyebrow.fontFamily,
+    fontSize: brandTypography.eyebrow.fontSize,
+    lineHeight: brandTypography.eyebrow.lineHeight,
+    letterSpacing: 1.4,
   },
   divider: {
     width: 1,
@@ -54,8 +56,10 @@ const styles = StyleSheet.create({
   },
   phase: {
     color: colors.gold,
-    fontSize: 13,
-    fontWeight: '700',
+    fontFamily: brandTypography.titleSection.fontFamily,
+    fontSize: 14,
+    lineHeight: 18,
     letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
 })
