@@ -14,6 +14,8 @@ interface DecorativeTitleProps {
   align?: Align
   style?: StyleProp<TextStyle>
   numberOfLines?: number
+  adjustsFontSizeToFit?: boolean
+  minimumFontScale?: number
 }
 
 const variantStyles = StyleSheet.create({
@@ -80,9 +82,13 @@ export function DecorativeTitle({
   align = 'center',
   style,
   numberOfLines,
+  adjustsFontSizeToFit,
+  minimumFontScale,
 }: DecorativeTitleProps) {
   return (
     <Text
+      adjustsFontSizeToFit={adjustsFontSizeToFit}
+      minimumFontScale={minimumFontScale}
       numberOfLines={numberOfLines}
       style={[
         styles.base,
