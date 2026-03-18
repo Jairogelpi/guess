@@ -25,6 +25,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "scheme": "dixit",
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "supabaseUrl": "https://ctjelsuchvzvdjvqdzub.supabase.co",
+      "supabaseAnonKey": "REPLACE_WITH_ANON_KEY"
     }
   }
 }
