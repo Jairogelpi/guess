@@ -1,21 +1,36 @@
-import { useState } from 'react'
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
+import { useEffect, useState } from 'react'
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { supabase } from '@/lib/supabase'
+import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
+import { Background } from '@/components/layout/Background'
+import { EntryCardShell } from '@/components/layout/EntryCardShell'
+import { EntryUtilityPill } from '@/components/layout/EntryUtilityPill'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Background } from '@/components/layout/Background'
+import { brandColors, decorativeFontFamilyRegular } from '@/constants/brand'
+import { radii } from '@/constants/theme'
+import { supabase } from '@/lib/supabase'
 import { useUIStore } from '@/stores/useUIStore'
-import { colors } from '@/constants/theme'
+
+const APP_VERSION = 'v1.0.0'
 
 export default function Login() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const params = useLocalSearchParams<{ mode?: string | string[] }>()
   const showToast = useUIStore((s) => s.showToast)
-  const [isRegister, setIsRegister] = useState(false)
+  const currentLang = i18n.language.split('-')[0]?.toUpperCase() || 'ES'
+  const requestedMode = Array.isArray(params.mode) ? params.mode[0] : params.mode
+
+  const [isRegister, setIsRegister] = useState(requestedMode === 'register')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setIsRegister(requestedMode === 'register')
+  }, [requestedMode])
 
   async function submit() {
     if (!email || !password) return
@@ -27,92 +42,124 @@ export default function Login() {
     setLoading(false)
   }
 
+  function toggleLanguage() {
+    void i18n.changeLanguage(currentLang === 'ES' ? 'en' : 'es')
+  }
+
   return (
     <Background>
-      <SafeAreaView style={styles.safe}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.header}>
-            <Text style={styles.eyebrow}>✦ GUESS THE PRONT ✦</Text>
-            <Text style={styles.title}>
-              {isRegister ? t('profile.upgradeAccount') : t('welcome.signIn')}
-            </Text>
-            <View style={styles.divider} />
-          </View>
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <EntryCardShell
+              utilityLeft={<EntryUtilityPill label={APP_VERSION} />}
+              utilityRight={<EntryUtilityPill label={currentLang} onPress={toggleLanguage} />}
+              contentStyle={styles.cardContent}
+            >
+              <View style={styles.hero}>
+                <DecorativeTitle variant="eyebrow" tone="gold" style={styles.eyebrow}>
+                  {t('welcome.title')}
+                </DecorativeTitle>
+                <DecorativeTitle variant="screen" tone="hero" style={styles.title}>
+                  {isRegister ? t('profile.upgradeAccount') : t('welcome.signIn')}
+                </DecorativeTitle>
+                <View style={styles.divider} />
+                <Text style={styles.subtitle}>
+                  {isRegister ? t('profile.upgradeSubtitle') : t('welcome.subtitle')}
+                </Text>
+              </View>
 
-          <View style={styles.form}>
-            <Input
-              label={t('profile.email')}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-            />
-            <Input
-              label={t('profile.password')}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete={isRegister ? 'new-password' : 'current-password'}
-            />
-            <Button onPress={submit} loading={loading}>
-              {isRegister ? t('profile.upgradeAccount') : t('welcome.signIn')}
-            </Button>
-          </View>
-
-          <TouchableOpacity onPress={() => setIsRegister((v) => !v)} style={styles.toggle}>
-            <Text style={styles.toggleText}>
-              {isRegister ? t('welcome.signIn') : t('profile.upgradeAccount')}
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+              <View style={styles.formCard}>
+                <Input
+                  label={t('profile.email')}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                />
+                <Input
+                  label={t('profile.password')}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  autoComplete={isRegister ? 'new-password' : 'current-password'}
+                />
+                <Button onPress={submit} loading={loading}>
+                  {isRegister ? t('profile.upgradeAccount') : t('welcome.signIn')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onPress={() => setIsRegister((value) => !value)}
+                >
+                  {isRegister ? t('welcome.signIn') : t('profile.upgradeAccount')}
+                </Button>
+              </View>
+            </EntryCardShell>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Background>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  scroll: { flex: 1 },
+  safe: {
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
   content: {
     flexGrow: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    gap: 28,
-    paddingHorizontal: 28,
-    paddingVertical: 40,
+    paddingVertical: 24,
   },
-  header: { alignItems: 'center', gap: 8, width: '100%' },
+  cardContent: {
+    justifyContent: 'space-between',
+    gap: 18,
+  },
+  hero: {
+    alignItems: 'center',
+    paddingTop: 4,
+  },
   eyebrow: {
-    color: colors.gold,
-    fontSize: 11,
-    letterSpacing: 4,
-    fontWeight: '600',
+    marginBottom: 14,
   },
   title: {
-    color: colors.textPrimary,
-    fontSize: 28,
-    fontWeight: '800',
-    textAlign: 'center',
-    letterSpacing: 1,
+    width: '100%',
   },
   divider: {
-    width: 50,
-    height: 1.5,
-    backgroundColor: colors.gold,
-    opacity: 0.65,
-    marginTop: 4,
+    width: 74,
+    height: 3,
+    borderRadius: radii.full,
+    marginTop: 18,
+    marginBottom: 16,
+    backgroundColor: brandColors.goldSoft,
   },
-  form: { width: '100%', gap: 16 },
-  toggle: { paddingVertical: 8 },
-  toggleText: {
-    color: colors.goldLight,
-    fontSize: 14,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
+  subtitle: {
+    maxWidth: '88%',
+    color: 'rgba(255, 245, 231, 0.84)',
+    fontFamily: decorativeFontFamilyRegular,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  formCard: {
+    marginTop: 'auto',
+    gap: 14,
+    padding: 18,
+    borderRadius: 24,
+    backgroundColor: 'rgba(12, 6, 4, 0.44)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 214, 138, 0.12)',
   },
 })
