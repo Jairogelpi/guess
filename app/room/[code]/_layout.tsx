@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { brandColors, brandTypography } from '@/constants/brand'
 import { colors } from '@/constants/theme'
 
 export default function RoomLayout() {
@@ -9,7 +10,12 @@ export default function RoomLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.bgDeep },
         headerTintColor: colors.gold,
-        headerTitleStyle: { fontWeight: '700', color: colors.textPrimary },
+        headerTitleStyle: {
+          color: brandColors.textPrimary,
+          fontFamily: brandTypography.titleSection.fontFamily,
+          fontSize: brandTypography.titleSection.fontSize,
+          letterSpacing: brandTypography.titleSection.letterSpacing,
+        },
         headerBackTitle: '',
       }}
     >
