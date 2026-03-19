@@ -278,7 +278,7 @@ async function handleSubmitVote(
         }
       }
 
-      await sb.from('rounds').update({ status: 'results' }).eq('id', round.id)
+      await sb.from('rounds').update({ status: 'results', results_started_at: new Date().toISOString() }).eq('id', round.id)
     }
   }
 
