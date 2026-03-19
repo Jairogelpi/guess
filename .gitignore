@@ -42,3 +42,6 @@ yarn-error.*
 
 # local worktrees
 .worktrees/
+
+# Supabase CLI temp state
+supabase/.temp/

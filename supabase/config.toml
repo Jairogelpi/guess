@@ -1,0 +1,22 @@
+project_id = "dixit_ai_mobile"
+
+[functions.cleanup-temp-images]
+verify_jwt = false
+
+[functions.game-action]
+verify_jwt = false
+
+[functions.image-generate]
+verify_jwt = false
+
+[functions.prompt-suggest]
+verify_jwt = false
+
+[functions.room-create]
+verify_jwt = false
+
+[functions.room-join]
+verify_jwt = false
+
+[functions.room-leave]
+verify_jwt = false
