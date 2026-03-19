@@ -1,16 +1,18 @@
+import { brandColors, brandTypography } from './brand'
+
 export const colors = {
   // Backgrounds
   bgBase: '#120a06',
   bgDeep: '#0a0602',
-  surfaceDeep: 'rgba(25, 13, 10, 0.92)',
-  surfaceMid: 'rgba(67, 34, 21, 0.82)',
+  surfaceDeep: brandColors.surfaceDeep,
+  surfaceMid: brandColors.surfaceMid,
   surfaceTop: 'rgba(124, 66, 39, 0.72)',
 
   // Gold / Amber
-  gold: '#e6b800',
+  gold: brandColors.gold,
   goldLight: '#fbb024',
-  goldDim: 'rgba(251, 191, 36, 0.42)',
-  goldBorder: 'rgba(244, 192, 119, 0.42)',
+  goldDim: brandColors.goldDim,
+  goldBorder: brandColors.goldBorder,
 
   // Orange (CTAs)
   orange: '#f97316',
@@ -18,9 +20,9 @@ export const colors = {
   orangeGrad2: 'rgba(234, 88, 12, 0.78)',
 
   // Text
-  textPrimary: '#fff7ea',
+  textPrimary: brandColors.textPrimary,
   textSecondary: 'rgba(255, 241, 222, 0.60)',
-  textMuted: 'rgba(255, 241, 222, 0.35)',
+  textMuted: brandColors.textMuted,
 
   // Card
   cardBg: '#fefefe',
@@ -66,8 +68,10 @@ export const shadows = {
 export const typography = {
   eyebrow: {
     color: colors.gold,
-    fontSize: 11,
-    letterSpacing: 4,
+    fontFamily: brandTypography.eyebrow.fontFamily,
+    fontSize: brandTypography.eyebrow.fontSize,
+    lineHeight: brandTypography.eyebrow.lineHeight,
+    letterSpacing: brandTypography.eyebrow.letterSpacing,
     fontWeight: '600' as const,
   },
   divider: {
@@ -80,6 +84,21 @@ export const typography = {
     fontSize: 11,
     letterSpacing: 2.5,
     fontWeight: '700' as const,
+    textTransform: 'uppercase' as const,
+  },
+  titleScreen: {
+    color: colors.textPrimary,
+    fontFamily: brandTypography.titleScreen.fontFamily,
+    fontSize: brandTypography.titleScreen.fontSize,
+    lineHeight: brandTypography.titleScreen.lineHeight,
+    letterSpacing: brandTypography.titleScreen.letterSpacing,
+  },
+  titleSection: {
+    color: colors.textPrimary,
+    fontFamily: brandTypography.titleSection.fontFamily,
+    fontSize: brandTypography.titleSection.fontSize,
+    lineHeight: brandTypography.titleSection.lineHeight,
+    letterSpacing: brandTypography.titleSection.letterSpacing,
     textTransform: 'uppercase' as const,
   },
 }

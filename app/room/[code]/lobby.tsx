@@ -13,14 +13,14 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
-import { useRoom } from '@/hooks/useRoom'
-import { useGameActions } from '@/hooks/useGameActions'
-import { useUIStore } from '@/stores/useUIStore'
-import { Button } from '@/components/ui/Button'
-import { Background } from '@/components/layout/Background'
+import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
 import { PlayerList } from '@/components/game/PlayerList'
+import { Background } from '@/components/layout/Background'
+import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/hooks/useAuth'
+import { useGameActions } from '@/hooks/useGameActions'
+import { useRoom } from '@/hooks/useRoom'
+import { supabase } from '@/lib/supabase'
 import { colors } from '@/constants/theme'
 import type { LobbyMessage } from '@/types/game'
 
@@ -28,7 +28,6 @@ export default function LobbyScreen() {
   const { code } = useLocalSearchParams<{ code: string }>()
   const { t } = useTranslation()
   const router = useRouter()
-  const showToast = useUIStore((s) => s.showToast)
   const { room, players } = useRoom(code ?? null)
   const { leaveRoom, gameAction } = useGameActions()
   const { userId } = useAuth()
@@ -38,8 +37,8 @@ export default function LobbyScreen() {
   const [starting, setStarting] = useState(false)
   const flatRef = useRef<FlatList>(null)
 
-  const me = players.find((p) => p.player_id === userId)
-  const activePlayers = players.filter((p) => p.is_active)
+  const me = players.find((player) => player.player_id === userId)
+  const activePlayers = players.filter((player) => player.is_active)
   const isHost = me?.is_host ?? false
   const canStart = isHost && activePlayers.length >= 3
 
@@ -47,37 +46,50 @@ export default function LobbyScreen() {
     if (room?.status === 'playing') {
       router.replace(`/room/${code}/game`)
     }
-  }, [room?.status])
+  }, [room?.status, code, router])
 
   useEffect(() => {
     if (!room?.id) return
+
     supabase
       .from('lobby_messages')
       .select('*')
       .eq('room_id', room.id)
       .order('created_at', { ascending: true })
-      .then(({ data }) => { if (data) setMessages(data as LobbyMessage[]) })
-
-    const sub = supabase
-      .channel(`lobby-chat:${room.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'lobby_messages',
-        filter: `room_id=eq.${room.id}`,
-      }, (payload) => {
-        setMessages((prev) => [...prev, payload.new as LobbyMessage])
-        setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50)
+      .then(({ data }) => {
+        if (data) setMessages(data as LobbyMessage[])
       })
+
+    const subscription = supabase
+      .channel(`lobby-chat:${room.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'lobby_messages',
+          filter: `room_id=eq.${room.id}`,
+        },
+        (payload) => {
+          setMessages((previous) => [...previous, payload.new as LobbyMessage])
+          setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50)
+        },
+      )
       .subscribe()
 
-    return () => { supabase.removeChannel(sub) }
+    return () => {
+      supabase.removeChannel(subscription)
+    }
   }, [room?.id])
 
   async function sendMessage() {
     if (!chatText.trim() || !room?.id || !me) return
     if (room.status !== 'lobby') return
     await supabase.from('lobby_messages').insert({
-      room_id: room.id, player_id: me.player_id,
-      sender_name: me.display_name, text: chatText.trim(),
+      room_id: room.id,
+      player_id: me.player_id,
+      sender_name: me.display_name,
+      text: chatText.trim(),
     })
     setChatText('')
   }
@@ -100,12 +112,15 @@ export default function LobbyScreen() {
     await Share.share({ message: `${t('lobby.shareCode')}: ${code}` })
   }
 
-  const renderChatItem = useCallback(({ item }: { item: LobbyMessage }) => (
-    <View style={styles.chatMessage}>
-      <Text style={styles.chatSender}>{item.sender_name}</Text>
-      <Text style={styles.chatText}>{item.text}</Text>
-    </View>
-  ), [])
+  const renderChatItem = useCallback(
+    ({ item }: { item: LobbyMessage }) => (
+      <View style={styles.chatMessage}>
+        <Text style={styles.chatSender}>{item.sender_name}</Text>
+        <Text style={styles.chatText}>{item.text}</Text>
+      </View>
+    ),
+    [],
+  )
 
   return (
     <Background>
@@ -115,29 +130,28 @@ export default function LobbyScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.mainContent}>
-            {/* Room code */}
             <View style={styles.codeCard}>
-              <Text style={styles.codeLabel}>{t('lobby.shareCode')}</Text>
+              <DecorativeTitle variant="eyebrow" tone="muted" style={styles.codeLabel}>
+                {t('lobby.shareCode')}
+              </DecorativeTitle>
               <TouchableOpacity onPress={handleShare} activeOpacity={0.8}>
-                <Text style={styles.codeText}>{code}</Text>
+                <DecorativeTitle variant="screen" tone="gold" style={styles.codeText}>
+                  {code}
+                </DecorativeTitle>
               </TouchableOpacity>
               <Text style={styles.codeTap}>{t('lobby.tapToShare')}</Text>
             </View>
 
-            {/* Players */}
             <View style={styles.card}>
-              <Text style={styles.sectionLabel}>
+              <DecorativeTitle variant="eyebrow" tone="muted" align="left" style={styles.sectionLabel}>
                 {t('lobby.playerCount', { count: activePlayers.length })}
-              </Text>
+              </DecorativeTitle>
               <PlayerList players={players} />
             </View>
 
-            {/* Start / waiting */}
             {isHost ? (
               <View style={styles.startBlock}>
-                {activePlayers.length < 3 && (
-                  <Text style={styles.hintText}>{t('errors.MIN_PLAYERS_REQUIRED')}</Text>
-                )}
+                {activePlayers.length < 3 && <Text style={styles.hintText}>{t('errors.MIN_PLAYERS_REQUIRED')}</Text>}
                 <Button onPress={handleStart} loading={starting} disabled={!canStart}>
                   {t('lobby.startGame')}
                 </Button>
@@ -148,13 +162,14 @@ export default function LobbyScreen() {
               </View>
             )}
 
-            {/* Chat — standalone FlatList, not inside ScrollView */}
             <View style={styles.chatCard}>
-              <Text style={styles.sectionLabel}>{t('lobby.chat')}</Text>
+              <DecorativeTitle variant="eyebrow" tone="muted" align="left" style={styles.sectionLabel}>
+                {t('lobby.chat')}
+              </DecorativeTitle>
               <FlatList
                 ref={flatRef}
                 data={messages}
-                keyExtractor={(m) => m.id}
+                keyExtractor={(message) => message.id}
                 style={styles.chatList}
                 renderItem={renderChatItem}
               />
@@ -179,7 +194,9 @@ export default function LobbyScreen() {
           </View>
 
           <View style={styles.footer}>
-            <Button onPress={handleLeave} variant="ghost">{t('lobby.leave')}</Button>
+            <Button onPress={handleLeave} variant="ghost">
+              {t('lobby.leave')}
+            </Button>
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -198,20 +215,15 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 20,
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   codeLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-    letterSpacing: 3,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    letterSpacing: 2.8,
   },
   codeText: {
-    color: colors.gold,
-    fontSize: 40,
-    fontWeight: '900',
-    letterSpacing: 12,
+    fontSize: 38,
+    lineHeight: 42,
+    letterSpacing: 10,
   },
   codeTap: {
     color: colors.textMuted,
@@ -226,11 +238,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-    letterSpacing: 2.5,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    letterSpacing: 2.4,
   },
   startBlock: { gap: 8 },
   hintText: {

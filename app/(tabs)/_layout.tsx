@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { brandColors, brandTypography } from '@/constants/brand'
 import { colors } from '@/constants/theme'
 
 export default function TabsLayout() {
@@ -17,7 +18,12 @@ export default function TabsLayout() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
         headerStyle: { backgroundColor: colors.bgDeep },
         headerTintColor: colors.gold,
-        headerTitleStyle: { fontWeight: '700', letterSpacing: 1, color: colors.textPrimary },
+        headerTitleStyle: {
+          color: brandColors.textPrimary,
+          fontFamily: brandTypography.titleSection.fontFamily,
+          fontSize: brandTypography.titleSection.fontSize,
+          letterSpacing: brandTypography.titleSection.letterSpacing,
+        },
       }}
     >
       <Tabs.Screen name="index" options={{ title: t('home.createRoom') }} />

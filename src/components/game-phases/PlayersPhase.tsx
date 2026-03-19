@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '@/hooks/useAuth'
-import { useGameStore } from '@/stores/useGameStore'
-import { useGameActions } from '@/hooks/useGameActions'
+import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
 import { CardGenerator } from '@/components/game/CardGenerator'
 import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/hooks/useAuth'
+import { useGameActions } from '@/hooks/useGameActions'
+import { useGameStore } from '@/stores/useGameStore'
 import { colors } from '@/constants/theme'
 
 interface Props {
@@ -52,8 +53,12 @@ export function PlayersPhase({ roomCode, narratorClue, isWaiting }: Props) {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       {narratorClue && (
         <View style={styles.clueCard}>
-          <Text style={styles.clueLabel}>✦ {t('game.narratorClue')} ✦</Text>
-          <Text style={styles.clueText}>{narratorClue}</Text>
+          <DecorativeTitle variant="eyebrow" tone="gold" style={styles.clueLabel}>
+            {t('game.narratorClue')}
+          </DecorativeTitle>
+          <DecorativeTitle variant="screen" tone="plain" style={styles.clueText}>
+            {narratorClue}
+          </DecorativeTitle>
         </View>
       )}
 
@@ -92,16 +97,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   clueLabel: {
-    color: colors.gold,
-    fontSize: 11,
-    letterSpacing: 3,
-    fontWeight: '600',
+    letterSpacing: 2.8,
   },
   clueText: {
-    color: colors.textPrimary,
-    fontSize: 22,
-    fontWeight: '800',
-    textAlign: 'center',
-    letterSpacing: 0.5,
+    fontSize: 24,
+    lineHeight: 30,
+    letterSpacing: 0.4,
   },
 })
