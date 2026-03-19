@@ -121,6 +121,7 @@ export default function LobbyScreen() {
               <TouchableOpacity onPress={handleShare} activeOpacity={0.8}>
                 <Text style={styles.codeText}>{code}</Text>
               </TouchableOpacity>
+              <Text style={styles.shareHint}>{t('lobby.shareHint')}</Text>
               <Text style={styles.codeTap}>{t('lobby.tapToShare')}</Text>
             </View>
 
@@ -135,6 +136,7 @@ export default function LobbyScreen() {
             {/* Start / waiting */}
             {isHost ? (
               <View style={styles.startBlock}>
+                <Text style={styles.helperText}>{t('lobby.hostHint')}</Text>
                 {activePlayers.length < 3 && (
                   <Text style={styles.hintText}>{t('errors.MIN_PLAYERS_REQUIRED')}</Text>
                 )}
@@ -145,6 +147,7 @@ export default function LobbyScreen() {
             ) : (
               <View style={styles.waitingCard}>
                 <Text style={styles.waitingText}>{t('lobby.waitingForPlayers')}</Text>
+                <Text style={styles.helperText}>{t('lobby.guestHint')}</Text>
               </View>
             )}
 
@@ -217,6 +220,12 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 11,
   },
+  shareHint: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
   card: {
     backgroundColor: colors.surfaceDeep,
     borderWidth: 1,
@@ -233,6 +242,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   startBlock: { gap: 8 },
+  helperText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
   hintText: {
     color: colors.textMuted,
     fontSize: 12,

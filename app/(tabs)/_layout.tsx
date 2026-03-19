@@ -1,28 +1,83 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Tabs } from 'expo-router'
+import { StyleSheet, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { APP_TAB_ITEMS } from '@/constants/appChrome'
+import { Background } from '@/components/layout/Background'
 import { colors } from '@/constants/theme'
 
 export default function TabsLayout() {
   const { t } = useTranslation()
+  const insets = useSafeAreaInsets()
+
   return (
-    <Tabs
-      screenOptions={{
-        tabBarStyle: {
-          backgroundColor: colors.bgDeep,
-          borderTopColor: colors.goldBorder,
-          borderTopWidth: 1,
-        },
-        tabBarActiveTintColor: colors.gold,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
-        headerStyle: { backgroundColor: colors.bgDeep },
-        headerTintColor: colors.gold,
-        headerTitleStyle: { fontWeight: '700', letterSpacing: 1, color: colors.textPrimary },
-      }}
-    >
-      <Tabs.Screen name="index" options={{ title: t('home.createRoom') }} />
-      <Tabs.Screen name="gallery" options={{ title: t('gallery.title') }} />
-      <Tabs.Screen name="profile" options={{ title: t('profile.title') }} />
-    </Tabs>
+    <Background>
+      <Tabs
+        screenOptions={({ route }) => {
+          const activeItem = APP_TAB_ITEMS.find((entry) => entry.route === route.name)
+
+          return {
+            headerShown: false,
+            sceneStyle: {
+              backgroundColor: 'transparent',
+            },
+            tabBarStyle: {
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: Math.max(insets.bottom + 52, 64),
+              paddingBottom: Math.max(insets.bottom, 8),
+              paddingTop: 4,
+              borderTopWidth: 0,
+              backgroundColor: 'transparent',
+              elevation: 0,
+              shadowOpacity: 0,
+              overflow: 'visible',
+            },
+            tabBarActiveTintColor: colors.gold,
+            tabBarInactiveTintColor: 'rgba(255, 228, 186, 0.38)',
+            tabBarLabelStyle: styles.tabLabel,
+            tabBarItemStyle: styles.tabItem,
+            tabBarIcon: ({ focused, color }) => (
+              <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+                <MaterialCommunityIcons
+                  name={activeItem?.icon ?? 'circle-outline'}
+                  size={22}
+                  color={focused ? colors.gold : color}
+                />
+              </View>
+            ),
+          }
+        }}
+      >
+        <Tabs.Screen name="index" options={{ title: t('home.createRoom') }} />
+        <Tabs.Screen name="gallery" options={{ title: t('gallery.title') }} />
+        <Tabs.Screen name="profile" options={{ title: t('profile.title') }} />
+      </Tabs>
+    </Background>
   )
 }
+
+const styles = StyleSheet.create({
+  tabLabel: {
+    fontSize: 9,
+    fontFamily: 'CinzelDecorative_700Bold',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  tabItem: {
+    borderRadius: 14,
+  },
+  iconWrap: {
+    width: 40,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  iconWrapActive: {
+    backgroundColor: 'rgba(230, 184, 0, 0.14)',
+  },
+})

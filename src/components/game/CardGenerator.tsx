@@ -4,23 +4,46 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { DixitCard } from '@/components/ui/DixitCard'
+import { Modal } from '@/components/ui/Modal'
 import { useImageGen } from '@/hooks/useImageGen'
 import { usePromptSuggest } from '@/hooks/usePromptSuggest'
-import { colors, radii } from '@/constants/theme'
+import { GalleryWildcardPicker } from '@/components/game/GalleryWildcardPicker'
+import { hasAvailableWildcards } from '@/lib/galleryRules'
+import { colors, fonts, radii, shadows } from '@/constants/theme'
+import type { GalleryCard } from '@/types/game'
 
 interface CardGeneratorProps {
-  onSelect: (url: string, prompt: string) => void
+  scope: 'round' | 'gallery'
+  roomCode?: string
+  roundId?: string
+  onSelect: (imageUrl: string, prompt: string) => void
+  wildcardsRemaining?: number
+  onSelectGalleryCard?: (card: GalleryCard) => void
 }
 
-export function CardGenerator({ onSelect }: CardGeneratorProps) {
+export function CardGenerator({
+  scope,
+  roomCode,
+  roundId,
+  onSelect,
+  wildcardsRemaining,
+  onSelectGalleryCard,
+}: CardGeneratorProps) {
   const { t } = useTranslation()
   const [prompt, setPrompt] = useState('')
-  const { loading, url, brief, error, generate, reset } = useImageGen()
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false)
+  const { loading, imageUrl, brief, error, generate, reset } = useImageGen()
   const { loading: suggesting, suggest } = usePromptSuggest()
+  const canUseGalleryWildcard = scope === 'round' && !!onSelectGalleryCard
 
   async function handleGenerate() {
     if (!prompt.trim()) return
-    await generate(prompt.trim())
+    await generate({
+      prompt: prompt.trim(),
+      scope,
+      roomCode,
+      roundId,
+    })
   }
 
   async function handleSuggest() {
@@ -30,12 +53,31 @@ export function CardGenerator({ onSelect }: CardGeneratorProps) {
 
   function handleReset() {
     reset()
-    setPrompt('')
   }
 
   return (
     <View style={styles.container}>
-      {!url ? (
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>{t('game.generatorTitle')}</Text>
+        <Text style={styles.infoBody}>{t('game.generatorHint')}</Text>
+      </View>
+
+      {canUseGalleryWildcard && (
+        <View style={styles.wildcardBar}>
+          <Text style={styles.wildcardLabel}>
+            {t('game.wildcardsRemaining', { count: wildcardsRemaining ?? 0 })}
+          </Text>
+          <Button
+            variant="secondary"
+            onPress={() => setShowGalleryPicker(true)}
+            disabled={!hasAvailableWildcards(wildcardsRemaining)}
+          >
+            {t('game.useGalleryWildcard')}
+          </Button>
+        </View>
+      )}
+
+      {!imageUrl ? (
         <>
           <Input
             label={t('game.promptPlaceholder')}
@@ -47,7 +89,8 @@ export function CardGenerator({ onSelect }: CardGeneratorProps) {
             numberOfLines={3}
           />
 
-          {/* Suggest button */}
+          <Text style={styles.promptHint}>{t('game.promptHint')}</Text>
+
           <TouchableOpacity
             onPress={handleSuggest}
             disabled={suggesting}
@@ -60,7 +103,7 @@ export function CardGenerator({ onSelect }: CardGeneratorProps) {
             </Text>
           </TouchableOpacity>
 
-          {error && <Text style={styles.errorText}>{error}</Text>}
+          {error && <Text style={styles.errorText}>{t(error)}</Text>}
 
           <Button onPress={handleGenerate} loading={loading} disabled={!prompt.trim()}>
             {t('game.generateCard')}
@@ -69,25 +112,86 @@ export function CardGenerator({ onSelect }: CardGeneratorProps) {
       ) : (
         <>
           <View style={styles.cardWrapper}>
-            <DixitCard uri={url} loading={loading} />
+            <DixitCard uri={imageUrl} loading={loading} />
           </View>
 
+          <Text style={styles.readyHint}>{t('game.generatedHint')}</Text>
+
           <View style={styles.actions}>
-            <Button onPress={handleReset} variant="ghost" style={styles.flex}>
-              {t('game.regenerate')}
-            </Button>
-            <Button onPress={() => onSelect(url, brief ?? prompt)} style={styles.flex}>
+            <Button onPress={() => onSelect(imageUrl, brief ?? prompt)}>
               {t('game.chooseCard')}
+            </Button>
+            <Button onPress={handleReset} variant="ghost">
+              {t('game.regenerate')}
             </Button>
           </View>
         </>
       )}
+
+      <Modal
+        visible={showGalleryPicker}
+        onClose={() => setShowGalleryPicker(false)}
+        title={t('game.useGalleryWildcard')}
+      >
+        <GalleryWildcardPicker
+          onClose={() => setShowGalleryPicker(false)}
+          onPick={(card) => {
+            onSelectGalleryCard?.(card)
+            setShowGalleryPicker(false)
+          }}
+        />
+      </Modal>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { gap: 14 },
+  infoCard: {
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.goldBorder,
+    backgroundColor: 'rgba(18, 10, 6, 0.72)',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    gap: 8,
+    ...shadows.surface,
+  },
+  infoTitle: {
+    color: colors.goldLight,
+    fontSize: 14,
+    fontFamily: fonts.title,
+    letterSpacing: 1.2,
+    textAlign: 'center',
+  },
+  infoBody: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  wildcardBar: {
+    gap: 10,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.goldBorder,
+    backgroundColor: 'rgba(25, 13, 10, 0.54)',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  wildcardLabel: {
+    color: colors.goldLight,
+    fontSize: 13,
+    fontFamily: fonts.title,
+    textAlign: 'center',
+    letterSpacing: 0.6,
+  },
+  promptHint: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: -4,
+  },
   suggestBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -107,7 +211,8 @@ const styles = StyleSheet.create({
   suggestText: {
     color: colors.goldLight,
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: fonts.title,
+    letterSpacing: 0.5,
   },
   errorText: {
     color: '#f87171',
@@ -117,9 +222,13 @@ const styles = StyleSheet.create({
     width: '60%',
     alignSelf: 'center',
   },
+  readyHint: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
   actions: {
-    flexDirection: 'row',
     gap: 12,
   },
-  flex: { flex: 1 },
 })

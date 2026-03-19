@@ -5,7 +5,7 @@ import { useGameStore } from '@/stores/useGameStore'
 import { useGameActions } from '@/hooks/useGameActions'
 import { CardGrid } from '@/components/game/CardGrid'
 import { Button } from '@/components/ui/Button'
-import { colors } from '@/constants/theme'
+import { colors, fonts, radii, shadows } from '@/constants/theme'
 
 interface Props {
   roomCode: string
@@ -35,22 +35,30 @@ export function VotingPhase({ roomCode, userId }: Props) {
     return (
       <View style={styles.waiting}>
         <ActivityIndicator color={colors.gold} size="large" />
-        <Text style={styles.waitingText}>{t('game.waiting')}</Text>
+        <Text style={styles.waitingTitle}>{t('game.waitingVotesTitle')}</Text>
+        <Text style={styles.waitingBody}>{t('game.waitingVotesBody')}</Text>
       </View>
     )
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>{t('game.voting')}</Text>
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>{t('game.voting')}</Text>
+        <Text style={styles.infoBody}>{t('game.votingHint')}</Text>
       </View>
+
       <CardGrid
         cards={votableCards}
         selectedId={selectedId}
         onSelect={(c) => setSelectedId(c.id)}
       />
+
       <View style={styles.footer}>
+        <Text style={styles.selectedHint}>
+          {selectedId ? t('game.voteSelectedHint') : t('game.voteEmptyHint')}
+        </Text>
+
         <Button onPress={handleVote} loading={submitting} disabled={!selectedId}>
           {t('game.vote')}
         </Button>
@@ -65,26 +73,56 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
+    gap: 10,
+    paddingHorizontal: 32,
   },
-  waitingText: {
-    color: colors.textSecondary,
-    fontSize: 15,
-    letterSpacing: 0.5,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    alignItems: 'center',
-  },
-  headerText: {
-    color: colors.textPrimary,
+  waitingTitle: {
+    color: colors.goldLight,
     fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontFamily: fonts.title,
+    letterSpacing: 0.8,
+    textAlign: 'center',
+  },
+  waitingBody: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  infoCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.goldBorder,
+    backgroundColor: 'rgba(18, 10, 6, 0.72)',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    gap: 8,
+    ...shadows.surface,
+  },
+  infoTitle: {
+    color: colors.goldLight,
+    fontSize: 15,
+    fontFamily: fonts.title,
+    letterSpacing: 1,
+    textAlign: 'center',
+  },
+  infoBody: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   footer: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+    gap: 12,
+  },
+  selectedHint: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 })

@@ -1,42 +1,52 @@
 import { handleCors } from '../_shared/cors.ts'
 import { errorResponse, okResponse } from '../_shared/types.ts'
-
-const SYSTEM = `You are a creative director for Dixit, the surreal storytelling card game.
-Generate ONE evocative image prompt for a Dixit card.
-
-Rules:
-- Rich with symbolism, metaphors, and double meanings
-- Surreal and dreamlike, not literal
-- Multiple layers of interpretation possible
-- Emotional resonance — wonder, melancholy, joy, mystery
-- Include specific visual details: characters, objects, setting, light, color mood
-- Inspired by artists like René Magritte, Remedios Varo, Ernst Haeckel, Marc Chagall
-- 2-3 sentences max
-
-Output ONLY the prompt. No explanation, no title, no prefix.`
+import { createSupabaseAdmin } from '../_shared/supabaseAdmin.ts'
+import { buildSuggestionMessages } from '../_shared/dixitPrompts.ts'
+import { AI_ERROR_CODES, ensureAiError } from '../_shared/errors.ts'
+import { callOpenRouter, extractTextContent } from '../_shared/openrouter.ts'
 
 Deno.serve(async (req) => {
   const corsResult = handleCors(req)
   if (corsResult) return corsResult
 
-  const openaiKey = Deno.env.get('OPENAI_API_KEY')
-  if (!openaiKey) return errorResponse('CONFIG_ERROR', 'Missing OpenAI key', 500)
+  try {
+    const supabase = createSupabaseAdmin()
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) return errorResponse('UNAUTHORIZED', 'Missing auth', 401)
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: 'Generate one.' }],
-      temperature: 1.1,
-      max_tokens: 200,
-    }),
-  })
+    const token = authHeader.replace('Bearer ', '').trim()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token)
+    
+    if (authError || !user) {
+      const internalUrl = Deno.env.get('SUPABASE_URL')
+      return errorResponse(
+        'UNAUTHORIZED', 
+        `${authError?.message || 'Invalid token'} (Token start: ${token.substring(0, 10)}... | Func URL: ${internalUrl})`, 
+        401
+      )
+    }
 
-  const json = (await response.json()) as { choices: Array<{ message: { content: string } }> }
-  const prompt = json.choices[0]?.message.content?.trim() ?? ''
+    const payload = await callOpenRouter({
+      messages: buildSuggestionMessages(),
+      temperature: 1,
+      failureCode: 'PROMPT_SUGGEST_FAILED',
+    })
 
-  if (!prompt) return errorResponse('AI_ERROR', 'Empty response', 500)
+    const prompt = extractTextContent(payload)
+    if (!prompt) {
+      return errorResponse(AI_ERROR_CODES.PROMPT_SUGGEST_FAILED, 'Empty suggestion response', 500)
+    }
 
-  return okResponse({ prompt })
+    return okResponse({ prompt })
+  } catch (error) {
+    const aiError = ensureAiError(
+      error,
+      AI_ERROR_CODES.PROMPT_SUGGEST_FAILED,
+      'Prompt suggestion failed',
+    )
+    return errorResponse(aiError.code, aiError.message, aiError.status)
+  }
 })

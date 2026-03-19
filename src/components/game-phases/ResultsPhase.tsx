@@ -6,7 +6,7 @@ import { useGameActions } from '@/hooks/useGameActions'
 import { CardGrid } from '@/components/game/CardGrid'
 import { ScoreBoard } from '@/components/game/ScoreBoard'
 import { Button } from '@/components/ui/Button'
-import { colors } from '@/constants/theme'
+import { colors, fonts, radii, shadows } from '@/constants/theme'
 import type { RoomPlayer, RoundScore } from '@/types/game'
 
 interface Props {
@@ -36,13 +36,14 @@ export function ResultsPhase({ roomCode, players, roundScores = [] }: Props) {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>{t('game.results')}</Text>
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>{t('game.results')}</Text>
+        <Text style={styles.infoBody}>{t('game.resultsHint')}</Text>
       </View>
 
       {narratorCard && round?.clue && (
         <View style={styles.narratorBlock}>
-          <Text style={styles.narratorLabel}>✦ {t('game.narratorCard')} ✦</Text>
+          <Text style={styles.narratorLabel}>{t('game.narratorCard')}</Text>
           <Text style={styles.narratorClue}>"{round.clue}"</Text>
         </View>
       )}
@@ -54,6 +55,8 @@ export function ResultsPhase({ roomCode, players, roundScores = [] }: Props) {
         <ScoreBoard players={players} roundScores={roundScores} />
       </View>
 
+      <Text style={styles.nextHint}>{t('game.resultsNextHint')}</Text>
+
       <Button onPress={handleNext} loading={advancing}>
         {t('game.nextRound')}
       </Button>
@@ -64,12 +67,28 @@ export function ResultsPhase({ roomCode, players, roundScores = [] }: Props) {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { gap: 20, padding: 16 },
-  titleRow: { alignItems: 'center' },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: '800',
+  infoCard: {
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.goldBorder,
+    backgroundColor: 'rgba(18, 10, 6, 0.72)',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    gap: 8,
+    ...shadows.surface,
+  },
+  infoTitle: {
+    color: colors.goldLight,
+    fontSize: 16,
+    fontFamily: fonts.title,
     letterSpacing: 1,
+    textAlign: 'center',
+  },
+  infoBody: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   narratorBlock: {
     backgroundColor: colors.surfaceDeep,
@@ -83,13 +102,13 @@ const styles = StyleSheet.create({
   narratorLabel: {
     color: colors.gold,
     fontSize: 11,
+    fontFamily: fonts.title,
     letterSpacing: 3,
-    fontWeight: '600',
   },
   narratorClue: {
     color: colors.textPrimary,
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: fonts.title,
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -98,8 +117,14 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 11,
     letterSpacing: 2.5,
-    fontWeight: '700',
+    fontFamily: fonts.title,
     textTransform: 'uppercase',
     paddingHorizontal: 4,
+  },
+  nextHint: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 })

@@ -38,6 +38,11 @@ export const radii = {
   full: 999,
 }
 
+export const fonts = {
+  title: 'CinzelDecorative_700Bold',
+  titleHeavy: 'CinzelDecorative_900Black',
+}
+
 export const shadows = {
   card: {
     shadowColor: '#000',
@@ -68,6 +73,7 @@ export const typography = {
     color: colors.gold,
     fontSize: 11,
     letterSpacing: 4,
+    fontFamily: fonts.title,
     fontWeight: '600' as const,
   },
   divider: {
@@ -79,6 +85,7 @@ export const typography = {
     color: colors.textMuted,
     fontSize: 11,
     letterSpacing: 2.5,
+    fontFamily: fonts.title,
     fontWeight: '700' as const,
     textTransform: 'uppercase' as const,
   },

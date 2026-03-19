@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Background } from '@/components/layout/Background'
+import { AppHeader } from '@/components/layout/AppHeader'
 import { useGameActions } from '@/hooks/useGameActions'
-import { colors } from '@/constants/theme'
+import { CREATE_ROOM_CODE_FONT_SIZE, CREATE_ROOM_CODE_LETTER_SPACING } from '@/constants/welcomeHero'
+import { colors, fonts, radii } from '@/constants/theme'
 
 export default function HomeScreen() {
   const { t } = useTranslation()
@@ -29,14 +30,16 @@ export default function HomeScreen() {
 
   async function handleJoin() {
     if (!displayName.trim() || !joinCode.trim()) return
+    const normalizedCode = joinCode.trim().toUpperCase()
     setJoining(true)
-    const ok = await joinRoom(joinCode.trim().toUpperCase(), displayName.trim())
+    const ok = await joinRoom(normalizedCode, displayName.trim())
     setJoining(false)
-    if (ok) router.push(`/room/${joinCode.trim().toUpperCase()}/lobby`)
+    if (ok) router.push(`/room/${normalizedCode}/lobby`)
   }
 
   return (
-    <Background>
+    <>
+      <AppHeader title={t('home.createRoom')} />
       <SafeAreaView style={styles.safe} edges={['bottom']}>
         <KeyboardAvoidingView
           style={styles.flex}
@@ -47,9 +50,8 @@ export default function HomeScreen() {
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.header}>
-              <Text style={styles.eyebrow}>✦ GUESS THE PRONT ✦</Text>
-              <View style={styles.divider} />
+            <View style={styles.introCard}>
+              <Text style={styles.introTitle}>{t('home.stepsHint')}</Text>
             </View>
 
             <Input
@@ -59,9 +61,11 @@ export default function HomeScreen() {
               maxLength={30}
               autoCapitalize="words"
             />
+            <Text style={styles.fieldHint}>{t('home.nameHint')}</Text>
 
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>{t('home.createRoom')}</Text>
+              <Text style={styles.sectionHint}>{t('home.createHint')}</Text>
               <Button onPress={handleCreate} loading={creating} disabled={!displayName.trim()}>
                 {t('home.createRoom')}
               </Button>
@@ -75,9 +79,10 @@ export default function HomeScreen() {
 
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>{t('home.joinRoom')}</Text>
+              <Text style={styles.sectionHint}>{t('home.joinHint')}</Text>
               <Input
                 value={joinCode}
-                onChangeText={(v) => setJoinCode(v.toUpperCase())}
+                onChangeText={(value) => setJoinCode(value.toUpperCase())}
                 placeholder={t('home.codePlaceholder')}
                 maxLength={6}
                 autoCapitalize="characters"
@@ -95,7 +100,7 @@ export default function HomeScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </Background>
+    </>
   )
 }
 
@@ -105,30 +110,51 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: 'center',
-    gap: 20,
+    gap: 14,
     paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingTop: 30,
+    paddingBottom: 120,
   },
-  header: { alignItems: 'center', gap: 8, marginBottom: 8 },
-  eyebrow: {
+  introCard: {
+    backgroundColor: 'rgba(18, 8, 4, 0.78)',
+    borderRadius: radii.lg,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.45)',
+  },
+  introTitle: {
+    color: '#fff4d6',
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    fontFamily: fonts.title,
+  },
+  fieldHint: {
+    color: 'rgba(255, 228, 180, 0.65)',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: -8,
+  },
+  section: {
+    gap: 10,
+    backgroundColor: 'rgba(18, 8, 4, 0.75)',
+    borderRadius: radii.lg,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.38)',
+  },
+  sectionLabel: {
     color: colors.gold,
     fontSize: 11,
-    letterSpacing: 4,
-    fontWeight: '600',
-  },
-  divider: {
-    width: 50,
-    height: 1.5,
-    backgroundColor: colors.gold,
-    opacity: 0.6,
-  },
-  section: { gap: 10 },
-  sectionLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
     letterSpacing: 2.5,
-    fontWeight: '700',
+    fontFamily: fonts.title,
     textTransform: 'uppercase',
+  },
+  sectionHint: {
+    color: 'rgba(255, 228, 180, 0.65)',
+    fontSize: 12,
+    lineHeight: 18,
   },
   separator: {
     flexDirection: 'row',
@@ -144,13 +170,13 @@ const styles = StyleSheet.create({
   separatorText: {
     color: colors.textMuted,
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.title,
     letterSpacing: 1,
   },
   codeInput: {
     textAlign: 'center',
-    letterSpacing: 8,
-    fontSize: 22,
-    fontWeight: '700',
+    letterSpacing: CREATE_ROOM_CODE_LETTER_SPACING,
+    fontSize: CREATE_ROOM_CODE_FONT_SIZE,
+    fontFamily: fonts.title,
   },
 })

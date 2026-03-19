@@ -47,6 +47,14 @@ export function useGameActions() {
         return false
       }
     },
+    gameActionResult: async <T>(roomCode: string, action: string, payload?: unknown) => {
+      try {
+        return await api.gameAction<T>({ roomCode, action, payload })
+      } catch (e) {
+        handleError(e)
+        return null
+      }
+    },
     /** Insert a card for the current user in a given round. */
     insertCard: async (roundId: string, userId: string, imageUrl: string, prompt: string) => {
       try {

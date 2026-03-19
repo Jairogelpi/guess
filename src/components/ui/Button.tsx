@@ -1,7 +1,7 @@
 import { TouchableOpacity, Text, ActivityIndicator, StyleSheet, View } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import type { ReactNode } from 'react'
-import { colors, radii } from '@/constants/theme'
+import { colors, fonts, radii } from '@/constants/theme'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
@@ -11,7 +11,8 @@ interface ButtonProps {
   variant?: Variant
   loading?: boolean
   disabled?: boolean
-  style?: object
+  style?: any
+  textStyle?: any
 }
 
 export function Button({
@@ -21,6 +22,7 @@ export function Button({
   loading,
   disabled,
   style,
+  textStyle,
 }: ButtonProps) {
   const isDisabled = disabled ?? loading
 
@@ -45,7 +47,7 @@ export function Button({
           <View style={styles.inner}>
             {loading && <ActivityIndicator size="small" color={colors.textPrimary} />}
             {typeof children === 'string' ? (
-              <Text style={styles.textPrimary}>{children}</Text>
+              <Text style={[styles.textPrimary, textStyle]}>{children}</Text>
             ) : (
               children
             )}
@@ -66,7 +68,7 @@ export function Button({
         <View style={styles.inner}>
           {loading && <ActivityIndicator size="small" color={colors.gold} />}
           {typeof children === 'string' ? (
-            <Text style={styles.textSecondary}>{children}</Text>
+            <Text style={[styles.textSecondary, textStyle]}>{children}</Text>
           ) : (
             children
           )}
@@ -86,7 +88,7 @@ export function Button({
         <View style={styles.inner}>
           {loading && <ActivityIndicator size="small" color={colors.goldLight} />}
           {typeof children === 'string' ? (
-            <Text style={styles.textGhost}>{children}</Text>
+            <Text style={[styles.textGhost, textStyle]}>{children}</Text>
           ) : (
             children
           )}
@@ -106,7 +108,7 @@ export function Button({
       <View style={styles.inner}>
         {loading && <ActivityIndicator size="small" color={colors.textPrimary} />}
         {typeof children === 'string' ? (
-          <Text style={styles.textPrimary}>{children}</Text>
+          <Text style={[styles.textPrimary, textStyle]}>{children}</Text>
         ) : (
           children
         )}
@@ -128,6 +130,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
     gap: 8,
   },
   secondary: {
@@ -154,20 +157,35 @@ const styles = StyleSheet.create({
   },
   textPrimary: {
     color: colors.textPrimary,
-    fontWeight: '700',
+    fontFamily: fonts.title,
     fontSize: 15,
-    letterSpacing: 0.5,
+    lineHeight: 18,
+    letterSpacing: 0.8,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    width: '100%',
   },
   textSecondary: {
     color: colors.goldLight,
-    fontWeight: '600',
-    fontSize: 15,
-    letterSpacing: 0.4,
+    fontFamily: fonts.title,
+    fontSize: 14,
+    lineHeight: 17,
+    letterSpacing: 0.7,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    width: '100%',
   },
   textGhost: {
     color: colors.goldLight,
-    fontWeight: '600',
-    fontSize: 15,
-    letterSpacing: 0.4,
+    fontFamily: fonts.title,
+    fontSize: 14,
+    lineHeight: 17,
+    letterSpacing: 0.7,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+    width: '100%',
   },
 })

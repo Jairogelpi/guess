@@ -4,12 +4,13 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { useProfile } from '@/hooks/useProfile'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Background } from '@/components/layout/Background'
+import { AppHeader } from '@/components/layout/AppHeader'
+import { ProfileAvatar } from '@/components/ui/ProfileAvatar'
 import { useUIStore } from '@/stores/useUIStore'
-import { colors } from '@/constants/theme'
+import { colors, fonts, radii } from '@/constants/theme'
 
 type Tab = 'profile' | 'email' | 'password'
 
@@ -17,7 +18,15 @@ export default function ProfileScreen() {
   const { t } = useTranslation()
   const router = useRouter()
   const showToast = useUIStore((s) => s.showToast)
-  const { userId, isAnon: initialIsAnon, email: authEmail } = useAuth()
+  const {
+    userId,
+    isAnon: initialIsAnon,
+    email: authEmail,
+    displayName: storedDisplayName,
+    avatarUrl,
+    avatarFallback,
+    setProfile,
+  } = useProfile()
 
   const [activeTab, setActiveTab] = useState<Tab>('profile')
   const [displayName, setDisplayName] = useState('')
@@ -34,20 +43,23 @@ export default function ProfileScreen() {
   }, [initialIsAnon, authEmail])
 
   useEffect(() => {
-    supabase
-      .from('profiles')
-      .select('display_name')
-      .single()
-      .then(({ data }) => { if (data) setDisplayName(data.display_name) })
-  }, [])
+    setDisplayName(storedDisplayName)
+  }, [storedDisplayName])
 
   async function saveDisplayName() {
-    if (!userId) return
+    if (!userId || !displayName.trim()) return
+
+    const nextName = displayName.trim()
+
     setSaving(true)
-    const { error } = await supabase.auth.updateUser({ data: { display_name: displayName } })
-    if (!error) {
-      await supabase.from('profiles').update({ display_name: displayName })
-        .eq('id', userId)
+    const { error: authError } = await supabase.auth.updateUser({ data: { display_name: nextName } })
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ display_name: nextName })
+      .eq('id', userId)
+
+    if (!authError && !profileError) {
+      setProfile({ displayName: nextName, avatarUrl })
       showToast(t('profile.save'), 'success')
     } else {
       showToast(t('errors.generic'), 'error')
@@ -93,10 +105,10 @@ export default function ProfileScreen() {
     Alert.alert(t('profile.deleteAccount'), t('profile.deleteConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
-        text: t('profile.deleteAccount'), style: 'destructive',
+        text: t('profile.deleteAccount'),
+        style: 'destructive',
         onPress: async () => {
           try {
-            // Call edge function that deletes the user via Admin SDK
             await supabase.functions.invoke('delete-account')
             await supabase.auth.signOut()
             router.replace('/(auth)/welcome')
@@ -115,21 +127,48 @@ export default function ProfileScreen() {
   ]
 
   return (
-    <Background>
+    <>
+      <AppHeader title={t('profile.title')} />
       <SafeAreaView style={styles.safe} edges={['bottom']}>
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
+          <View style={styles.heroCard}>
+            <ProfileAvatar avatarUrl={avatarUrl} fallback={avatarFallback} size={112} />
+
+            <View style={styles.heroCopy}>
+              <Text style={styles.heroEyebrow}>{t('profile.avatarTitle')}</Text>
+              <Text style={styles.heroName}>
+                {displayName.trim() || email.split('@')[0] || t('profile.title')}
+              </Text>
+              <Text style={styles.heroHint}>{t('profile.avatarHint')}</Text>
+            </View>
+
+            <Button
+              variant="secondary"
+              onPress={() => router.push('/(tabs)/gallery')}
+              style={styles.heroButton}
+            >
+              {t('profile.openGallery')}
+            </Button>
+          </View>
+
           {isAnon && (
             <View style={styles.anonBanner}>
               <Text style={styles.anonTitle}>{t('profile.upgradeAccount')}</Text>
-              <Text style={styles.anonSub}>{t('profile.upgradeSubtitle')}</Text>
+              <Text style={styles.anonSub}>{t('profile.upgradeExplain')}</Text>
+              <Button
+                variant="secondary"
+                onPress={() => router.push('/(auth)/login?mode=register')}
+                style={styles.anonCta}
+              >
+                {t('profile.goToAccount')}
+              </Button>
             </View>
           )}
 
-          {/* Tab bar */}
           <View style={styles.tabBar}>
             {tabs.map((tab) => (
               <TouchableOpacity
@@ -145,7 +184,6 @@ export default function ProfileScreen() {
             ))}
           </View>
 
-          {/* Tab content */}
           <View style={styles.tabContent}>
             {activeTab === 'profile' && (
               <>
@@ -161,6 +199,7 @@ export default function ProfileScreen() {
                 </Button>
               </>
             )}
+
             {activeTab === 'email' && (
               <>
                 <Input
@@ -176,6 +215,7 @@ export default function ProfileScreen() {
                 </Button>
               </>
             )}
+
             {activeTab === 'password' && (
               <>
                 <Input
@@ -192,7 +232,6 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {/* Danger zone */}
           <View style={styles.dangerZone}>
             <Button onPress={handleLogout} variant="ghost">
               {t('profile.logout')}
@@ -203,39 +242,81 @@ export default function ProfileScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </Background>
+    </>
   )
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { flex: 1 },
-  content: { gap: 18, padding: 16, paddingBottom: 40 },
+  content: { gap: 18, padding: 16, paddingBottom: 124 },
+  heroCard: {
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+    borderRadius: radii.xl,
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.45)',
+    backgroundColor: 'rgba(18, 8, 4, 0.78)',
+  },
+  heroCopy: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroEyebrow: {
+    color: colors.gold,
+    fontFamily: fonts.title,
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  heroName: {
+    color: '#fff4d6',
+    fontFamily: fonts.titleHeavy,
+    fontSize: 24,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowRadius: 4,
+  },
+  heroHint: {
+    color: 'rgba(255, 228, 180, 0.65)',
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+  },
+  heroButton: {
+    width: '100%',
+  },
   anonBanner: {
-    backgroundColor: 'rgba(249,115,22,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(249,115,22,0.4)',
+    backgroundColor: 'rgba(18, 8, 4, 0.82)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(249,115,22,0.55)',
     borderRadius: 14,
     padding: 14,
-    gap: 4,
+    gap: 10,
   },
   anonTitle: {
-    color: colors.orange,
-    fontWeight: '700',
+    color: '#ff8c3a',
+    fontFamily: fonts.title,
     fontSize: 15,
   },
   anonSub: {
-    color: colors.textSecondary,
+    color: 'rgba(255, 228, 180, 0.65)',
     fontSize: 13,
+    lineHeight: 19,
+  },
+  anonCta: {
+    alignSelf: 'flex-start',
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.surfaceDeep,
+    backgroundColor: 'rgba(18, 8, 4, 0.78)',
     borderRadius: 14,
     padding: 4,
     gap: 4,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.38)',
   },
   tab: {
     flex: 1,
@@ -244,18 +325,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabActive: {
-    backgroundColor: colors.surfaceMid,
+    backgroundColor: 'rgba(74, 38, 18, 0.85)',
     borderWidth: 1,
-    borderColor: colors.goldBorder,
+    borderColor: 'rgba(230, 184, 0, 0.5)',
   },
   tabText: {
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
+    color: 'rgba(255, 228, 180, 0.45)',
+    fontSize: 12,
+    fontFamily: fonts.title,
+    textTransform: 'uppercase',
   },
   tabTextActive: {
     color: colors.gold,
   },
-  tabContent: { gap: 14 },
+  tabContent: {
+    gap: 14,
+    backgroundColor: 'rgba(18, 8, 4, 0.75)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.35)',
+    borderRadius: radii.lg,
+    padding: 16,
+  },
   dangerZone: { gap: 10, marginTop: 8 },
 })

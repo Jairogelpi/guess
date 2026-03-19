@@ -1,21 +1,33 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
+import { useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Background } from '@/components/layout/Background'
+import { AppHeader } from '@/components/layout/AppHeader'
 import { useUIStore } from '@/stores/useUIStore'
-import { colors } from '@/constants/theme'
+import { colors, radii } from '@/constants/theme'
+
+type Mode = 'signin' | 'register'
 
 export default function Login() {
   const { t } = useTranslation()
+  const params = useLocalSearchParams<{ mode?: string | string[] }>()
   const showToast = useUIStore((s) => s.showToast)
-  const [isRegister, setIsRegister] = useState(false)
+  const [mode, setMode] = useState<Mode>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const requested = Array.isArray(params.mode) ? params.mode[0] : params.mode
+    setMode(requested === 'register' ? 'register' : 'signin')
+  }, [params.mode])
+
+  const isRegister = mode === 'register'
 
   async function submit() {
     if (!email || !password) return
@@ -23,24 +35,46 @@ export default function Login() {
     const { error } = isRegister
       ? await supabase.auth.signUp({ email, password })
       : await supabase.auth.signInWithPassword({ email, password })
+
     if (error) showToast(error.message, 'error')
     setLoading(false)
   }
 
   return (
     <Background>
-      <SafeAreaView style={styles.safe}>
+      <AppHeader />
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>✦ GUESS THE PRONT ✦</Text>
-            <Text style={styles.title}>
-              {isRegister ? t('profile.upgradeAccount') : t('welcome.signIn')}
+            <Text style={styles.title}>{isRegister ? t('profile.upgradeAccount') : t('welcome.signIn')}</Text>
+            <Text style={styles.subtitle}>
+              {isRegister ? t('profile.upgradeExplain') : t('welcome.accountHint')}
             </Text>
-            <View style={styles.divider} />
+          </View>
+
+          <View style={styles.modeSwitch}>
+            <TouchableOpacity
+              onPress={() => setMode('signin')}
+              style={[styles.modeTab, mode === 'signin' && styles.modeTabActive]}
+              activeOpacity={0.82}
+            >
+              <Text style={[styles.modeText, mode === 'signin' && styles.modeTextActive]}>
+                {t('welcome.signIn')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setMode('register')}
+              style={[styles.modeTab, mode === 'register' && styles.modeTabActive]}
+              activeOpacity={0.82}
+            >
+              <Text style={[styles.modeText, mode === 'register' && styles.modeTextActive]}>
+                {t('profile.upgradeAccount')}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.form}>
@@ -59,16 +93,10 @@ export default function Login() {
               secureTextEntry
               autoComplete={isRegister ? 'new-password' : 'current-password'}
             />
-            <Button onPress={submit} loading={loading}>
+            <Button onPress={submit} loading={loading} disabled={!email || !password}>
               {isRegister ? t('profile.upgradeAccount') : t('welcome.signIn')}
             </Button>
           </View>
-
-          <TouchableOpacity onPress={() => setIsRegister((v) => !v)} style={styles.toggle}>
-            <Text style={styles.toggleText}>
-              {isRegister ? t('welcome.signIn') : t('profile.upgradeAccount')}
-            </Text>
-          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     </Background>
@@ -80,39 +108,68 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: {
     flexGrow: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    gap: 28,
-    paddingHorizontal: 28,
-    paddingVertical: 40,
+    gap: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 36,
   },
-  header: { alignItems: 'center', gap: 8, width: '100%' },
-  eyebrow: {
-    color: colors.gold,
-    fontSize: 11,
-    letterSpacing: 4,
-    fontWeight: '600',
+  header: {
+    alignItems: 'center',
+    gap: 12,
   },
   title: {
     color: colors.textPrimary,
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: 'CinzelDecorative_700Bold',
     textAlign: 'center',
-    letterSpacing: 1,
+    letterSpacing: 0.9,
   },
-  divider: {
-    width: 50,
-    height: 1.5,
-    backgroundColor: colors.gold,
-    opacity: 0.65,
-    marginTop: 4,
-  },
-  form: { width: '100%', gap: 16 },
-  toggle: { paddingVertical: 8 },
-  toggleText: {
-    color: colors.goldLight,
+  subtitle: {
+    maxWidth: '92%',
+    color: colors.textSecondary,
     fontSize: 14,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  modeSwitch: {
+    flexDirection: 'row',
+    gap: 8,
+    padding: 4,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.goldBorder,
+    backgroundColor: 'rgba(10, 6, 2, 0.36)',
+  },
+  modeTab: {
+    flex: 1,
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.full,
+    paddingHorizontal: 12,
+  },
+  modeTabActive: {
+    backgroundColor: colors.surfaceMid,
+    borderWidth: 1,
+    borderColor: colors.goldBorder,
+  },
+  modeText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontFamily: 'CinzelDecorative_700Bold',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  modeTextActive: {
+    color: colors.gold,
+  },
+  form: {
+    gap: 16,
+    padding: 18,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 214, 138, 0.14)',
+    backgroundColor: 'rgba(12, 6, 4, 0.42)',
   },
 })

@@ -14,7 +14,7 @@ export function Background({ children }: BackgroundProps) {
       resizeMode="cover"
     >
       <LinearGradient
-        colors={['rgba(18,10,6,0.72)', 'rgba(10,6,2,0.88)', 'rgba(18,10,6,0.96)']}
+        colors={['rgba(18,10,6,0.48)', 'rgba(10,6,2,0.62)', 'rgba(18,10,6,0.74)']}
         locations={[0, 0.5, 1]}
         style={styles.gradient}
       >
