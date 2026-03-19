@@ -28,7 +28,7 @@
     "waitingForPlayers": "Esperando jugadores...",
     "ready": "Listo",
     "notReady": "No listo",
-    "startGame": "Empezar",
+    "startGame": "Empezar partida",
     "shareCode": "Compartir codigo",
     "tapToShare": "toca para compartir",
     "copied": "Copiado",
@@ -39,7 +39,15 @@
     "hostHint": "Cuando haya al menos 3 jugadores, el anfitrion puede empezar la partida.",
     "guestHint": "Espera aqui hasta que el anfitrion empiece la partida.",
     "playerCount_one": "{{count}} jugador",
-    "playerCount_other": "{{count}} jugadores"
+    "playerCount_other": "{{count}} jugadores",
+    "roomRules": "3-8 jugadores",
+    "preparation": "Cargando sala...",
+    "hostWaiting_one": "Falta {{count}} jugador mas para poder empezar",
+    "hostWaiting_other": "Faltan {{count}} jugadores mas para poder empezar",
+    "hostReady": "Listo para empezar. Pulsa cuando quieras.",
+    "guestWaiting": "Esperando a que el anfitrion empiece la partida.",
+    "notFound": "Sala no encontrada",
+    "loadFailed": "No se pudo cargar la sala. Intentalo de nuevo."
   },
   "game": {
     "narrator": "Narrador",

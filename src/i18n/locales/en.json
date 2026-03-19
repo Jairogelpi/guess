@@ -28,7 +28,7 @@
     "waitingForPlayers": "Waiting for players...",
     "ready": "Ready",
     "notReady": "Not ready",
-    "startGame": "Start!",
+    "startGame": "Start game",
     "shareCode": "Share code",
     "tapToShare": "tap to share",
     "copied": "Copied!",
@@ -39,7 +39,15 @@
     "hostHint": "When at least 3 players are ready, the host can start the game.",
     "guestHint": "Wait here until the host starts the game.",
     "playerCount_one": "{{count}} player",
-    "playerCount_other": "{{count}} players"
+    "playerCount_other": "{{count}} players",
+    "roomRules": "3-8 players",
+    "preparation": "Loading room...",
+    "hostWaiting_one": "{{count}} more player needed to start",
+    "hostWaiting_other": "{{count}} more players needed to start",
+    "hostReady": "Ready to start. Tap whenever you like.",
+    "guestWaiting": "Waiting for the host to start the game.",
+    "notFound": "Room not found",
+    "loadFailed": "Could not load the room. Please try again."
   },
   "game": {
     "narrator": "Narrator",
