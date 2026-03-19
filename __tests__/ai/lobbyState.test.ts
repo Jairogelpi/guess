@@ -2,6 +2,7 @@ import {
   getVisibleLobbyPlayers,
   getLobbyStartState,
   getPlayersNeededToStart,
+  getLobbyHydrationPhase,
 } from '@/lib/lobbyState'
 import type { RoomPlayer } from '@/types/game'
 
@@ -91,6 +92,28 @@ describe('getLobbyStartState', () => {
   it('returns guest-waiting for non-host players', () => {
     const state = getLobbyStartState({ isHost: false, activeCount: 3, hydratingPlayers: false })
     expect(state).toBe('guest-waiting')
+  })
+})
+
+describe('getLobbyHydrationPhase', () => {
+  it('returns room-unresolved when room is null', () => {
+    expect(getLobbyHydrationPhase({ roomResolved: false, hydratingPlayers: false, roomNotFound: false, roomLoadFailed: false })).toBe('room-unresolved')
+  })
+
+  it('returns room-not-found when room not found', () => {
+    expect(getLobbyHydrationPhase({ roomResolved: false, hydratingPlayers: false, roomNotFound: true, roomLoadFailed: false })).toBe('room-not-found')
+  })
+
+  it('returns room-load-failed on generic failure', () => {
+    expect(getLobbyHydrationPhase({ roomResolved: false, hydratingPlayers: false, roomNotFound: false, roomLoadFailed: true })).toBe('room-load-failed')
+  })
+
+  it('returns players-hydrating when room is resolved but players are loading', () => {
+    expect(getLobbyHydrationPhase({ roomResolved: true, hydratingPlayers: true, roomNotFound: false, roomLoadFailed: false })).toBe('players-hydrating')
+  })
+
+  it('returns players-hydrated when room is resolved and players are loaded', () => {
+    expect(getLobbyHydrationPhase({ roomResolved: true, hydratingPlayers: false, roomNotFound: false, roomLoadFailed: false })).toBe('players-hydrated')
   })
 })
 

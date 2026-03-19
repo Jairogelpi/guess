@@ -36,3 +36,26 @@ export function getLobbyStartState({ isHost, activeCount, hydratingPlayers }: Lo
 export function getPlayersNeededToStart(activeCount: number): number {
   return Math.max(0, MIN_PLAYERS - activeCount)
 }
+
+export type LobbyHydrationPhase =
+  | 'room-unresolved'
+  | 'room-not-found'
+  | 'room-load-failed'
+  | 'players-hydrating'
+  | 'players-hydrated'
+
+export interface LobbyHydrationPhaseParams {
+  roomResolved: boolean
+  hydratingPlayers: boolean
+  roomNotFound: boolean
+  roomLoadFailed: boolean
+}
+
+/** Returns the current hydration phase for the lobby screen. */
+export function getLobbyHydrationPhase({ roomResolved, hydratingPlayers, roomNotFound, roomLoadFailed }: LobbyHydrationPhaseParams): LobbyHydrationPhase {
+  if (roomNotFound) return 'room-not-found'
+  if (roomLoadFailed) return 'room-load-failed'
+  if (!roomResolved) return 'room-unresolved'
+  if (hydratingPlayers) return 'players-hydrating'
+  return 'players-hydrated'
+}
