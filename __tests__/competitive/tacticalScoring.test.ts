@@ -91,6 +91,38 @@ describe('calculateScores tactical scoring', () => {
     )
   })
 
+  test('omitted activePlayers still anchors round inference to the room roster', () => {
+    const scores = calculateScores({
+      narratorId: 'narrator',
+      players: ['narrator', 'p1', 'p2', 'p3'],
+      votes: [
+        { voter_id: 'p1', card_id: 'narrator-card', tactical_action: 'firm_read' },
+        { voter_id: 'p2', card_id: 'p3-card', tactical_action: null },
+        { voter_id: 'p3', card_id: 'p2-card', tactical_action: null },
+        { voter_id: 'spectator', card_id: 'narrator-card', tactical_action: null },
+      ],
+      playedCards: [
+        { id: 'narrator-card', player_id: 'narrator', tactical_action: null },
+        { id: 'p1-card', player_id: 'p1', tactical_action: null },
+        { id: 'p2-card', player_id: 'p2', tactical_action: null },
+        { id: 'p3-card', player_id: 'p3', tactical_action: null },
+      ],
+    })
+
+    expect(scores).toContainEqual(
+      expect.objectContaining({
+        player_id: 'p1',
+        reason: 'firm_read_bonus',
+        points: 1,
+      }),
+    )
+    expect(scores).not.toContainEqual(
+      expect.objectContaining({
+        player_id: 'spectator',
+      }),
+    )
+  })
+
   test('trap card awards a bonus when the marked card receives two wrong votes', () => {
     const scores = calculateScores({
       narratorId: 'narrator',
