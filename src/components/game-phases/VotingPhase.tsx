@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react'
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
+import { useGameStore } from '@/stores/useGameStore'
+import { useGameActions } from '@/hooks/useGameActions'
 import { CardGrid } from '@/components/game/CardGrid'
 import { Button } from '@/components/ui/Button'
-import { useGameActions } from '@/hooks/useGameActions'
-import { useGameStore } from '@/stores/useGameStore'
-import { colors } from '@/constants/theme'
+import { colors, fonts, radii, shadows } from '@/constants/theme'
 
 interface Props {
   roomCode: string
@@ -22,7 +21,7 @@ export function VotingPhase({ roomCode, userId }: Props) {
   const [voted, setVoted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const votableCards = useMemo(() => cards.filter((card) => card.player_id !== userId), [cards, userId])
+  const votableCards = useMemo(() => cards.filter((c) => c.player_id !== userId), [cards, userId])
 
   async function handleVote() {
     if (!selectedId) return
@@ -36,20 +35,30 @@ export function VotingPhase({ roomCode, userId }: Props) {
     return (
       <View style={styles.waiting}>
         <ActivityIndicator color={colors.gold} size="large" />
-        <Text style={styles.waitingText}>{t('game.waiting')}</Text>
+        <Text style={styles.waitingTitle}>{t('game.waitingVotesTitle')}</Text>
+        <Text style={styles.waitingBody}>{t('game.waitingVotesBody')}</Text>
       </View>
     )
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <DecorativeTitle variant="section" tone="plain" style={styles.headerText}>
-          {t('game.voting')}
-        </DecorativeTitle>
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>{t('game.voting')}</Text>
+        <Text style={styles.infoBody}>{t('game.votingHint')}</Text>
       </View>
-      <CardGrid cards={votableCards} selectedId={selectedId} onSelect={(card) => setSelectedId(card.id)} />
+
+      <CardGrid
+        cards={votableCards}
+        selectedId={selectedId}
+        onSelect={(c) => setSelectedId(c.id)}
+      />
+
       <View style={styles.footer}>
+        <Text style={styles.selectedHint}>
+          {selectedId ? t('game.voteSelectedHint') : t('game.voteEmptyHint')}
+        </Text>
+
         <Button onPress={handleVote} loading={submitting} disabled={!selectedId}>
           {t('game.vote')}
         </Button>
@@ -64,25 +73,56 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
+    gap: 10,
+    paddingHorizontal: 32,
   },
-  waitingText: {
+  waitingTitle: {
+    color: colors.goldLight,
+    fontSize: 16,
+    fontFamily: fonts.title,
+    letterSpacing: 0.8,
+    textAlign: 'center',
+  },
+  waitingBody: {
     color: colors.textSecondary,
-    fontSize: 15,
-    letterSpacing: 0.5,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
-  header: {
+  infoCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.goldBorder,
+    backgroundColor: 'rgba(18, 10, 6, 0.72)',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    alignItems: 'center',
+    paddingVertical: 15,
+    gap: 8,
+    ...shadows.surface,
   },
-  headerText: {
-    fontSize: 18,
-    lineHeight: 24,
-    letterSpacing: 0.6,
+  infoTitle: {
+    color: colors.goldLight,
+    fontSize: 15,
+    fontFamily: fonts.title,
+    letterSpacing: 1,
+    textAlign: 'center',
+  },
+  infoBody: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   footer: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+    gap: 12,
+  },
+  selectedHint: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 })

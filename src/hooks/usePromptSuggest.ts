@@ -11,8 +11,10 @@ export function usePromptSuggest() {
     try {
       const result = await api.promptSuggest()
       return result.prompt
-    } catch {
-      setError('SUGGEST_ERROR')
+    } catch (e) {
+      console.error('Prompt suggestion error:', e)
+      const code = (e as { error?: { code?: string } })?.error?.code
+      setError(code ? `errors.${code}` : 'game.suggestError')
       return null
     } finally {
       setLoading(false)

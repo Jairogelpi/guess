@@ -26,16 +26,23 @@ export default function GameScreen() {
 
   const isNarrator = round.narrator_id === userId
   const status = round.status
+  const currentPlayer = players.find((player) => player.player_id === userId)
+  const wildcardsRemaining = currentPlayer?.wildcards_remaining ?? 0
 
   return (
     <GameLayout>
-      <RoundStatus roundNumber={round.round_number} maxRounds={room.max_rounds} phase={status} />
+      <RoundStatus
+        roundNumber={round.round_number}
+        maxRounds={room.max_rounds}
+        phase={status}
+        wildcardsRemaining={wildcardsRemaining}
+      />
 
       {status === 'narrator_turn' &&
         (isNarrator ? (
-          <NarratorPhase roomCode={code} />
+          <NarratorPhase roomCode={code} wildcardsRemaining={wildcardsRemaining} />
         ) : (
-          <PlayersPhase roomCode={code} narratorClue={null} isWaiting />
+          <PlayersPhase roomCode={code} narratorClue={null} isWaiting wildcardsRemaining={wildcardsRemaining} />
         ))}
 
       {status === 'players_turn' && (
@@ -43,6 +50,7 @@ export default function GameScreen() {
           roomCode={code}
           narratorClue={round.clue}
           isWaiting={isNarrator}
+          wildcardsRemaining={wildcardsRemaining}
         />
       )}
 

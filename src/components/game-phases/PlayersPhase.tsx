@@ -1,73 +1,141 @@
 import { useState } from 'react'
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
-import { CardGenerator } from '@/components/game/CardGenerator'
-import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/hooks/useAuth'
-import { useGameActions } from '@/hooks/useGameActions'
 import { useGameStore } from '@/stores/useGameStore'
-import { colors } from '@/constants/theme'
+import { useGameActions } from '@/hooks/useGameActions'
+import { CardGenerator } from '@/components/game/CardGenerator'
+import { DixitCard } from '@/components/ui/DixitCard'
+import { Button } from '@/components/ui/Button'
+import { colors, fonts, radii, shadows } from '@/constants/theme'
+import type { GalleryCard } from '@/types/game'
 
 interface Props {
   roomCode: string
   narratorClue: string | null
   isWaiting: boolean
+  wildcardsRemaining: number
 }
 
-export function PlayersPhase({ roomCode, narratorClue, isWaiting }: Props) {
+type SelectedPlayerCard =
+  | { kind: 'generated'; imageUrl: string; prompt: string; cardId: string }
+  | { kind: 'gallery'; imageUrl: string; prompt: string; galleryCardId: string }
+
+export function PlayersPhase({ roomCode, narratorClue, isWaiting, wildcardsRemaining }: Props) {
   const { t } = useTranslation()
   const { userId } = useAuth()
   const round = useGameStore((s) => s.round)
   const myPlayedCardId = useGameStore((s) => s.myPlayedCardId)
   const setMyPlayedCardId = useGameStore((s) => s.setMyPlayedCardId)
-  const { gameAction, insertCard } = useGameActions()
+  const { gameAction, gameActionResult, insertCard } = useGameActions()
 
-  const [savedCardId, setSavedCardId] = useState<string | null>(null)
+  const [selectedCard, setSelectedCard] = useState<SelectedPlayerCard | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleSelectCard(url: string, prompt: string) {
+  async function handleSelectCard(imageUrl: string, prompt: string) {
     if (!round || !userId) return
-    const cardId = await insertCard(round.id, userId, url, prompt)
-    if (cardId) setSavedCardId(cardId)
+    const cardId = await insertCard(round.id, userId, imageUrl, prompt)
+    if (cardId) {
+      setSelectedCard({ kind: 'generated', imageUrl, prompt, cardId })
+    }
+  }
+
+  function handleSelectGalleryCard(card: GalleryCard) {
+    setSelectedCard({
+      kind: 'gallery',
+      imageUrl: card.image_url,
+      prompt: card.prompt,
+      galleryCardId: card.id,
+    })
   }
 
   async function handleSubmitCard() {
-    if (!savedCardId) return
+    if (!selectedCard) return
     setSubmitting(true)
-    const ok = await gameAction(roomCode, 'submit_card', { card_id: savedCardId })
-    if (ok) setMyPlayedCardId(savedCardId)
-    setSubmitting(false)
+
+    let ok = false
+
+    if (selectedCard.kind === 'generated') {
+      ok = await gameAction(roomCode, 'submit_card', { card_id: selectedCard.cardId })
+      if (ok) setMyPlayedCardId(selectedCard.cardId)
+    } else {
+      const result = await gameActionResult<{ ok: true; cardId: string }>(roomCode, 'submit_card', {
+        gallery_card_id: selectedCard.galleryCardId,
+      })
+      if (result?.cardId) {
+        setMyPlayedCardId(result.cardId)
+        ok = true
+      }
+    }
+
+    if (!ok) setSubmitting(false)
   }
 
   if (isWaiting || myPlayedCardId) {
+    const waitingTitle = !narratorClue
+      ? t('game.waitingNarratorTitle')
+      : myPlayedCardId
+        ? t('game.waitingPlayersTitle')
+        : t('game.waitingSubmissionTitle')
+
+    const waitingBody = !narratorClue
+      ? t('game.waitingNarratorBody')
+      : myPlayedCardId
+        ? t('game.waitingPlayersBody')
+        : t('game.waitingSubmissionBody')
+
     return (
       <View style={styles.waiting}>
         <ActivityIndicator color={colors.gold} size="large" />
-        <Text style={styles.waitingText}>{t('game.waiting')}</Text>
+        <Text style={styles.waitingTitle}>{waitingTitle}</Text>
+        <Text style={styles.waitingBody}>{waitingBody}</Text>
       </View>
     )
   }
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>{t('game.playersIntro')}</Text>
+        <Text style={styles.infoBody}>{t('game.playersHint')}</Text>
+      </View>
+
       {narratorClue && (
         <View style={styles.clueCard}>
-          <DecorativeTitle variant="eyebrow" tone="gold" style={styles.clueLabel}>
-            {t('game.narratorClue')}
-          </DecorativeTitle>
-          <DecorativeTitle variant="screen" tone="plain" style={styles.clueText}>
-            {narratorClue}
-          </DecorativeTitle>
+          <Text style={styles.clueLabel}>{t('game.narratorClue')}</Text>
+          <Text style={styles.clueText}>{narratorClue}</Text>
         </View>
       )}
 
-      {!savedCardId ? (
-        <CardGenerator onSelect={handleSelectCard} />
+      {!selectedCard ? (
+        <CardGenerator
+          scope="round"
+          roomCode={roomCode}
+          roundId={round?.id}
+          wildcardsRemaining={wildcardsRemaining}
+          onSelect={handleSelectCard}
+          onSelectGalleryCard={handleSelectGalleryCard}
+        />
       ) : (
-        <Button onPress={handleSubmitCard} loading={submitting}>
-          {t('game.submitCard')}
-        </Button>
+        <View style={styles.selectionBlock}>
+          <View style={styles.selectedCardWrap}>
+            <DixitCard uri={selectedCard.imageUrl} />
+          </View>
+
+          <Text style={styles.selectedHint}>{t('game.playersSelectedHint')}</Text>
+          {selectedCard.kind === 'gallery' && (
+            <Text style={styles.wildcardHint}>{t('game.wildcardSpendHint')}</Text>
+          )}
+
+          <View style={styles.actions}>
+            <Button onPress={handleSubmitCard} loading={submitting}>
+              {t('game.submitCard')}
+            </Button>
+            <Button onPress={() => setSelectedCard(null)} variant="ghost">
+              {t('game.changeCard')}
+            </Button>
+          </View>
+        </View>
       )}
     </ScrollView>
   )
@@ -80,12 +148,44 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
+    gap: 10,
+    paddingHorizontal: 32,
   },
-  waitingText: {
+  waitingTitle: {
+    color: colors.goldLight,
+    fontSize: 16,
+    fontFamily: fonts.title,
+    letterSpacing: 0.8,
+    textAlign: 'center',
+  },
+  waitingBody: {
     color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  infoCard: {
+    borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.goldBorder,
+    backgroundColor: 'rgba(18, 10, 6, 0.72)',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    gap: 8,
+    ...shadows.surface,
+  },
+  infoTitle: {
+    color: colors.goldLight,
     fontSize: 15,
-    letterSpacing: 0.5,
+    fontFamily: fonts.title,
+    letterSpacing: 1,
+    textAlign: 'center',
+  },
+  infoBody: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   clueCard: {
     backgroundColor: colors.surfaceDeep,
@@ -97,11 +197,37 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   clueLabel: {
-    letterSpacing: 2.8,
+    color: colors.gold,
+    fontSize: 11,
+    fontFamily: fonts.title,
+    letterSpacing: 3,
   },
   clueText: {
-    fontSize: 24,
-    lineHeight: 30,
-    letterSpacing: 0.4,
+    color: colors.textPrimary,
+    fontSize: 22,
+    fontFamily: fonts.title,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  selectionBlock: {
+    gap: 16,
+  },
+  selectedCardWrap: {
+    width: '55%',
+    alignSelf: 'center',
+  },
+  selectedHint: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  wildcardHint: {
+    color: colors.goldLight,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  actions: {
+    gap: 12,
   },
 })

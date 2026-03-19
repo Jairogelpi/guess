@@ -1,25 +1,19 @@
 import { useState } from 'react'
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
-import { Background } from '@/components/layout/Background'
-import { EntryCardShell } from '@/components/layout/EntryCardShell'
-import { EntryUtilityPill } from '@/components/layout/EntryUtilityPill'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { brandColors, decorativeFontFamilyRegular } from '@/constants/brand'
-import { radii } from '@/constants/theme'
+import { AppHeader } from '@/components/layout/AppHeader'
 import { useGameActions } from '@/hooks/useGameActions'
-
-const APP_VERSION = 'v1.0.0'
+import { CREATE_ROOM_CODE_FONT_SIZE, CREATE_ROOM_CODE_LETTER_SPACING } from '@/constants/welcomeHero'
+import { colors, fonts, radii } from '@/constants/theme'
 
 export default function HomeScreen() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const router = useRouter()
   const { createRoom, joinRoom } = useGameActions()
-  const currentLang = i18n.language.split('-')[0]?.toUpperCase() || 'ES'
 
   const [displayName, setDisplayName] = useState('')
   const [joinCode, setJoinCode] = useState('')
@@ -43,183 +37,146 @@ export default function HomeScreen() {
     if (ok) router.push(`/room/${normalizedCode}/lobby`)
   }
 
-  function toggleLanguage() {
-    void i18n.changeLanguage(currentLang === 'ES' ? 'en' : 'es')
-  }
-
   return (
-    <Background>
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <>
+      <AppHeader title={t('home.createRoom')} />
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
             style={styles.flex}
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
           >
-            <EntryCardShell
-              utilityLeft={<EntryUtilityPill label={APP_VERSION} />}
-              utilityRight={<EntryUtilityPill label={currentLang} onPress={toggleLanguage} />}
-              contentStyle={styles.cardContent}
-            >
-              <View style={styles.hero}>
-                <DecorativeTitle variant="eyebrow" tone="gold" style={styles.eyebrow}>
-                  {t('welcome.title')}
-                </DecorativeTitle>
-                <View style={styles.heroTitleGroup}>
-                  <DecorativeTitle
-                    variant="screen"
-                    tone="hero"
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                    numberOfLines={1}
-                    style={styles.heroLine}
-                  >
-                    GUESS THE
-                  </DecorativeTitle>
-                  <DecorativeTitle
-                    variant="screen"
-                    tone="hero"
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
-                    numberOfLines={1}
-                    style={[styles.heroLine, styles.heroLineOffset]}
-                  >
-                    PRONT
-                  </DecorativeTitle>
-                </View>
-                <View style={styles.divider} />
-                <Text style={styles.subtitle}>{t('welcome.subtitle')}</Text>
-              </View>
+            <View style={styles.introCard}>
+              <Text style={styles.introTitle}>{t('home.stepsHint')}</Text>
+            </View>
 
-              <View style={styles.actions}>
-                <Input
-                  label={t('home.yourName')}
-                  value={displayName}
-                  onChangeText={setDisplayName}
-                  maxLength={30}
-                  autoCapitalize="words"
-                />
+            <Input
+              label={t('home.yourName')}
+              value={displayName}
+              onChangeText={setDisplayName}
+              maxLength={30}
+              autoCapitalize="words"
+            />
+            <Text style={styles.fieldHint}>{t('home.nameHint')}</Text>
 
-                <Button onPress={handleCreate} loading={creating} disabled={!displayName.trim()}>
-                  {t('home.createRoom')}
-                </Button>
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>{t('home.createRoom')}</Text>
+              <Text style={styles.sectionHint}>{t('home.createHint')}</Text>
+              <Button onPress={handleCreate} loading={creating} disabled={!displayName.trim()}>
+                {t('home.createRoom')}
+              </Button>
+            </View>
 
-                <View style={styles.separator}>
-                  <View style={styles.separatorLine} />
-                  <DecorativeTitle variant="eyebrow" tone="muted" style={styles.separatorText}>
-                    {t('home.or')}
-                  </DecorativeTitle>
-                  <View style={styles.separatorLine} />
-                </View>
+            <View style={styles.separator}>
+              <View style={styles.separatorLine} />
+              <Text style={styles.separatorText}>{t('home.or')}</Text>
+              <View style={styles.separatorLine} />
+            </View>
 
-                <Input
-                  label={t('home.codePlaceholder')}
-                  value={joinCode}
-                  onChangeText={(value) => setJoinCode(value.toUpperCase())}
-                  placeholder={t('home.codePlaceholder')}
-                  maxLength={6}
-                  autoCapitalize="characters"
-                  style={styles.codeInput}
-                />
-
-                <Button
-                  onPress={handleJoin}
-                  loading={joining}
-                  disabled={!displayName.trim() || joinCode.trim().length !== 6}
-                  variant="secondary"
-                >
-                  {t('home.joinRoom')}
-                </Button>
-              </View>
-            </EntryCardShell>
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>{t('home.joinRoom')}</Text>
+              <Text style={styles.sectionHint}>{t('home.joinHint')}</Text>
+              <Input
+                value={joinCode}
+                onChangeText={(value) => setJoinCode(value.toUpperCase())}
+                placeholder={t('home.codePlaceholder')}
+                maxLength={6}
+                autoCapitalize="characters"
+                style={styles.codeInput}
+              />
+              <Button
+                onPress={handleJoin}
+                loading={joining}
+                disabled={!displayName.trim() || joinCode.trim().length !== 6}
+                variant="secondary"
+              >
+                {t('home.joinRoom')}
+              </Button>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </Background>
+    </>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  flex: {
-    flex: 1,
-  },
+  safe: { flex: 1 },
+  flex: { flex: 1 },
   content: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 24,
-  },
-  cardContent: {
-    justifyContent: 'space-between',
-    gap: 18,
-  },
-  hero: {
-    alignItems: 'center',
-    paddingTop: 2,
-  },
-  eyebrow: {
-    marginBottom: 12,
-  },
-  heroTitleGroup: {
-    width: '100%',
-    gap: 2,
-  },
-  heroLine: {
-    width: '100%',
-    fontSize: 40,
-    lineHeight: 40,
-  },
-  heroLineOffset: {
-    marginTop: -2,
-  },
-  divider: {
-    width: 82,
-    height: 3,
-    borderRadius: radii.full,
-    marginTop: 18,
-    marginBottom: 16,
-    backgroundColor: brandColors.goldSoft,
-  },
-  subtitle: {
-    maxWidth: '86%',
-    color: 'rgba(255, 245, 231, 0.84)',
-    fontFamily: decorativeFontFamilyRegular,
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  actions: {
-    marginTop: 'auto',
     gap: 14,
-    padding: 18,
-    borderRadius: 24,
-    backgroundColor: 'rgba(12, 6, 4, 0.44)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 214, 138, 0.12)',
+    paddingHorizontal: 24,
+    paddingTop: 30,
+    paddingBottom: 120,
+  },
+  introCard: {
+    backgroundColor: 'rgba(18, 8, 4, 0.78)',
+    borderRadius: radii.lg,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.45)',
+  },
+  introTitle: {
+    color: '#fff4d6',
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    fontFamily: fonts.title,
+  },
+  fieldHint: {
+    color: 'rgba(255, 228, 180, 0.65)',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: -8,
+  },
+  section: {
+    gap: 10,
+    backgroundColor: 'rgba(18, 8, 4, 0.75)',
+    borderRadius: radii.lg,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.38)',
+  },
+  sectionLabel: {
+    color: colors.gold,
+    fontSize: 11,
+    letterSpacing: 2.5,
+    fontFamily: fonts.title,
+    textTransform: 'uppercase',
+  },
+  sectionHint: {
+    color: 'rgba(255, 228, 180, 0.65)',
+    fontSize: 12,
+    lineHeight: 18,
   },
   separator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginVertical: 2,
+    gap: 12,
+    marginVertical: 4,
   },
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255, 214, 138, 0.16)',
+    backgroundColor: colors.goldBorder,
   },
   separatorText: {
-    letterSpacing: 2.4,
+    color: colors.textMuted,
+    fontSize: 12,
+    fontFamily: fonts.title,
+    letterSpacing: 1,
   },
   codeInput: {
     textAlign: 'center',
-    fontSize: 22,
-    letterSpacing: 6,
+    letterSpacing: CREATE_ROOM_CODE_LETTER_SPACING,
+    fontSize: CREATE_ROOM_CODE_FONT_SIZE,
+    fontFamily: fonts.title,
   },
 })

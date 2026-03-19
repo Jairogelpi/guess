@@ -1,18 +1,16 @@
-import { brandColors, brandTypography } from './brand'
-
 export const colors = {
   // Backgrounds
   bgBase: '#120a06',
   bgDeep: '#0a0602',
-  surfaceDeep: brandColors.surfaceDeep,
-  surfaceMid: brandColors.surfaceMid,
+  surfaceDeep: 'rgba(25, 13, 10, 0.92)',
+  surfaceMid: 'rgba(67, 34, 21, 0.82)',
   surfaceTop: 'rgba(124, 66, 39, 0.72)',
 
   // Gold / Amber
-  gold: brandColors.gold,
+  gold: '#e6b800',
   goldLight: '#fbb024',
-  goldDim: brandColors.goldDim,
-  goldBorder: brandColors.goldBorder,
+  goldDim: 'rgba(251, 191, 36, 0.42)',
+  goldBorder: 'rgba(244, 192, 119, 0.42)',
 
   // Orange (CTAs)
   orange: '#f97316',
@@ -20,9 +18,9 @@ export const colors = {
   orangeGrad2: 'rgba(234, 88, 12, 0.78)',
 
   // Text
-  textPrimary: brandColors.textPrimary,
+  textPrimary: '#fff7ea',
   textSecondary: 'rgba(255, 241, 222, 0.60)',
-  textMuted: brandColors.textMuted,
+  textMuted: 'rgba(255, 241, 222, 0.35)',
 
   // Card
   cardBg: '#fefefe',
@@ -38,6 +36,11 @@ export const radii = {
   lg: 24,
   xl: 28,
   full: 999,
+}
+
+export const fonts = {
+  title: 'CinzelDecorative_700Bold',
+  titleHeavy: 'CinzelDecorative_900Black',
 }
 
 export const shadows = {
@@ -68,10 +71,9 @@ export const shadows = {
 export const typography = {
   eyebrow: {
     color: colors.gold,
-    fontFamily: brandTypography.eyebrow.fontFamily,
-    fontSize: brandTypography.eyebrow.fontSize,
-    lineHeight: brandTypography.eyebrow.lineHeight,
-    letterSpacing: brandTypography.eyebrow.letterSpacing,
+    fontSize: 11,
+    letterSpacing: 4,
+    fontFamily: fonts.title,
     fontWeight: '600' as const,
   },
   divider: {
@@ -83,22 +85,8 @@ export const typography = {
     color: colors.textMuted,
     fontSize: 11,
     letterSpacing: 2.5,
+    fontFamily: fonts.title,
     fontWeight: '700' as const,
-    textTransform: 'uppercase' as const,
-  },
-  titleScreen: {
-    color: colors.textPrimary,
-    fontFamily: brandTypography.titleScreen.fontFamily,
-    fontSize: brandTypography.titleScreen.fontSize,
-    lineHeight: brandTypography.titleScreen.lineHeight,
-    letterSpacing: brandTypography.titleScreen.letterSpacing,
-  },
-  titleSection: {
-    color: colors.textPrimary,
-    fontFamily: brandTypography.titleSection.fontFamily,
-    fontSize: brandTypography.titleSection.fontSize,
-    lineHeight: brandTypography.titleSection.lineHeight,
-    letterSpacing: brandTypography.titleSection.letterSpacing,
     textTransform: 'uppercase' as const,
   },
 }

@@ -1,7 +1,5 @@
-import { Modal as RNModal, View, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
+import { Modal as RNModal, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
 import type { ReactNode } from 'react'
-import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
-import { brandColors } from '@/constants/brand'
 import { colors, radii } from '@/constants/theme'
 
 interface ModalProps {
@@ -26,9 +24,7 @@ export function Modal({ visible, onClose, title, children }: ModalProps) {
         >
           {title && (
             <View style={styles.header}>
-              <DecorativeTitle variant="screen" tone="gold" style={styles.title}>
-                {title}
-              </DecorativeTitle>
+              <Text style={styles.title}>{title}</Text>
               <View style={styles.divider} />
             </View>
           )}
@@ -49,28 +45,31 @@ export function Modal({ visible, onClose, title, children }: ModalProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(8, 4, 2, 0.86)',
+    backgroundColor: 'rgba(10,6,2,0.82)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
   sheet: {
-    backgroundColor: 'rgba(18, 10, 6, 0.98)',
+    backgroundColor: colors.surfaceDeep,
     borderRadius: radii.xl,
     width: '100%',
     maxHeight: '88%',
-    borderWidth: 1.75,
-    borderColor: brandColors.goldStrongBorder,
+    borderWidth: 1.5,
+    borderColor: colors.goldBorder,
     overflow: 'hidden',
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 22,
+    paddingTop: 20,
     paddingBottom: 12,
     gap: 10,
   },
   title: {
-    marginBottom: 2,
+    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   divider: {
     height: 1,

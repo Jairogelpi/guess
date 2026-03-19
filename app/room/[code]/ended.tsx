@@ -3,11 +3,10 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
-import { Background } from '@/components/layout/Background'
+import { supabase } from '@/lib/supabase'
 import { ScoreBoard } from '@/components/game/ScoreBoard'
 import { Button } from '@/components/ui/Button'
-import { supabase } from '@/lib/supabase'
+import { Background } from '@/components/layout/Background'
 import { colors } from '@/constants/theme'
 import type { RoomPlayer } from '@/types/game'
 
@@ -43,23 +42,17 @@ export default function EndedScreen() {
     <Background>
       <SafeAreaView style={styles.safe}>
         <ScrollView contentContainerStyle={styles.content}>
+          {/* Trophy */}
           <View style={styles.hero}>
             <Text style={styles.trophy}>🏆</Text>
-            <DecorativeTitle variant="eyebrow" tone="gold" style={styles.eyebrow}>
-              {t('ended.gameOver')}
-            </DecorativeTitle>
-            {winner && (
-              <DecorativeTitle variant="screen" tone="plain" style={styles.winner}>
-                {winner}
-              </DecorativeTitle>
-            )}
+            <Text style={styles.eyebrow}>{t('ended.gameOver')}</Text>
+            {winner && <Text style={styles.winner}>{winner}</Text>}
             <View style={styles.divider} />
           </View>
 
+          {/* Final scoreboard */}
           <View style={styles.scoreCard}>
-            <DecorativeTitle variant="eyebrow" tone="muted" align="left" style={styles.scoreLabel}>
-              {t('ended.finalScore')}
-            </DecorativeTitle>
+            <Text style={styles.scoreLabel}>{t('ended.finalScore')}</Text>
             <ScoreBoard players={players} />
           </View>
 
@@ -87,12 +80,17 @@ const styles = StyleSheet.create({
     fontSize: 64,
   },
   eyebrow: {
-    letterSpacing: 3.4,
+    color: colors.gold,
+    fontSize: 11,
+    letterSpacing: 4,
+    fontWeight: '600',
   },
   winner: {
-    fontSize: 36,
-    lineHeight: 42,
+    color: colors.textPrimary,
+    fontSize: 34,
+    fontWeight: '900',
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   divider: {
     width: 60,
@@ -110,7 +108,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   scoreLabel: {
-    paddingHorizontal: 2,
-    letterSpacing: 2.6,
+    color: colors.textMuted,
+    fontSize: 11,
+    letterSpacing: 2.5,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
 })

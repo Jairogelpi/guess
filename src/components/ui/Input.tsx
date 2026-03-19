@@ -1,70 +1,50 @@
 import { TextInput, View, Text, StyleSheet } from 'react-native'
-import type { StyleProp, TextInputProps, TextStyle, ViewStyle } from 'react-native'
-import { brandColors, brandTypography } from '@/constants/brand'
-import { colors, radii } from '@/constants/theme'
+import type { TextInputProps } from 'react-native'
+import { colors, fonts, radii } from '@/constants/theme'
 
 interface InputProps extends TextInputProps {
   label?: string
   error?: string
-  wrapperStyle?: StyleProp<ViewStyle>
-  labelStyle?: StyleProp<TextStyle>
-  errorStyle?: StyleProp<TextStyle>
 }
 
-export function Input({
-  label,
-  error,
-  style,
-  wrapperStyle,
-  labelStyle,
-  errorStyle,
-  ...props
-}: InputProps) {
+export function Input({ label, error, style, ...props }: InputProps) {
   return (
-    <View style={[styles.wrapper, wrapperStyle]}>
-      {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
+    <View style={styles.wrapper}>
+      {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
         style={[styles.input, error ? styles.inputError : null, style]}
         placeholderTextColor={colors.textMuted}
         {...props}
       />
-      {error && <Text style={[styles.errorText, errorStyle]}>{error}</Text>}
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  wrapper: { gap: 8 },
+  wrapper: { gap: 6 },
   label: {
-    color: brandColors.goldSoft,
-    fontFamily: brandTypography.eyebrow.fontFamily,
-    fontSize: brandTypography.eyebrow.fontSize,
-    lineHeight: brandTypography.eyebrow.lineHeight,
-    letterSpacing: 2.4,
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontFamily: fonts.title,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   input: {
-    minHeight: 58,
-    backgroundColor: 'rgba(10, 5, 3, 0.74)',
+    backgroundColor: colors.surfaceDeep,
     borderWidth: 1.5,
-    borderColor: 'rgba(244, 192, 119, 0.3)',
-    borderRadius: radii.full,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    borderColor: colors.goldBorder,
+    borderRadius: radii.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     color: colors.textPrimary,
     fontSize: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 3,
   },
   inputError: {
     borderColor: 'rgba(220, 38, 38, 0.7)',
   },
   errorText: {
-    color: '#fda4af',
+    color: '#f87171',
     fontSize: 12,
-    letterSpacing: 0.4,
   },
 })

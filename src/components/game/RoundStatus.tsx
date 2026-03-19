@@ -1,15 +1,15 @@
 import { View, Text, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { brandTypography } from '@/constants/brand'
-import { colors } from '@/constants/theme'
+import { colors, fonts, radii, shadows } from '@/constants/theme'
 
 interface Props {
   roundNumber: number
   maxRounds: number
   phase: string
+  wildcardsRemaining: number
 }
 
-export function RoundStatus({ roundNumber, maxRounds, phase }: Props) {
+export function RoundStatus({ roundNumber, maxRounds, phase, wildcardsRemaining }: Props) {
   const { t } = useTranslation()
 
   const phaseLabels: Record<string, string> = {
@@ -20,46 +20,48 @@ export function RoundStatus({ roundNumber, maxRounds, phase }: Props) {
   }
 
   return (
-    <View style={styles.bar}>
-      <Text style={styles.round}>
-        {roundNumber} / {maxRounds}
-      </Text>
-      <View style={styles.divider} />
+    <View style={styles.shell}>
+      <Text style={styles.round}>{t('game.round', { current: roundNumber, total: maxRounds })}</Text>
       <Text style={styles.phase}>{phaseLabels[phase] ?? phase}</Text>
+      <Text style={styles.wildcards}>{t('game.wildcardsRemaining', { count: wildcardsRemaining })}</Text>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
+  shell: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    borderColor: colors.goldBorder,
+    backgroundColor: 'rgba(16, 9, 5, 0.72)',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: colors.bgDeep,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.goldBorder,
+    gap: 6,
+    ...shadows.surface,
   },
   round: {
     color: colors.textMuted,
-    fontFamily: brandTypography.eyebrow.fontFamily,
-    fontSize: brandTypography.eyebrow.fontSize,
-    lineHeight: brandTypography.eyebrow.lineHeight,
-    letterSpacing: 1.4,
-  },
-  divider: {
-    width: 1,
-    height: 14,
-    backgroundColor: colors.goldBorder,
+    fontSize: 11,
+    fontFamily: fonts.title,
+    letterSpacing: 2.4,
+    textTransform: 'uppercase',
   },
   phase: {
     color: colors.gold,
-    fontFamily: brandTypography.titleSection.fontFamily,
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 18,
+    fontFamily: fonts.title,
     letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  wildcards: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontFamily: fonts.title,
+    letterSpacing: 0.6,
+    textAlign: 'center',
   },
 })

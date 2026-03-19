@@ -1,7 +1,6 @@
-import { ImageBackground, StyleSheet, View } from 'react-native'
+import { ImageBackground, StyleSheet } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import type { ReactNode } from 'react'
-import { brandColors } from '@/constants/brand'
 
 interface BackgroundProps {
   children: ReactNode
@@ -14,9 +13,8 @@ export function Background({ children }: BackgroundProps) {
       style={styles.image}
       resizeMode="cover"
     >
-      <View style={styles.topVeil} />
       <LinearGradient
-        colors={[brandColors.backdropTop, brandColors.backdropMiddle, brandColors.backdropBottom]}
+        colors={['rgba(18,10,6,0.48)', 'rgba(10,6,2,0.62)', 'rgba(18,10,6,0.74)']}
         locations={[0, 0.5, 1]}
         style={styles.gradient}
       >
@@ -29,8 +27,4 @@ export function Background({ children }: BackgroundProps) {
 const styles = StyleSheet.create({
   image: { flex: 1 },
   gradient: { flex: 1 },
-  topVeil: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(18, 9, 4, 0.16)',
-  },
 })
