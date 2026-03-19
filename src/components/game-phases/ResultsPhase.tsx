@@ -1,130 +1,119 @@
-import { useMemo, useState } from 'react'
-import { View, Text, ScrollView, StyleSheet } from 'react-native'
+// src/components/game-phases/ResultsPhase.tsx
+import { useEffect, useRef, useState } from 'react'
+import { ScrollView, StyleSheet, View, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { useRouter } from 'expo-router'
 import { useGameStore } from '@/stores/useGameStore'
 import { useGameActions } from '@/hooks/useGameActions'
+import { ResultsReveal } from '@/components/game/ResultsReveal'
 import { CardGrid } from '@/components/game/CardGrid'
+import { CountdownButton } from '@/components/game/CountdownButton'
 import { ScoreBoard } from '@/components/game/ScoreBoard'
-import { Button } from '@/components/ui/Button'
-import { colors, fonts, radii, shadows } from '@/constants/theme'
+import { fonts } from '@/constants/theme'
 import type { RoomPlayer, RoundScore } from '@/types/game'
+
+const COUNTDOWN_SECONDS = 10
 
 interface Props {
   roomCode: string
+  isHost: boolean
+  isLastRound: boolean
   players: RoomPlayer[]
   roundScores?: RoundScore[]
 }
 
-export function ResultsPhase({ roomCode, players, roundScores = [] }: Props) {
+export function ResultsPhase({ roomCode, isHost, isLastRound, players, roundScores = [] }: Props) {
   const { t } = useTranslation()
+  const router = useRouter()
   const cards = useGameStore((s) => s.cards)
   const round = useGameStore((s) => s.round)
+  const resultsServerOffset = useGameStore((s) => s.resultsServerOffset)
   const { gameAction } = useGameActions()
+  const [confirmed, setConfirmed] = useState(false)
   const [advancing, setAdvancing] = useState(false)
+  const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS)
+  const hasAdvanced = useRef(false)  // prevents double-advance (manual confirm + auto-advance)
 
-  const playerNames = useMemo(
-    () => Object.fromEntries(players.map((p) => [p.player_id, p.display_name])),
-    [players],
-  )
-  const narratorCard = round ? cards.find((c) => c.player_id === round.narrator_id) : null
+  // Compute countdown from server-relative time
+  useEffect(() => {
+    if (!round?.results_started_at) return
+    const startedAt = Date.parse(round.results_started_at)
 
-  async function handleNext() {
+    const tick = () => {
+      const serverNow = Date.now() + resultsServerOffset
+      const elapsed = (serverNow - startedAt) / 1000
+      const remaining = Math.max(0, COUNTDOWN_SECONDS - elapsed)
+      setSecondsRemaining(remaining)
+    }
+
+    tick()
+    const interval = setInterval(tick, 250)
+    return () => clearInterval(interval)
+  }, [round?.results_started_at, resultsServerOffset])
+
+  async function handleAdvance() {
+    if (hasAdvanced.current) return  // guard against double-advance
+    hasAdvanced.current = true
     setAdvancing(true)
-    await gameAction(roomCode, 'next_round')
+    if (isLastRound) {
+      // Navigate to end-of-game screen (no next_round action needed — game is over)
+      router.replace(`/room/${roomCode}/ended`)
+    } else {
+      await gameAction(roomCode, 'next_round')
+    }
     setAdvancing(false)
   }
 
+  async function handleConfirm() {
+    setConfirmed(true)
+    if (isHost) await handleAdvance()
+  }
+
+  const narratorCard = round ? cards.find((c) => c.player_id === round.narrator_id) : null
+  const playerNames = Object.fromEntries(players.map((p) => [p.player_id, p.display_name]))
+
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>{t('game.results')}</Text>
-        <Text style={styles.infoBody}>{t('game.resultsHint')}</Text>
-      </View>
-
       {narratorCard && round?.clue && (
-        <View style={styles.narratorBlock}>
-          <Text style={styles.narratorLabel}>{t('game.narratorCard')}</Text>
-          <Text style={styles.narratorClue}>"{round.clue}"</Text>
-        </View>
+        <ResultsReveal cardUri={narratorCard.image_url} clue={round.clue} />
       )}
 
-      <CardGrid cards={cards} playerNames={playerNames} readonly />
+      <CardGrid
+        cards={cards}
+        playerNames={playerNames}
+        narratorPlayerId={round?.narrator_id}
+        readonly
+      />
 
       <View style={styles.scoreSection}>
         <Text style={styles.scoreLabel}>{t('game.score')}</Text>
         <ScoreBoard players={players} roundScores={roundScores} />
       </View>
 
-      <Text style={styles.nextHint}>{t('game.resultsNextHint')}</Text>
-
-      <Button onPress={handleNext} loading={advancing}>
-        {t('game.nextRound')}
-      </Button>
+      <CountdownButton
+        secondsRemaining={secondsRemaining}
+        totalSeconds={COUNTDOWN_SECONDS}
+        isHost={isHost}
+        confirmed={confirmed}
+        confirmedCount={confirmed ? 1 : 0}
+        totalCount={players.length}
+        isLastRound={isLastRound}
+        onConfirm={handleConfirm}
+        onAutoAdvance={isHost ? handleAdvance : () => {}}
+      />
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { gap: 20, padding: 16 },
-  infoCard: {
-    borderRadius: radii.md,
-    borderWidth: 1.5,
-    borderColor: colors.goldBorder,
-    backgroundColor: 'rgba(18, 10, 6, 0.72)',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    gap: 8,
-    ...shadows.surface,
-  },
-  infoTitle: {
-    color: colors.goldLight,
-    fontSize: 16,
-    fontFamily: fonts.title,
-    letterSpacing: 1,
-    textAlign: 'center',
-  },
-  infoBody: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  narratorBlock: {
-    backgroundColor: colors.surfaceDeep,
-    borderWidth: 1.5,
-    borderColor: colors.goldBorder,
-    borderRadius: 16,
-    padding: 18,
-    alignItems: 'center',
-    gap: 8,
-  },
-  narratorLabel: {
-    color: colors.gold,
-    fontSize: 11,
-    fontFamily: fonts.title,
-    letterSpacing: 3,
-  },
-  narratorClue: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontFamily: fonts.title,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
+  content: { padding: 14, gap: 16 },
   scoreSection: { gap: 8 },
   scoreLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-    letterSpacing: 2.5,
+    color: 'rgba(255, 241, 222, 0.3)',
+    fontSize: 10,
     fontFamily: fonts.title,
+    letterSpacing: 2.5,
     textTransform: 'uppercase',
-    paddingHorizontal: 4,
-  },
-  nextHint: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
   },
 })

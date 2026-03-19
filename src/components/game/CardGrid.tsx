@@ -1,13 +1,14 @@
-import { useCallback } from 'react'
 import { FlatList, View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import type { MaskedCard } from '@/stores/useGameStore'
-import { colors, radii, shadows } from '@/constants/theme'
+import { colors, radii, shadows, fonts } from '@/constants/theme'
 
 interface CardGridProps {
   cards: MaskedCard[]
   selectedId?: string | null
   onSelect?: (card: MaskedCard) => void
   playerNames?: Record<string, string>
+  narratorPlayerId?: string   // highlights narrator's card with gold border + badge
   readonly?: boolean
 }
 
@@ -16,8 +17,10 @@ export function CardGrid({
   selectedId,
   onSelect,
   playerNames,
+  narratorPlayerId,
   readonly = false,
 }: CardGridProps) {
+  const { t } = useTranslation()
   return (
     <FlatList
       data={cards}
@@ -27,9 +30,14 @@ export function CardGrid({
       contentContainerStyle={styles.content}
       renderItem={({ item }) => {
         const isSelected = item.id === selectedId
+        const isNarrator = !!narratorPlayerId && item.player_id === narratorPlayerId
         return (
           <TouchableOpacity
-            style={[styles.cardWrap, isSelected && styles.cardWrapSelected]}
+            style={[
+              styles.cardWrap,
+              isSelected && styles.cardWrapSelected,
+              isNarrator && styles.cardWrapNarrator,
+            ]}
             onPress={() => !readonly && onSelect?.(item)}
             disabled={readonly}
             activeOpacity={0.85}
@@ -39,7 +47,12 @@ export function CardGrid({
               style={styles.image}
               resizeMode="cover"
             />
-            {playerNames && item.player_id && (
+            {isNarrator && (
+              <View style={styles.narratorBadge}>
+                <Text style={styles.narratorBadgeText}>{t('game.narratorBadge')}</Text>
+              </View>
+            )}
+            {playerNames && item.player_id && !isNarrator && (
               <View style={styles.nameBadge}>
                 <Text style={styles.nameText} numberOfLines={1}>
                   {playerNames[item.player_id] ?? '?'}
@@ -75,9 +88,33 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.45,
     shadowRadius: 16,
   },
+  cardWrapNarrator: {
+    borderColor: colors.gold,
+    borderWidth: 3,
+    shadowColor: colors.gold,
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+  },
   image: {
     width: '100%',
     height: '100%',
+  },
+  narratorBadge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(230, 184, 0, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  narratorBadgeText: {
+    color: '#0a0602',
+    fontSize: 10,
+    fontFamily: fonts.title,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 1.5,
   },
   nameBadge: {
     position: 'absolute',
