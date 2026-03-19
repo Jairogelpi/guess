@@ -55,6 +55,13 @@ export function useRound(roomId: string | undefined) {
           const round = payload.new as Round
           setRound(round)
           refreshCards(round.id, round.status)
+          // When round transitions to 'results', capture server time offset for synchronized countdown
+          if (payload.new?.status === 'results' && payload.commit_timestamp) {
+            const serverMs = Date.parse(payload.commit_timestamp)
+            const localMs = Date.now()
+            const offset = serverMs - localMs
+            useGameStore.getState().setResultsServerOffset(offset)
+          }
         },
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cards' }, () => {
