@@ -35,9 +35,7 @@ export function DixitCard({
         ) : uri ? (
           <Image source={{ uri }} style={styles.image} resizeMode="cover" />
         ) : (
-          <View style={styles.placeholder}>
-            <Text style={styles.placeholderText}>?</Text>
-          </View>
+          <Image source={require('../../../assets/carta.png')} style={styles.image} resizeMode="cover" />
         )}
 
         {/* Gold border overlay (selected highlight) */}
@@ -81,11 +79,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceMid,
-  },
-  placeholderText: {
-    color: colors.gold,
-    fontSize: 36,
-    fontWeight: '200',
   },
   selectedOverlay: {
     ...StyleSheet.absoluteFillObject,
