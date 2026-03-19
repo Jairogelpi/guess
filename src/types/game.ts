@@ -5,6 +5,7 @@ export type Database = {
     Tables: {
       cards: {
         Row: {
+          challenge_leader: boolean
           created_at: string
           id: string
           image_url: string
@@ -12,8 +13,10 @@ export type Database = {
           player_id: string
           prompt: string
           round_id: string
+          tactical_action: string | null
         }
         Insert: {
+          challenge_leader?: boolean
           created_at?: string
           id?: string
           image_url: string
@@ -21,8 +24,10 @@ export type Database = {
           player_id: string
           prompt: string
           round_id: string
+          tactical_action?: string | null
         }
         Update: {
+          challenge_leader?: boolean
           created_at?: string
           id?: string
           image_url?: string
@@ -30,6 +35,7 @@ export type Database = {
           player_id?: string
           prompt?: string
           round_id?: string
+          tactical_action?: string | null
         }
         Relationships: [
           {
@@ -148,8 +154,10 @@ export type Database = {
       }
       room_players: {
         Row: {
+          challenge_leader_used: boolean
           display_name: string
           id: string
+          intuition_tokens: number
           is_active: boolean
           is_host: boolean
           joined_at: string
@@ -159,8 +167,10 @@ export type Database = {
           wildcards_remaining: number
         }
         Insert: {
+          challenge_leader_used?: boolean
           display_name: string
           id?: string
+          intuition_tokens?: number
           is_active?: boolean
           is_host?: boolean
           joined_at?: string
@@ -170,8 +180,10 @@ export type Database = {
           wildcards_remaining?: number
         }
         Update: {
+          challenge_leader_used?: boolean
           display_name?: string
           id?: string
+          intuition_tokens?: number
           is_active?: boolean
           is_host?: boolean
           joined_at?: string
@@ -270,6 +282,32 @@ export type Database = {
           },
           {
             foreignKeyName: 'round_scores_round_id_fkey'
+            columns: ['round_id']
+            isOneToOne: false
+            referencedRelation: 'rounds'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      round_resolution_summaries: {
+        Row: {
+          created_at: string
+          round_id: string
+          summary: Json
+        }
+        Insert: {
+          created_at?: string
+          round_id: string
+          summary: Json
+        }
+        Update: {
+          created_at?: string
+          round_id?: string
+          summary?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'round_resolution_summaries_round_id_fkey'
             columns: ['round_id']
             isOneToOne: false
             referencedRelation: 'rounds'
@@ -384,20 +422,29 @@ export type Database = {
       votes: {
         Row: {
           card_id: string
+          challenge_leader: boolean
           id: string
           round_id: string
+          spent_intuition_token: boolean
+          tactical_action: string | null
           voter_id: string
         }
         Insert: {
           card_id: string
+          challenge_leader?: boolean
           id?: string
           round_id: string
+          spent_intuition_token?: boolean
+          tactical_action?: string | null
           voter_id: string
         }
         Update: {
           card_id?: string
+          challenge_leader?: boolean
           id?: string
           round_id?: string
+          spent_intuition_token?: boolean
+          tactical_action?: string | null
           voter_id?: string
         }
         Relationships: [
