@@ -1,4 +1,10 @@
-import { getEligibleVoterCount, subtleBetSucceeded } from './tacticalRules'
+import {
+  firmReadSucceeded,
+  getEligibleVoterCount,
+  inferRoundPlayers,
+  subtleBetSucceeded,
+  trapCardSucceeded,
+} from './tacticalRules'
 
 interface Vote {
   voter_id: string
@@ -20,7 +26,7 @@ export interface ScoreEntry {
 
 interface ScoreInput {
   narratorId: string
-  players: string[] // all active player_ids including narrator
+  players: string[] // room player_ids including narrator
   activePlayers?: string[]
   votes: Vote[]
   playedCards: PlayedCard[]
@@ -33,7 +39,10 @@ export function calculateScores({
   votes,
   playedCards,
 }: ScoreInput): ScoreEntry[] {
-  const roundPlayers = activePlayers ?? players
+  const roundPlayers =
+    activePlayers && activePlayers.length > 0
+      ? activePlayers
+      : inferRoundPlayers(narratorId, playedCards, votes)
   const nonNarrators = roundPlayers.filter((p) => p !== narratorId)
   const narratorCard = playedCards.find((c) => c.player_id === narratorId)
   if (!narratorCard) return []
@@ -78,6 +87,7 @@ export function calculateScores({
   }
 
   const eligibleVoters = getEligibleVoterCount(roundPlayers, narratorId)
+
   if (
     narratorCard.tactical_action === 'subtle_bet' &&
     subtleBetSucceeded(correctVoters.length, eligibleVoters)
@@ -87,6 +97,36 @@ export function calculateScores({
       points: 1,
       reason: 'balanced_clue_bonus',
     })
+  }
+
+  for (const playedCard of playedCards) {
+    if (playedCard.player_id === narratorId || playedCard.tactical_action !== 'trap_card') {
+      continue
+    }
+
+    const wrongVotes = votes.filter(
+      (vote) => vote.card_id === playedCard.id && vote.voter_id !== playedCard.player_id,
+    ).length
+    if (trapCardSucceeded(wrongVotes)) {
+      entries.push({
+        player_id: playedCard.player_id,
+        points: 1,
+        reason: 'trap_card_bonus',
+      })
+    }
+  }
+
+  for (const vote of votes) {
+    if (
+      vote.tactical_action === 'firm_read' &&
+      firmReadSucceeded(vote.card_id === narratorCard.id, correctVoters.length, eligibleVoters)
+    ) {
+      entries.push({
+        player_id: vote.voter_id,
+        points: 1,
+        reason: 'firm_read_bonus',
+      })
+    }
   }
 
   return entries
