@@ -164,6 +164,7 @@ export type Database = {
           player_id: string
           room_id: string
           score: number
+          wildcards_remaining: number
         }
         Insert: {
           challenge_leader_used?: boolean
@@ -176,6 +177,7 @@ export type Database = {
           player_id: string
           room_id: string
           score?: number
+          wildcards_remaining?: number
         }
         Update: {
           challenge_leader_used?: boolean
@@ -188,6 +190,7 @@ export type Database = {
           player_id?: string
           room_id?: string
           score?: number
+          wildcards_remaining?: number
         }
         Relationships: [
           {
@@ -357,6 +360,65 @@ export type Database = {
           },
         ]
       }
+      temporary_generation_assets: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          deleted_at: string | null
+          expires_at: string
+          id: string
+          mime_type: string
+          model: string
+          object_path: string
+          owner_id: string
+          provider: string
+          refined_brief: string
+          room_code: string | null
+          round_id: string | null
+          scope: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          deleted_at?: string | null
+          expires_at: string
+          id?: string
+          mime_type?: string
+          model: string
+          object_path: string
+          owner_id: string
+          provider: string
+          refined_brief: string
+          room_code?: string | null
+          round_id?: string | null
+          scope: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          expires_at?: string
+          id?: string
+          mime_type?: string
+          model?: string
+          object_path?: string
+          owner_id?: string
+          provider?: string
+          refined_brief?: string
+          room_code?: string | null
+          round_id?: string | null
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'temporary_generation_assets_owner_id_fkey'
+            columns: ['owner_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       votes: {
         Row: {
           card_id: string
@@ -427,6 +489,7 @@ export type Vote = Database['public']['Tables']['votes']['Row']
 export type RoundScore = Database['public']['Tables']['round_scores']['Row']
 export type GalleryCard = Database['public']['Tables']['gallery_cards']['Row']
 export type LobbyMessage = Database['public']['Tables']['lobby_messages']['Row']
+export type TemporaryGenerationAsset = Database['public']['Tables']['temporary_generation_assets']['Row']
 
 export type RoomStatus = 'lobby' | 'playing' | 'ended'
 export type RoundStatus = 'narrator_turn' | 'players_turn' | 'voting' | 'results'

@@ -12,6 +12,65 @@ const schema = z.object({
 
 const POINTS_TO_WIN = 30
 
+async function createCardFromGallery(
+  sb: SupabaseClient,
+  roomId: string,
+  roundId: string,
+  userId: string,
+  galleryCardId: string,
+) {
+  const { data: roomPlayer } = await sb
+    .from('room_players')
+    .select('wildcards_remaining')
+    .eq('room_id', roomId)
+    .eq('player_id', userId)
+    .single()
+
+  if (!roomPlayer || roomPlayer.wildcards_remaining <= 0) {
+    return { error: errorResponse('NO_WILDCARDS_LEFT', 'No wildcards remaining') }
+  }
+
+  const { data: galleryCard } = await sb
+    .from('gallery_cards')
+    .select('id, image_url, prompt')
+    .eq('id', galleryCardId)
+    .eq('player_id', userId)
+    .single()
+
+  if (!galleryCard) {
+    return { error: errorResponse('INVALID_GALLERY_CARD', 'Gallery card not found') }
+  }
+
+  const { data: insertedCard, error: insertError } = await sb
+    .from('cards')
+    .insert({
+      round_id: roundId,
+      player_id: userId,
+      image_url: galleryCard.image_url,
+      prompt: galleryCard.prompt,
+      is_played: true,
+    })
+    .select('id')
+    .single()
+
+  if (insertError || !insertedCard) {
+    return { error: errorResponse('INVALID_CARD', 'Could not create round card') }
+  }
+
+  const { error: updateError } = await sb
+    .from('room_players')
+    .update({ wildcards_remaining: roomPlayer.wildcards_remaining - 1 })
+    .eq('room_id', roomId)
+    .eq('player_id', userId)
+
+  if (updateError) {
+    await sb.from('cards').delete().eq('id', insertedCard.id)
+    return { error: errorResponse('NO_WILDCARDS_LEFT', 'Could not spend wildcard') }
+  }
+
+  return { cardId: insertedCard.id }
+}
+
 async function handleStartGame(sb: SupabaseClient, userId: string, roomCode: string) {
   const { data: room } = await sb
     .from('rooms').select('id, status, host_id').eq('code', roomCode).single()
@@ -50,8 +109,10 @@ async function handleSubmitClue(
   roomCode: string,
   payload: unknown,
 ) {
-  const p = payload as { clue: string; card_id: string }
-  if (!p?.clue || !p?.card_id) return errorResponse('INVALID_PAYLOAD', 'Missing clue or card_id')
+  const p = payload as { clue: string; card_id?: string; gallery_card_id?: string }
+  if (!p?.clue || (!p?.card_id && !p?.gallery_card_id)) {
+    return errorResponse('INVALID_PAYLOAD', 'Missing clue and card selection')
+  }
 
   const { data: room } = await sb.from('rooms').select('id').eq('code', roomCode).single()
   if (!room) return errorResponse('ROOM_NOT_FOUND', 'Room not found', 404)
@@ -64,15 +125,24 @@ async function handleSubmitClue(
   if (round.status !== 'narrator_turn') return errorResponse('INVALID_STATE', 'Not narrator phase')
 
   // Verify card belongs to this round and this player
-  const { data: card } = await sb
-    .from('cards').select('id, player_id').eq('id', p.card_id)
-    .eq('round_id', round.id).eq('player_id', userId).single()
-  if (!card) return errorResponse('INVALID_CARD', 'Card not found or not yours')
+  let cardId = p.card_id ?? null
 
-  await sb.from('cards').update({ is_played: true }).eq('id', p.card_id)
+  if (p.card_id) {
+    const { data: card } = await sb
+      .from('cards').select('id, player_id').eq('id', p.card_id)
+      .eq('round_id', round.id).eq('player_id', userId).single()
+    if (!card) return errorResponse('INVALID_CARD', 'Card not found or not yours')
+
+    await sb.from('cards').update({ is_played: true }).eq('id', p.card_id)
+  } else if (p.gallery_card_id) {
+    const result = await createCardFromGallery(sb, room.id, round.id, userId, p.gallery_card_id)
+    if (result.error) return result.error
+    cardId = result.cardId
+  }
+
   await sb.from('rounds').update({ clue: p.clue, status: 'players_turn' }).eq('id', round.id)
 
-  return okResponse({ ok: true })
+  return okResponse({ ok: true, cardId })
 }
 
 async function handleSubmitCard(
@@ -81,8 +151,10 @@ async function handleSubmitCard(
   roomCode: string,
   payload: unknown,
 ) {
-  const p = payload as { card_id: string }
-  if (!p?.card_id) return errorResponse('INVALID_PAYLOAD', 'Missing card_id')
+  const p = payload as { card_id?: string; gallery_card_id?: string }
+  if (!p?.card_id && !p?.gallery_card_id) {
+    return errorResponse('INVALID_PAYLOAD', 'Missing card selection')
+  }
 
   const { data: room } = await sb.from('rooms').select('id').eq('code', roomCode).single()
   if (!room) return errorResponse('ROOM_NOT_FOUND', 'Room not found', 404)
@@ -94,12 +166,20 @@ async function handleSubmitCard(
   if (round.status !== 'players_turn') return errorResponse('INVALID_STATE', 'Not players phase')
   if (round.narrator_id === userId) return errorResponse('NOT_YOUR_TURN', 'Narrator cannot play a card here')
 
-  const { data: card } = await sb
-    .from('cards').select('id, player_id').eq('id', p.card_id)
-    .eq('round_id', round.id).eq('player_id', userId).single()
-  if (!card) return errorResponse('INVALID_CARD', 'Card not found or not yours')
+  let cardId = p.card_id ?? null
 
-  await sb.from('cards').update({ is_played: true }).eq('id', p.card_id)
+  if (p.card_id) {
+    const { data: card } = await sb
+      .from('cards').select('id, player_id').eq('id', p.card_id)
+      .eq('round_id', round.id).eq('player_id', userId).single()
+    if (!card) return errorResponse('INVALID_CARD', 'Card not found or not yours')
+
+    await sb.from('cards').update({ is_played: true }).eq('id', p.card_id)
+  } else if (p.gallery_card_id) {
+    const result = await createCardFromGallery(sb, room.id, round.id, userId, p.gallery_card_id)
+    if (result.error) return result.error
+    cardId = result.cardId
+  }
 
   // Count active non-narrator players vs played non-narrator cards
   const { count: activeNonNarrators } = await sb
@@ -116,7 +196,7 @@ async function handleSubmitCard(
     await sb.from('rounds').update({ status: 'voting' }).eq('id', round.id)
   }
 
-  return okResponse({ ok: true })
+  return okResponse({ ok: true, cardId })
 }
 
 async function handleSubmitVote(
@@ -259,10 +339,17 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) return errorResponse('UNAUTHORIZED', 'Missing auth', 401)
 
-  const { data: { user }, error: authError } = await sb.auth.getUser(
-    authHeader.replace('Bearer ', ''),
-  )
-  if (authError || !user) return errorResponse('UNAUTHORIZED', 'Invalid token', 401)
+  const token = authHeader.replace('Bearer ', '').trim()
+  const { data: { user }, error: authError } = await sb.auth.getUser(token)
+  
+  if (authError || !user) {
+    const internalUrl = Deno.env.get('SUPABASE_URL')
+    return errorResponse(
+      'UNAUTHORIZED', 
+      `${authError?.message || 'Invalid token'} (Token start: ${token.substring(0, 10)}... | Func URL: ${internalUrl})`, 
+      401
+    )
+  }
 
   const body = schema.safeParse(await req.json())
   if (!body.success) return errorResponse('INVALID_PAYLOAD', body.error.message)

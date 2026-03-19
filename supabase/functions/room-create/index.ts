@@ -25,10 +25,17 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) return errorResponse('UNAUTHORIZED', 'Missing auth', 401)
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser(
-    authHeader.replace('Bearer ', ''),
-  )
-  if (authError || !user) return errorResponse('UNAUTHORIZED', 'Invalid token', 401)
+  const token = authHeader.replace('Bearer ', '').trim()
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+  
+  if (authError || !user) {
+    const internalUrl = Deno.env.get('SUPABASE_URL')
+    return errorResponse(
+      'UNAUTHORIZED', 
+      `${authError?.message || 'Invalid token'} (Token start: ${token.substring(0, 10)}... | Func URL: ${internalUrl})`, 
+      401
+    )
+  }
 
   const body = schema.safeParse(await req.json())
   if (!body.success) return errorResponse('INVALID_PAYLOAD', body.error.message)

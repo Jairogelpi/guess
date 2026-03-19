@@ -1,96 +1,167 @@
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 import { handleCors } from '../_shared/cors.ts'
 import { errorResponse, okResponse } from '../_shared/types.ts'
-import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
+import { createSupabaseAdmin } from '../_shared/supabaseAdmin.ts'
+import { buildRefinementMessages } from '../_shared/dixitPrompts.ts'
+import { AI_ERROR_CODES, AiError, ensureAiError } from '../_shared/errors.ts'
+import { callOpenRouter, extractTextContent } from '../_shared/openrouter.ts'
+import {
+  buildPollinationsAuthHeaders,
+  buildPollinationsImageUrl,
+  getPollinationsApiKey,
+  getPollinationsModels,
+} from '../_shared/pollinations.ts'
+import {
+  buildExpiryIso,
+  buildTempAssetPath,
+  createSignedTempUrl,
+  downloadRemoteImage,
+  insertTempAssetRow,
+  uploadTempImage,
+} from '../_shared/tempAssets.ts'
 
-const schema = z.object({ prompt: z.string().min(1).max(500) })
-
-const DIXIT_STYLE = `MANDATORY DIXIT CARD STYLE — applied to every generation without exception.
-OFFICIAL STYLE: Marie Cardouat's signature Dixit illustration technique. NON-NEGOTIABLE.
-MEDIUM: Traditional gouache and watercolor mixed media; opaque color areas with translucent washes,
-visible organic brush strokes, subtle texture, painterly surface, hand-painted authenticity.
-PALETTE: Rich saturated yet soft harmonies — deep oceanic blues, forest greens, warm earth tones,
-coral pinks, golden yellows, creamy whites. Warm vintage palette (teal, saffron, coral, olive).
-Soft bloom and gentle desaturation. Avoid neon.
-LIGHTING: Cinematic dramatic with soft edges — strong directional light, mysterious ambient glow,
-subtle rim lighting on characters, rich color-filled shadows, luminous atmosphere.
-COMPOSITION: Vertical 2:3 card format, sophisticated visual hierarchy, rich detailed backgrounds,
-multiple story layers, balanced negative space, subtle natural vignetting.
-CHARACTER REQUIREMENTS: Extremely stylized elongated proportions, graceful flowing poses,
-expressive simplified features, flowing clothing and hair, elegant gesture language.
-ENVIRONMENT: Incredibly detailed atmospheric backgrounds — architectural elements, natural landscapes,
-interior spaces — all with rich narrative depth and symbolic meaning. Backgrounds NEVER empty.
-TECHNIQUE: 2D stylized illustration — simplified volumes, flat/painterly shading (no photoreal textures),
-optional subtle linework, no camera artifacts, no lens blur/bokeh, no CGI/3D, no ray tracing.
-WATERCOLOR TEXTURE: visible granulation, paper grain, subtle speckling, edge bleeding along color boundaries.
-POETIC AMBIGUITY: One subtle metaphor or double reading connected to the theme — comets, threads, giant leaves,
-fish, ladders — without adding unrelated subjects.
-TIMELESSNESS: No contemporary items (no computer monitors, modern blinds, UI, brand-like shapes).
-ABSOLUTELY FORBIDDEN: No text, letters, numbers, logos, watermarks, photorealism, digital artifacts.`
-
-const DIXIT_SYSTEM = `MANDATORY: Transform user's request into AUTHENTIC Marie Cardouat Dixit card style. NON-NEGOTIABLE.
-
-FORCED STYLE COMPLIANCE: Every output MUST match Marie Cardouat's signature Dixit illustration technique exactly.
-REQUIRED TECHNIQUE: Gouache watercolor mixed media, visible brush strokes, painterly surface, hand-painted quality.
-STRICT 2D: Produce a 2D stylized illustration look (no photorealism, no camera/lens effects, no 3D/CGI).
-TEXTURE REQUIREMENT: Watercolor/gouache granulation, paper grain, subtle speckling and edge bleeding.
-COLOR REQUIREMENT: Warm vintage palette (teal, saffron, coral, olive) with soft bloom; avoid neon/high-chroma.
-
-MANDATORY ENHANCEMENTS:
-- Characters: ALWAYS extremely elongated graceful proportions, flowing poses, expressive simplified faces
-- Environment: ALWAYS incredibly detailed atmospheric backgrounds (architectural/landscape richness)
-- Lighting: ALWAYS dramatic directional lighting with soft edges, rich colored shadows, luminous glow
-- Palette: ALWAYS deep oceanic blues, forest greens, warm earth tones, coral pinks, golden highlights
-- Composition: ALWAYS sophisticated visual hierarchy, multiple narrative layers, natural vignetting
-- Symbolism: Introduce ONE subtle metaphor tied to the theme without changing subjects
-- Timelessness: Prefer props and settings without overtly modern specifics
-
-ABSOLUTE REQUIREMENTS:
-- MUST look exactly like an authentic Dixit card by Marie Cardouat
-- NEVER add subjects not in user's request
-- NEVER alter user's core concept — only enhance with official Dixit visual treatment
-- INTELLIGENT INTERPRETATION: Transform literal concepts into poetic visual metaphors
-- ARTISTIC SOPHISTICATION: Elevate simple prompts with rich symbolic depth and narrative layers
-- Output single focused paragraph under 1000 characters describing exact scene in Dixit style`
-
-function makePollinationsUrl(prompt: string, seed: number): string {
-  const enforced = `DIXIT CARD STYLE (2D ILLUSTRATION): ${prompt}. Marie Cardouat illustration style; gouache+watercolor with visible granulation, paper grain and edge bleeding; subtle pencil underdrawing; flat painterly shading, simplified volumes; warm vintage palette (teal, saffron, coral, olive) with soft bloom; gentle surreal metaphor tied to prompt; elongated proportions; cinematic diffuse light with rim light; rich narrative background; timeless props (no modern devices); no photorealism, no lens effects, no 3D.`
-  const params = new URLSearchParams({
-    seed: String(seed),
-    model: 'flux-illumin8',
-    width: '768',
-    height: '1152',
-    nologo: 'true',
-  })
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(enforced)}?${params}`
-}
+const schema = z.object({
+  prompt: z.string().min(1).max(500),
+  scope: z.enum(['round', 'gallery']),
+  roomCode: z.string().min(1).optional(),
+  roundId: z.string().uuid().optional(),
+})
 
 Deno.serve(async (req) => {
   const corsResult = handleCors(req)
   if (corsResult) return corsResult
 
-  const body = schema.safeParse(await req.json())
-  if (!body.success) return errorResponse('INVALID_PAYLOAD', body.error.message)
+  try {
+    const supabase = createSupabaseAdmin()
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) return errorResponse('UNAUTHORIZED', 'Missing auth', 401)
 
-  const openaiKey = Deno.env.get('OPENAI_API_KEY')
-  if (!openaiKey) return errorResponse('CONFIG_ERROR', 'Missing OpenAI key', 500)
+    const token = authHeader.replace('Bearer ', '').trim()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token)
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${openaiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: DIXIT_SYSTEM },
-        { role: 'user', content: `User prompt: ${body.data.prompt}\nStyle anchors:\n${DIXIT_STYLE}` },
-      ],
-      temperature: 0.3,
-    }),
-  })
-  const json = (await response.json()) as { choices: Array<{ message: { content: string } }> }
-  const brief = json.choices[0]?.message.content?.trim() ?? body.data.prompt
+    if (authError || !user) {
+      const internalUrl = Deno.env.get('SUPABASE_URL')
+      return errorResponse(
+        'UNAUTHORIZED', 
+        `${authError?.message || 'Invalid token'} (Token start: ${token.substring(0, 10)}... | Func URL: ${internalUrl})`, 
+        401
+      )
+    }
 
-  const seed = Math.floor(Math.random() * 2_147_483_647)
-  const url = makePollinationsUrl(brief, seed)
+    const body = schema.safeParse(await req.json())
+    if (!body.success) return errorResponse('INVALID_PAYLOAD', body.error.message)
 
-  return okResponse({ url, brief })
+    if (body.data.scope === 'round' && (!body.data.roomCode || !body.data.roundId)) {
+      return errorResponse(
+        AI_ERROR_CODES.MISSING_ROOM_CONTEXT,
+        'Round generation requires room context',
+        400,
+      )
+    }
+
+    const refinementPayload = await callOpenRouter({
+      messages: buildRefinementMessages(body.data.prompt),
+      temperature: 0.4,
+      failureCode: 'PROMPT_REFINEMENT_FAILED',
+    })
+
+    const brief = extractTextContent(refinementPayload) || body.data.prompt
+    const { primary, fallback } = getPollinationsModels()
+    const pollinationsKey = getPollinationsApiKey()
+    if (!pollinationsKey) {
+      throw new AiError(AI_ERROR_CODES.AI_CONFIG_ERROR, 'Missing Pollinations API key')
+    }
+    const seed = Math.floor(Math.random() * 2_147_483_647)
+
+    let selectedModel: string = primary
+    let imageBytes: ArrayBuffer | null = null
+    let contentType = 'image/jpeg'
+
+    for (const model of [primary, fallback]) {
+      const candidateUrl = buildPollinationsImageUrl({ prompt: brief, model, seed })
+
+      try {
+        const download = await downloadRemoteImage(
+          candidateUrl,
+          buildPollinationsAuthHeaders(pollinationsKey),
+        )
+        selectedModel = model
+        imageBytes = download.bytes
+        contentType = download.contentType
+        break
+      } catch (error) {
+        if (model === fallback) {
+          throw new AiError(
+            AI_ERROR_CODES.IMAGE_PROVIDER_FAILED,
+            error instanceof Error ? error.message : 'Pollinations image generation failed',
+          )
+        }
+      }
+    }
+
+    if (!imageBytes) {
+      throw new AiError(AI_ERROR_CODES.IMAGE_PROVIDER_FAILED, 'No image bytes returned')
+    }
+
+    const nowIso = new Date().toISOString()
+    const expiresAt = buildExpiryIso(nowIso)
+    const bucketId = 'round-temp'
+    const objectPath = buildTempAssetPath({
+      scope: body.data.scope,
+      roomCode: body.data.roomCode,
+      roundId: body.data.roundId,
+      userId: user.id,
+      timestampMs: Date.now(),
+    })
+
+    await uploadTempImage({
+      supabase,
+      bucketId,
+      objectPath,
+      bytes: imageBytes,
+      contentType,
+    })
+
+    const imageUrl = await createSignedTempUrl({
+      supabase,
+      bucketId,
+      objectPath,
+      expiresInSeconds: 60 * 60,
+    })
+
+    await insertTempAssetRow({
+      supabase,
+      row: {
+        bucket_id: bucketId,
+        object_path: objectPath,
+        scope: body.data.scope,
+        room_code: body.data.roomCode ?? null,
+        round_id: body.data.roundId ?? null,
+        owner_id: user.id,
+        provider: 'pollinations',
+        model: selectedModel,
+        refined_brief: brief,
+        mime_type: contentType,
+        expires_at: expiresAt,
+      },
+    })
+
+    return okResponse({
+      imageUrl,
+      brief,
+      provider: 'pollinations',
+      model: selectedModel,
+      expiresAt,
+    })
+  } catch (error) {
+    const aiError = ensureAiError(
+      error,
+      AI_ERROR_CODES.IMAGE_PROVIDER_FAILED,
+      'Image generation failed',
+    )
+    return errorResponse(aiError.code, aiError.message, aiError.status)
+  }
 })
