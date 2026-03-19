@@ -1,5 +1,5 @@
 import type { ScoreEntry } from './scoring'
-import { getEligibleVoterCount, normalizeRoundPlayers } from './tacticalRules'
+import { getEligibleVoterCount, inferRoundPlayers, normalizeRoundPlayers } from './tacticalRules'
 
 type CardTacticalAction = 'subtle_bet' | 'trap_card' | null | undefined
 type VoteTacticalAction = 'firm_read' | null | undefined
@@ -28,6 +28,7 @@ export interface RoundResolutionSummaryInput {
   narratorId: string
   narratorCardId: string
   clue: string | null
+  players?: string[]
   votes: Vote[]
   playedCards: PlayedCard[]
   scoreEntries: ScoreEntry[]
@@ -78,19 +79,10 @@ const TACTICAL_REASON_BY_ACTION = {
 function normalizeRoundResolutionInput(
   input: RoundResolutionSummaryInput,
 ): NormalizedRoundResolutionInput {
-  const playerRoster = Array.from(
-    new Set([
-      input.narratorId,
-      ...Object.keys(input.scoresBefore),
-      ...Object.keys(input.scoresAfter),
-    ]),
-  )
-  const roundPlayers = normalizeRoundPlayers(
-    playerRoster,
-    input.narratorId,
-    input.playedCards,
-    input.votes,
-  )
+  const roundPlayers =
+    input.players && input.players.length > 0
+      ? normalizeRoundPlayers(input.players, input.narratorId, input.playedCards, input.votes)
+      : inferRoundPlayers(input.narratorId, input.playedCards, input.votes)
   const roundPlayerSet = new Set(
     roundPlayers.includes(input.narratorId)
       ? roundPlayers
