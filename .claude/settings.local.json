@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:openrouter.ai)",
+      "Bash(grep -r \"pollinations\\\\|model\\\\|flux\\\\|dall\\\\|stable\" 'C:/Users/jairo/Desktop/PROYECTO GUESSTHEPRONT/DIXITAI/src' --include=*.js --include=*.ts --include=*.tsx -n)",
+      "Bash(grep -r \"pollinations\\\\|model\\\\|flux\\\\|dall\\\\|stable\\\\|image\\\\|generate\" 'C:/Users/jairo/Desktop/PROYECTO GUESSTHEPRONT/DIXITAI/src' --include=*.js --include=*.ts --include=*.tsx -n)",
+      "mcp__plugin_supabase_supabase__deploy_edge_function",
+      "mcp__plugin_supabase_supabase__get_logs"
+    ]
+  }
+}
