@@ -1,233 +1,149 @@
+// src/components/game-phases/PlayersPhase.tsx
 import { useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { useGameStore } from '@/stores/useGameStore'
 import { useGameActions } from '@/hooks/useGameActions'
-import { CardGenerator } from '@/components/game/CardGenerator'
-import { DixitCard } from '@/components/ui/DixitCard'
-import { Button } from '@/components/ui/Button'
-import { colors, fonts, radii, shadows } from '@/constants/theme'
-import type { GalleryCard } from '@/types/game'
+import { useImageGen } from '@/hooks/useImageGen'
+import { usePromptSuggest } from '@/hooks/usePromptSuggest'
+import { HandGrid } from '@/components/game/HandGrid'
+import { ClueHero } from '@/components/game/ClueHero'
+import { WaitingCard } from '@/components/game/WaitingCard'
+import type { HandSlot } from '@/components/game/HandGrid'
+import type { RoomPlayer } from '@/types/game'
 
 interface Props {
   roomCode: string
-  narratorClue: string | null
-  isWaiting: boolean
-  wildcardsRemaining: number
+  narratorName: string
+  narratorAvatar?: string
+  isNarrator: boolean
+  players: RoomPlayer[]          // non-narrator players
+  submittedPlayerIds: string[]
+  roundNumber: number
+  maxRounds: number
 }
 
-type SelectedPlayerCard =
-  | { kind: 'generated'; imageUrl: string; prompt: string; cardId: string }
-  | { kind: 'gallery'; imageUrl: string; prompt: string; galleryCardId: string }
+const EMPTY_SLOTS: HandSlot[] = [
+  { id: 'slot-0', isSelected: false },
+  { id: 'slot-1', isSelected: false },
+  { id: 'slot-2', isSelected: false },
+]
 
-export function PlayersPhase({ roomCode, narratorClue, isWaiting, wildcardsRemaining }: Props) {
+export function PlayersPhase({
+  roomCode,
+  narratorName,
+  narratorAvatar,
+  isNarrator,
+  players,
+  submittedPlayerIds,
+}: Props) {
   const { t } = useTranslation()
   const { userId } = useAuth()
   const round = useGameStore((s) => s.round)
   const myPlayedCardId = useGameStore((s) => s.myPlayedCardId)
   const setMyPlayedCardId = useGameStore((s) => s.setMyPlayedCardId)
-  const { gameAction, gameActionResult, insertCard } = useGameActions()
+  const { gameAction, insertCard } = useGameActions()
+  const { loading: generating, generate } = useImageGen()
+  const { suggest } = usePromptSuggest()
 
-  const [selectedCard, setSelectedCard] = useState<SelectedPlayerCard | null>(null)
+  const [slots, setSlots] = useState<HandSlot[]>(EMPTY_SLOTS)
+  const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(0)
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleSelectCard(imageUrl: string, prompt: string) {
+  const selectedSlot = slots.find((s) => s.isSelected)
+  const clue = round?.clue ?? undefined
+  const hasSubmitted = isNarrator || !!myPlayedCardId
+  const submittedCount = submittedPlayerIds.length
+
+  async function handleGenerate(index: number, prompt: string) {
     if (!round || !userId) return
-    const cardId = await insertCard(round.id, userId, imageUrl, prompt)
-    if (cardId) {
-      setSelectedCard({ kind: 'generated', imageUrl, prompt, cardId })
+    const result = await generate({ prompt, scope: 'round', roomCode, roundId: round.id })
+    if (!result?.imageUrl) return
+    const cardId = await insertCard(round.id, userId, result.imageUrl, result.brief ?? prompt)
+    if (!cardId) return
+    setSlots((prev) =>
+      prev.map((s, i) => i === index ? { ...s, id: cardId, imageUri: result.imageUrl } : s),
+    )
+    if (!slots.some((s) => s.isSelected)) {
+      setSlots((prev) => prev.map((s, i) => ({ ...s, isSelected: i === index })))
     }
+    setActiveSlotIndex(null)
   }
 
-  function handleSelectGalleryCard(card: GalleryCard) {
-    setSelectedCard({
-      kind: 'gallery',
-      imageUrl: card.image_url,
-      prompt: card.prompt,
-      galleryCardId: card.id,
-    })
+  async function handleSuggest(_index: number): Promise<string> {
+    return (await suggest()) ?? ''
   }
 
-  async function handleSubmitCard() {
-    if (!selectedCard) return
+  function handleSelect(index: number) {
+    setSlots((prev) => prev.map((s, i) => ({ ...s, isSelected: i === index })))
+  }
+
+  async function handleSubmit() {
+    if (!selectedSlot?.id || !selectedSlot.imageUri) return
     setSubmitting(true)
-
-    let ok = false
-
-    if (selectedCard.kind === 'generated') {
-      ok = await gameAction(roomCode, 'submit_card', { card_id: selectedCard.cardId })
-      if (ok) setMyPlayedCardId(selectedCard.cardId)
-    } else {
-      const result = await gameActionResult<{ ok: true; cardId: string }>(roomCode, 'submit_card', {
-        gallery_card_id: selectedCard.galleryCardId,
-      })
-      if (result?.cardId) {
-        setMyPlayedCardId(result.cardId)
-        ok = true
-      }
-    }
-
-    if (!ok) setSubmitting(false)
+    const ok = await gameAction(roomCode, 'submit_card', { card_id: selectedSlot.id })
+    if (ok) setMyPlayedCardId(selectedSlot.id)
+    setSubmitting(false)
   }
 
-  if (isWaiting || myPlayedCardId) {
-    const waitingTitle = !narratorClue
-      ? t('game.waitingNarratorTitle')
-      : myPlayedCardId
-        ? t('game.waitingPlayersTitle')
-        : t('game.waitingSubmissionTitle')
-
-    const waitingBody = !narratorClue
-      ? t('game.waitingNarratorBody')
-      : myPlayedCardId
-        ? t('game.waitingPlayersBody')
-        : t('game.waitingSubmissionBody')
-
+  if (hasSubmitted) {
     return (
-      <View style={styles.waiting}>
-        <ActivityIndicator color={colors.gold} size="large" />
-        <Text style={styles.waitingTitle}>{waitingTitle}</Text>
-        <Text style={styles.waitingBody}>{waitingBody}</Text>
-      </View>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        {clue && <ClueHero clue={clue} />}
+        <WaitingCard
+          narratorName={narratorName}
+          narratorAvatar={narratorAvatar}
+          clue={clue}
+          submittedCount={submittedCount}
+          expectedCount={players.length}
+          isCurrentUserNarrator={isNarrator}
+          currentUserId={userId ?? ''}
+          submittedPlayerIds={submittedPlayerIds}
+          contextMessage={t('game.waitingForPlayers')}
+        />
+      </ScrollView>
     )
   }
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>{t('game.playersIntro')}</Text>
-        <Text style={styles.infoBody}>{t('game.playersHint')}</Text>
+      {clue && <ClueHero clue={clue} />}
+      <HandGrid
+        slots={slots}
+        activeSlotIndex={activeSlotIndex}
+        onSlotPress={setActiveSlotIndex}
+        onSelect={handleSelect}
+        onGenerate={handleGenerate}
+        onSuggestPrompt={handleSuggest}
+        generating={generating}
+        clue={clue}
+      />
+      <View style={[styles.submitBtn, (!selectedSlot?.imageUri || submitting) && styles.submitBtnDisabled]}>
+        <Text
+          style={styles.submitBtnText}
+          onPress={handleSubmit}
+        >
+          {submitting ? '...' : t('game.playThisCard')}
+        </Text>
       </View>
-
-      {narratorClue && (
-        <View style={styles.clueCard}>
-          <Text style={styles.clueLabel}>{t('game.narratorClue')}</Text>
-          <Text style={styles.clueText}>{narratorClue}</Text>
-        </View>
-      )}
-
-      {!selectedCard ? (
-        <CardGenerator
-          scope="round"
-          roomCode={roomCode}
-          roundId={round?.id}
-          wildcardsRemaining={wildcardsRemaining}
-          onSelect={handleSelectCard}
-          onSelectGalleryCard={handleSelectGalleryCard}
-        />
-      ) : (
-        <View style={styles.selectionBlock}>
-          <View style={styles.selectedCardWrap}>
-            <DixitCard uri={selectedCard.imageUrl} />
-          </View>
-
-          <Text style={styles.selectedHint}>{t('game.playersSelectedHint')}</Text>
-          {selectedCard.kind === 'gallery' && (
-            <Text style={styles.wildcardHint}>{t('game.wildcardSpendHint')}</Text>
-          )}
-
-          <View style={styles.actions}>
-            <Button onPress={handleSubmitCard} loading={submitting}>
-              {t('game.submitCard')}
-            </Button>
-            <Button onPress={() => setSelectedCard(null)} variant="ghost">
-              {t('game.changeCard')}
-            </Button>
-          </View>
-        </View>
-      )}
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { gap: 20, padding: 16 },
-  waiting: {
-    flex: 1,
+  content: { padding: 14, gap: 14 },
+  submitBtn: {
+    backgroundColor: '#f97316',
+    borderRadius: 10,
+    paddingVertical: 14,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingHorizontal: 32,
   },
-  waitingTitle: {
-    color: colors.goldLight,
-    fontSize: 16,
-    fontFamily: fonts.title,
-    letterSpacing: 0.8,
-    textAlign: 'center',
-  },
-  waitingBody: {
-    color: colors.textSecondary,
+  submitBtnDisabled: { opacity: 0.35 },
+  submitBtnText: {
+    color: '#fff7ea',
     fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  infoCard: {
-    borderRadius: radii.md,
-    borderWidth: 1.5,
-    borderColor: colors.goldBorder,
-    backgroundColor: 'rgba(18, 10, 6, 0.72)',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    gap: 8,
-    ...shadows.surface,
-  },
-  infoTitle: {
-    color: colors.goldLight,
-    fontSize: 15,
-    fontFamily: fonts.title,
-    letterSpacing: 1,
-    textAlign: 'center',
-  },
-  infoBody: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  clueCard: {
-    backgroundColor: colors.surfaceDeep,
-    borderWidth: 1.5,
-    borderColor: colors.goldBorder,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    gap: 10,
-  },
-  clueLabel: {
-    color: colors.gold,
-    fontSize: 11,
-    fontFamily: fonts.title,
-    letterSpacing: 3,
-  },
-  clueText: {
-    color: colors.textPrimary,
-    fontSize: 22,
-    fontFamily: fonts.title,
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  selectionBlock: {
-    gap: 16,
-  },
-  selectedCardWrap: {
-    width: '55%',
-    alignSelf: 'center',
-  },
-  selectedHint: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  wildcardHint: {
-    color: colors.goldLight,
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  actions: {
-    gap: 12,
+    fontWeight: '700',
   },
 })
