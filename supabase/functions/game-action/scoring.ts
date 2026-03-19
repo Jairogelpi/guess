@@ -1,11 +1,15 @@
+import { getEligibleVoterCount, subtleBetSucceeded } from './tacticalRules'
+
 interface Vote {
   voter_id: string
   card_id: string
+  tactical_action?: 'firm_read' | null
 }
 
 interface PlayedCard {
   id: string
   player_id: string
+  tactical_action?: 'subtle_bet' | 'trap_card' | null
 }
 
 export interface ScoreEntry {
@@ -17,6 +21,7 @@ export interface ScoreEntry {
 interface ScoreInput {
   narratorId: string
   players: string[] // all active player_ids including narrator
+  activePlayers?: string[]
   votes: Vote[]
   playedCards: PlayedCard[]
 }
@@ -24,10 +29,12 @@ interface ScoreInput {
 export function calculateScores({
   narratorId,
   players,
+  activePlayers,
   votes,
   playedCards,
 }: ScoreInput): ScoreEntry[] {
-  const nonNarrators = players.filter((p) => p !== narratorId)
+  const roundPlayers = activePlayers ?? players
+  const nonNarrators = roundPlayers.filter((p) => p !== narratorId)
   const narratorCard = playedCards.find((c) => c.player_id === narratorId)
   if (!narratorCard) return []
 
@@ -68,6 +75,18 @@ export function calculateScores({
     if (owner && owner !== vote.voter_id) {
       entries.push({ player_id: owner, points: 1, reason: 'received_vote' })
     }
+  }
+
+  const eligibleVoters = getEligibleVoterCount(roundPlayers, narratorId)
+  if (
+    narratorCard.tactical_action === 'subtle_bet' &&
+    subtleBetSucceeded(correctVoters.length, eligibleVoters)
+  ) {
+    entries.push({
+      player_id: narratorId,
+      points: 1,
+      reason: 'balanced_clue_bonus',
+    })
   }
 
   return entries
