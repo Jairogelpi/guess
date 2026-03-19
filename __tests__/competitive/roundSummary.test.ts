@@ -14,6 +14,53 @@ function applyScoreEntries(
 }
 
 describe('buildRoundResolutionSummary', () => {
+  test('supports partial score maps by inferring participants from round data when no roster is provided', () => {
+    const summary = buildRoundResolutionSummary({
+      roundId: 'round-plan',
+      narratorId: 'narrator',
+      narratorCardId: 'card-n',
+      clue: 'moonlight',
+      votes: [
+        { voter_id: 'p1', card_id: 'card-x' },
+        { voter_id: 'p2', card_id: 'card-n' },
+        { voter_id: 'p3', card_id: 'card-x' },
+      ],
+      playedCards: [
+        { id: 'card-n', player_id: 'narrator', tactical_action: 'subtle_bet' },
+        { id: 'card-x', player_id: 'p4', tactical_action: 'trap_card' },
+      ],
+      scoreEntries: [{ player_id: 'p4', reason: 'trap_card_bonus', points: 1 }],
+      scoresBefore: { narrator: 6, p4: 4 },
+      scoresAfter: { narrator: 9, p4: 6 },
+    })
+
+    expect(summary.correctVoterIds).toEqual(['p2'])
+    expect(summary.deceptionEvents).toEqual([
+      expect.objectContaining({
+        sourcePlayerId: 'p4',
+        fooledPlayerId: 'p1',
+        cardId: 'card-x',
+        trapCard: true,
+      }),
+      expect.objectContaining({
+        sourcePlayerId: 'p4',
+        fooledPlayerId: 'p3',
+        cardId: 'card-x',
+        trapCard: true,
+      }),
+    ])
+    expect(summary.tacticalEvents).toContainEqual(
+      expect.objectContaining({
+        playerId: 'p4',
+        type: 'trap_card',
+        success: true,
+        pointsDelta: 1,
+        intuitionDelta: 1,
+        description: 'Trap card fooled 2 players',
+      }),
+    )
+  })
+
   test('tracks phase 1 tactical results with intuition deltas and readable descriptions', () => {
     const playedCards = [
       { id: 'card-n', player_id: 'narrator', tactical_action: 'subtle_bet' as const },
@@ -138,6 +185,7 @@ describe('buildRoundResolutionSummary', () => {
       narratorId: 'narrator',
       narratorCardId: 'card-n',
       clue: 'fog',
+      players: ['narrator', 'p1', 'p2', 'p3', 'bench-1'],
       votes,
       playedCards,
       scoreEntries,
