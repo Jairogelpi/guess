@@ -1,5 +1,5 @@
 import type { ScoreEntry } from './scoring'
-import { getEligibleVoterCount, inferRoundPlayers } from './tacticalRules'
+import { getEligibleVoterCount, normalizeRoundPlayers } from './tacticalRules'
 
 type CardTacticalAction = 'subtle_bet' | 'trap_card' | null | undefined
 type VoteTacticalAction = 'firm_read' | null | undefined
@@ -64,6 +64,10 @@ export interface RoundResolutionSummary {
   }>
 }
 
+interface NormalizedRoundResolutionInput extends RoundResolutionSummaryInput {
+  roundPlayers: string[]
+}
+
 const TACTICAL_REASON_BY_ACTION = {
   subtle_bet: 'balanced_clue_bonus',
   trap_card: 'trap_card_bonus',
@@ -71,7 +75,37 @@ const TACTICAL_REASON_BY_ACTION = {
   challenge_leader: 'leader_challenge_bonus',
 } as const
 
-function buildDeceptionEvents(input: RoundResolutionSummaryInput) {
+function normalizeRoundResolutionInput(
+  input: RoundResolutionSummaryInput,
+): NormalizedRoundResolutionInput {
+  const playerRoster = Array.from(
+    new Set([
+      input.narratorId,
+      ...Object.keys(input.scoresBefore),
+      ...Object.keys(input.scoresAfter),
+    ]),
+  )
+  const roundPlayers = normalizeRoundPlayers(
+    playerRoster,
+    input.narratorId,
+    input.playedCards,
+    input.votes,
+  )
+  const roundPlayerSet = new Set(
+    roundPlayers.includes(input.narratorId)
+      ? roundPlayers
+      : [input.narratorId, ...roundPlayers],
+  )
+
+  return {
+    ...input,
+    roundPlayers,
+    votes: input.votes.filter((vote) => roundPlayerSet.has(vote.voter_id)),
+    playedCards: input.playedCards.filter((card) => roundPlayerSet.has(card.player_id)),
+  }
+}
+
+function buildDeceptionEvents(input: NormalizedRoundResolutionInput) {
   const cardsById = new Map(input.playedCards.map((card) => [card.id, card]))
 
   return input.votes.flatMap((vote) => {
@@ -131,11 +165,10 @@ function formatFirmReadDescription(isCorrectVote: boolean, hardRound: boolean) {
 }
 
 function buildTacticalEvents(
-  input: RoundResolutionSummaryInput,
+  input: NormalizedRoundResolutionInput,
   deceptionEvents: RoundResolutionSummary['deceptionEvents'],
 ) {
-  const roundPlayers = inferRoundPlayers(input.narratorId, input.playedCards, input.votes)
-  const eligibleVoters = getEligibleVoterCount(roundPlayers, input.narratorId)
+  const eligibleVoters = getEligibleVoterCount(input.roundPlayers, input.narratorId)
   const correctVoteCount = input.votes.filter((vote) => vote.card_id === input.narratorCardId).length
   const hardRound = eligibleVoters > 0 && correctVoteCount < Math.ceil(eligibleVoters / 2)
 
@@ -256,18 +289,19 @@ function buildLeaderboardDeltas(
 export function buildRoundResolutionSummary(
   input: RoundResolutionSummaryInput,
 ): RoundResolutionSummary {
-  const deceptionEvents = buildDeceptionEvents(input)
+  const normalizedInput = normalizeRoundResolutionInput(input)
+  const deceptionEvents = buildDeceptionEvents(normalizedInput)
 
   return {
-    roundId: input.roundId,
-    narratorId: input.narratorId,
-    narratorCardId: input.narratorCardId,
-    clue: input.clue,
-    correctVoterIds: input.votes
+    roundId: normalizedInput.roundId,
+    narratorId: normalizedInput.narratorId,
+    narratorCardId: normalizedInput.narratorCardId,
+    clue: normalizedInput.clue,
+    correctVoterIds: normalizedInput.votes
       .filter((vote) => vote.card_id === input.narratorCardId)
       .map((vote) => vote.voter_id),
     deceptionEvents,
-    tacticalEvents: buildTacticalEvents(input, deceptionEvents),
-    leaderboardDeltas: buildLeaderboardDeltas(input.scoresBefore, input.scoresAfter),
+    tacticalEvents: buildTacticalEvents(normalizedInput, deceptionEvents),
+    leaderboardDeltas: buildLeaderboardDeltas(normalizedInput.scoresBefore, normalizedInput.scoresAfter),
   }
 }

@@ -52,6 +52,23 @@ describe('buildRoundResolutionSummary', () => {
     })
 
     expect(summary.correctVoterIds).toEqual(['p2', 'p5'])
+    expect(summary.deceptionEvents).toHaveLength(3)
+    expect(summary.deceptionEvents).toContainEqual(
+      expect.objectContaining({
+        sourcePlayerId: 'p3',
+        fooledPlayerId: 'p1',
+        cardId: 'card-c',
+        trapCard: true,
+      }),
+    )
+    expect(summary.deceptionEvents).toContainEqual(
+      expect.objectContaining({
+        sourcePlayerId: 'p4',
+        fooledPlayerId: 'p3',
+        cardId: 'card-d',
+        trapCard: false,
+      }),
+    )
     expect(summary.tacticalEvents).toContainEqual(
       expect.objectContaining({
         playerId: 'narrator',
@@ -89,6 +106,68 @@ describe('buildRoundResolutionSummary', () => {
         scoreAfter: 7,
         positionBefore: 3,
         positionAfter: 2,
+      }),
+    )
+  })
+
+  test('ignores out-of-roster votes when deriving summary events and hard-round reads', () => {
+    const playedCards = [
+      { id: 'card-n', player_id: 'narrator', tactical_action: null },
+      { id: 'card-a', player_id: 'p1', tactical_action: null },
+      { id: 'card-b', player_id: 'p2', tactical_action: null },
+      { id: 'card-c', player_id: 'p3', tactical_action: 'trap_card' as const },
+    ]
+    const votes = [
+      { voter_id: 'p1', card_id: 'card-n', tactical_action: 'firm_read' as const },
+      { voter_id: 'p2', card_id: 'card-c', tactical_action: null },
+      { voter_id: 'p3', card_id: 'card-b', tactical_action: null },
+      { voter_id: 'spectator', card_id: 'card-n', tactical_action: null },
+      { voter_id: 'outsider', card_id: 'card-c', tactical_action: null },
+    ]
+    const scoreEntries = calculateScores({
+      narratorId: 'narrator',
+      players: ['narrator', 'p1', 'p2', 'p3', 'bench-1'],
+      votes,
+      playedCards,
+    })
+    const scoresBefore = { narrator: 4, p1: 2, p2: 1, p3: 3, 'bench-1': 0 }
+    const scoresAfter = applyScoreEntries(scoresBefore, scoreEntries)
+
+    const summary = buildRoundResolutionSummary({
+      roundId: 'round-1b',
+      narratorId: 'narrator',
+      narratorCardId: 'card-n',
+      clue: 'fog',
+      votes,
+      playedCards,
+      scoreEntries,
+      scoresBefore,
+      scoresAfter,
+    })
+
+    expect(summary.correctVoterIds).toEqual(['p1'])
+    expect(summary.deceptionEvents).toEqual([
+      expect.objectContaining({
+        sourcePlayerId: 'p3',
+        fooledPlayerId: 'p2',
+        cardId: 'card-c',
+        trapCard: true,
+      }),
+      expect.objectContaining({
+        sourcePlayerId: 'p2',
+        fooledPlayerId: 'p3',
+        cardId: 'card-b',
+        trapCard: false,
+      }),
+    ])
+    expect(summary.tacticalEvents).toContainEqual(
+      expect.objectContaining({
+        playerId: 'p1',
+        type: 'firm_read',
+        success: true,
+        pointsDelta: 1,
+        intuitionDelta: 1,
+        description: 'Firm Read found the narrator in a hard round',
       }),
     )
   })
