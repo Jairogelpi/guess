@@ -75,7 +75,8 @@ On the data side, tighten the initial fetch path so the lobby hydrates in a stab
 1. resolve the room by `code`
 2. fetch the matching `room_players`
 3. sort host first, then by `joined_at`
-4. only show the full lobby once that first player hydration completes
+4. render the hero room card as soon as the room itself is known
+5. keep the roster and role-dependent action area in a short preparation state until the first player hydration completes
 
 This keeps the UI aligned with the backend intent already present in [room-create/index.ts](/c:/Users/jairo/Desktop/PROYECTO%20GUESSTHEPRONT/dixit_ai_mobile/supabase/functions/room-create/index.ts), which already inserts the host into `room_players`.
 
@@ -108,12 +109,13 @@ State copy must be concise and role-aware:
 
 Secondary but still prominent card:
 
-- host appears first
-- then remaining players ordered by `joined_at`
+- only active players are shown in the main visible roster
+- host appears first when active
+- then remaining active players ordered by `joined_at`
 - host marked clearly
 - active player count shown near the section heading
 
-The list should never feel empty without explanation. If hydration is still happening, show a short preparation state instead of a blank roster.
+Inactive or disconnected rows are not part of the primary roster presentation. The list should never feel empty without explanation. If hydration is still happening, show a short preparation state instead of a blank roster.
 
 ### 4. Action card
 
@@ -151,10 +153,17 @@ Chat remains available from the start, but it moves lower in the hierarchy:
 1. fetch room by `code`
 2. store `room.id`
 3. fetch players for that room
-4. sort players with:
+4. derive `activePlayers` from `room_players` where `is_active = true`
+5. sort the visible roster with:
    - host first
    - then `joined_at` ascending
-5. expose a short `hydrating` or `isInitialLoadComplete` state to the screen
+6. expose a short `hydratingPlayers` or equivalent state to the screen
+
+The screen-state contract is explicit:
+
+- room unresolved: full-screen loading / not-found handling
+- room resolved, players hydrating: render hero room card immediately, but keep roster and role-dependent action area in preparation state
+- players hydrated: render full lobby
 
 Realtime stays in place for updates, but it is not trusted as the primary source for the first render.
 
@@ -173,15 +182,20 @@ The lobby must visually reinforce the same rule already enforced by [room-join/i
 
 This should be shown as room guidance, not only as an error after someone tries something invalid.
 
+### Copy treatment
+
+The sample Spanish strings in this spec define the intended meaning and hierarchy, not immutable final copy. Implementation should move them through i18n keys while preserving the same user-facing intent.
+
 ---
 
 ## Error Handling
 
 - If the room code does not resolve, show a room-not-found state instead of a partially rendered lobby
-- If players are still loading after room resolution, show a short preparation state instead of an empty list
+- If the room exists but the initial player hydration is still running, render the hero room card and show a short preparation state for roster and role-dependent actions instead of an empty list
 - If realtime lags, the initial hydrated roster remains the trusted baseline
 - If the host has fewer than `3` active players, the start CTA remains disabled with explanatory copy
 - If the room is already full, [room-join/index.ts](/c:/Users/jairo/Desktop/PROYECTO%20GUESSTHEPRONT/dixit_ai_mobile/supabase/functions/room-join/index.ts) continues to enforce the backend rule, while the lobby makes the `3-8` limit visible up front
+- If room loading fails for reasons other than a missing code, show a generic load-failure state rather than incorrectly reusing room-not-found
 
 ---
 
