@@ -3,14 +3,12 @@ import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from 'rea
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
-import { Background } from '@/components/layout/Background'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/lib/supabase'
+import { Background } from '@/components/layout/Background'
 import { useUIStore } from '@/stores/useUIStore'
-import { brandTypography } from '@/constants/brand'
 import { colors } from '@/constants/theme'
 
 type Tab = 'profile' | 'email' | 'password'
@@ -18,7 +16,7 @@ type Tab = 'profile' | 'email' | 'password'
 export default function ProfileScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const showToast = useUIStore((state) => state.showToast)
+  const showToast = useUIStore((s) => s.showToast)
   const { userId, isAnon: initialIsAnon, email: authEmail } = useAuth()
 
   const [activeTab, setActiveTab] = useState<Tab>('profile')
@@ -40,9 +38,7 @@ export default function ProfileScreen() {
       .from('profiles')
       .select('display_name')
       .single()
-      .then(({ data }) => {
-        if (data) setDisplayName(data.display_name)
-      })
+      .then(({ data }) => { if (data) setDisplayName(data.display_name) })
   }, [])
 
   async function saveDisplayName() {
@@ -50,7 +46,8 @@ export default function ProfileScreen() {
     setSaving(true)
     const { error } = await supabase.auth.updateUser({ data: { display_name: displayName } })
     if (!error) {
-      await supabase.from('profiles').update({ display_name: displayName }).eq('id', userId)
+      await supabase.from('profiles').update({ display_name: displayName })
+        .eq('id', userId)
       showToast(t('profile.save'), 'success')
     } else {
       showToast(t('errors.generic'), 'error')
@@ -96,10 +93,10 @@ export default function ProfileScreen() {
     Alert.alert(t('profile.deleteAccount'), t('profile.deleteConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
-        text: t('profile.deleteAccount'),
-        style: 'destructive',
+        text: t('profile.deleteAccount'), style: 'destructive',
         onPress: async () => {
           try {
+            // Call edge function that deletes the user via Admin SDK
             await supabase.functions.invoke('delete-account')
             await supabase.auth.signOut()
             router.replace('/(auth)/welcome')
@@ -127,13 +124,12 @@ export default function ProfileScreen() {
         >
           {isAnon && (
             <View style={styles.anonBanner}>
-              <DecorativeTitle variant="section" tone="gold" align="left" style={styles.anonTitle}>
-                {t('profile.upgradeAccount')}
-              </DecorativeTitle>
+              <Text style={styles.anonTitle}>{t('profile.upgradeAccount')}</Text>
               <Text style={styles.anonSub}>{t('profile.upgradeSubtitle')}</Text>
             </View>
           )}
 
+          {/* Tab bar */}
           <View style={styles.tabBar}>
             {tabs.map((tab) => (
               <TouchableOpacity
@@ -149,6 +145,7 @@ export default function ProfileScreen() {
             ))}
           </View>
 
+          {/* Tab content */}
           <View style={styles.tabContent}>
             {activeTab === 'profile' && (
               <>
@@ -195,6 +192,7 @@ export default function ProfileScreen() {
             )}
           </View>
 
+          {/* Danger zone */}
           <View style={styles.dangerZone}>
             <Button onPress={handleLogout} variant="ghost">
               {t('profile.logout')}
@@ -219,11 +217,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(249,115,22,0.4)',
     borderRadius: 14,
     padding: 14,
-    gap: 6,
+    gap: 4,
   },
   anonTitle: {
-    fontSize: 18,
-    lineHeight: 22,
+    color: colors.orange,
+    fontWeight: '700',
+    fontSize: 15,
   },
   anonSub: {
     color: colors.textSecondary,
@@ -251,10 +250,8 @@ const styles = StyleSheet.create({
   },
   tabText: {
     color: colors.textMuted,
-    fontFamily: brandTypography.eyebrow.fontFamily,
-    fontSize: 11,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+    fontSize: 13,
+    fontWeight: '600',
   },
   tabTextActive: {
     color: colors.gold,

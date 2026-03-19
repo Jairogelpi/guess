@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
+import { useGameStore } from '@/stores/useGameStore'
+import { useGameActions } from '@/hooks/useGameActions'
 import { CardGrid } from '@/components/game/CardGrid'
 import { Button } from '@/components/ui/Button'
-import { useGameActions } from '@/hooks/useGameActions'
-import { useGameStore } from '@/stores/useGameStore'
 import { colors } from '@/constants/theme'
 
 interface Props {
@@ -22,7 +21,7 @@ export function VotingPhase({ roomCode, userId }: Props) {
   const [voted, setVoted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const votableCards = useMemo(() => cards.filter((card) => card.player_id !== userId), [cards, userId])
+  const votableCards = useMemo(() => cards.filter((c) => c.player_id !== userId), [cards, userId])
 
   async function handleVote() {
     if (!selectedId) return
@@ -44,11 +43,13 @@ export function VotingPhase({ roomCode, userId }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <DecorativeTitle variant="section" tone="plain" style={styles.headerText}>
-          {t('game.voting')}
-        </DecorativeTitle>
+        <Text style={styles.headerText}>{t('game.voting')}</Text>
       </View>
-      <CardGrid cards={votableCards} selectedId={selectedId} onSelect={(card) => setSelectedId(card.id)} />
+      <CardGrid
+        cards={votableCards}
+        selectedId={selectedId}
+        onSelect={(c) => setSelectedId(c.id)}
+      />
       <View style={styles.footer}>
         <Button onPress={handleVote} loading={submitting} disabled={!selectedId}>
           {t('game.vote')}
@@ -77,9 +78,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerText: {
-    fontSize: 18,
-    lineHeight: 24,
-    letterSpacing: 0.6,
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   footer: {
     paddingHorizontal: 16,

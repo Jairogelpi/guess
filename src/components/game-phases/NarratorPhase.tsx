@@ -1,14 +1,13 @@
 import { useState } from 'react'
-import { View, ScrollView, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
-import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
+import { useAuth } from '@/hooks/useAuth'
+import { useGameStore } from '@/stores/useGameStore'
+import { useGameActions } from '@/hooks/useGameActions'
 import { CardGenerator } from '@/components/game/CardGenerator'
 import { DixitCard } from '@/components/ui/DixitCard'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { useAuth } from '@/hooks/useAuth'
-import { useGameActions } from '@/hooks/useGameActions'
-import { useGameStore } from '@/stores/useGameStore'
 import { colors } from '@/constants/theme'
 
 interface Props {
@@ -45,9 +44,7 @@ export function NarratorPhase({ roomCode }: Props) {
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <View style={styles.badge}>
-        <DecorativeTitle variant="section" tone="gold" style={styles.badgeText}>
-          {t('game.yourTurn')} · {t('game.narrator')}
-        </DecorativeTitle>
+        <Text style={styles.badgeText}>{t('game.yourTurn')} · {t('game.narrator')}</Text>
       </View>
 
       {!selectedCard ? (
@@ -90,9 +87,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   badgeText: {
-    fontSize: 14,
-    lineHeight: 18,
-    letterSpacing: 0.8,
+    color: colors.gold,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   clueBlock: { gap: 16 },
   selectedCardWrap: {

@@ -12,22 +12,20 @@ import {
 import { useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
-import { CardGenerator } from '@/components/game/CardGenerator'
-import { Background } from '@/components/layout/Background'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Modal } from '@/components/ui/Modal'
-import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
+import { CardGenerator } from '@/components/game/CardGenerator'
+import { Modal } from '@/components/ui/Modal'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { Background } from '@/components/layout/Background'
 import { useUIStore } from '@/stores/useUIStore'
-import { brandTypography } from '@/constants/brand'
 import { colors, radii, shadows } from '@/constants/theme'
 import type { GalleryCard } from '@/types/game'
 
 export default function GalleryScreen() {
   const { t } = useTranslation()
-  const showToast = useUIStore((state) => state.showToast)
+  const showToast = useUIStore((s) => s.showToast)
   const { userId } = useAuth()
 
   const [cards, setCards] = useState<GalleryCard[]>([])
@@ -74,9 +72,7 @@ export default function GalleryScreen() {
         .upload(fileName, blob, { contentType: 'image/jpeg' })
       if (uploadError) throw uploadError
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('gallery').getPublicUrl(uploaded.path)
+      const { data: { publicUrl } } = supabase.storage.from('gallery').getPublicUrl(uploaded.path)
 
       await supabase.from('gallery_cards').insert({
         player_id: userId,
@@ -104,31 +100,30 @@ export default function GalleryScreen() {
         style: 'destructive',
         onPress: async () => {
           await supabase.from('gallery_cards').delete().eq('id', id)
-          setCards((previous) => previous.filter((card) => card.id !== id))
+          setCards((prev) => prev.filter((c) => c.id !== id))
         },
       },
     ])
   }
 
-  const renderCard = useCallback(
-    ({ item }: { item: GalleryCard }) => (
-      <TouchableOpacity
-        style={styles.card}
-        onLongPress={() => deleteCard(item.id)}
-        activeOpacity={0.85}
-      >
-        <Image source={{ uri: item.image_url }} style={styles.cardImage} resizeMode="cover" />
-        {item.title && (
-          <View style={styles.cardLabel}>
-            <Text style={styles.cardLabelText} numberOfLines={1}>
-              {item.title}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    ),
-    [],
-  )
+  const renderCard = useCallback(({ item }: { item: GalleryCard }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onLongPress={() => deleteCard(item.id)}
+      activeOpacity={0.85}
+    >
+      <Image
+        source={{ uri: item.image_url }}
+        style={styles.cardImage}
+        resizeMode="cover"
+      />
+      {item.title && (
+        <View style={styles.cardLabel}>
+          <Text style={styles.cardLabelText} numberOfLines={1}>{item.title}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  ), [])
 
   if (loading) {
     return (
@@ -145,18 +140,14 @@ export default function GalleryScreen() {
       <SafeAreaView style={styles.safe} edges={['bottom']}>
         {cards.length === 0 ? (
           <View style={styles.empty}>
-            <DecorativeTitle variant="section" tone="gold" style={styles.emptyIcon}>
-              ✦
-            </DecorativeTitle>
-            <DecorativeTitle variant="section" tone="muted" style={styles.emptyText}>
-              {t('gallery.noCards')}
-            </DecorativeTitle>
+            <Text style={styles.emptyIcon}>✦</Text>
+            <Text style={styles.emptyText}>{t('gallery.noCards')}</Text>
             <Button onPress={() => setShowModal(true)}>{t('gallery.generate')}</Button>
           </View>
         ) : (
           <FlatList
             data={cards}
-            keyExtractor={(card) => card.id}
+            keyExtractor={(c) => c.id}
             numColumns={2}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.list}
@@ -171,17 +162,18 @@ export default function GalleryScreen() {
 
         <Modal
           visible={showModal}
-          onClose={() => {
-            setShowModal(false)
-            setPendingCard(null)
-          }}
+          onClose={() => { setShowModal(false); setPendingCard(null) }}
           title={t('gallery.generate')}
         >
           {!pendingCard ? (
             <CardGenerator onSelect={handleSelect} />
           ) : (
             <View style={styles.saveBlock}>
-              <Image source={{ uri: pendingCard.url }} style={styles.previewImage} resizeMode="cover" />
+              <Image
+                source={{ uri: pendingCard.url }}
+                style={styles.previewImage}
+                resizeMode="cover"
+              />
               <Input
                 label={t('gallery.titlePlaceholder')}
                 value={title}
@@ -211,12 +203,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyIcon: {
-    fontSize: 28,
-    lineHeight: 34,
+    color: colors.gold,
+    fontSize: 40,
+    opacity: 0.5,
   },
   emptyText: {
-    fontSize: 16,
-    lineHeight: 22,
+    color: colors.textSecondary,
+    fontSize: 15,
     textAlign: 'center',
   },
   row: { gap: 12 },
@@ -248,11 +241,9 @@ const styles = StyleSheet.create({
   },
   cardLabelText: {
     color: colors.textSecondary,
-    fontFamily: brandTypography.eyebrow.fontFamily,
     fontSize: 11,
     textAlign: 'center',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+    fontWeight: '600',
   },
   footerBtn: {
     marginTop: 8,
