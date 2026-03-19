@@ -1,4 +1,5 @@
 import type { ScoreEntry } from './scoring'
+import { getEligibleVoterCount, inferRoundPlayers } from './tacticalRules'
 
 type CardTacticalAction = 'subtle_bet' | 'trap_card' | null | undefined
 type VoteTacticalAction = 'firm_read' | null | undefined
@@ -94,20 +95,62 @@ function buildDeceptionEvents(input: RoundResolutionSummaryInput) {
   })
 }
 
-function buildTacticalEvents(input: RoundResolutionSummaryInput) {
-  const buildEvent = (playerId: string, type: TacticalEventType) => {
+function getScorePoints(
+  scoreEntries: ScoreEntry[],
+  playerId: string,
+  reason: ScoreEntry['reason'],
+) {
+  return scoreEntries
+    .filter((entry) => entry.player_id === playerId && entry.reason === reason)
+    .reduce((total, entry) => total + entry.points, 0)
+}
+
+function getIntuitionDelta(type: TacticalEventType, success: boolean) {
+  if (!success) return 0
+  return type === 'challenge_leader' ? 0 : 1
+}
+
+function formatTrapCardDescription(fooledCount: number) {
+  return `Trap card fooled ${fooledCount} ${fooledCount === 1 ? 'player' : 'players'}`
+}
+
+function formatFirmReadDescription(isCorrectVote: boolean, hardRound: boolean) {
+  if (isCorrectVote && hardRound) {
+    return 'Firm Read found the narrator in a hard round'
+  }
+
+  if (isCorrectVote) {
+    return 'Firm Read found the narrator, but the round was not hard enough'
+  }
+
+  if (hardRound) {
+    return 'Firm Read missed the narrator in a hard round'
+  }
+
+  return 'Firm Read missed the narrator'
+}
+
+function buildTacticalEvents(
+  input: RoundResolutionSummaryInput,
+  deceptionEvents: RoundResolutionSummary['deceptionEvents'],
+) {
+  const roundPlayers = inferRoundPlayers(input.narratorId, input.playedCards, input.votes)
+  const eligibleVoters = getEligibleVoterCount(roundPlayers, input.narratorId)
+  const correctVoteCount = input.votes.filter((vote) => vote.card_id === input.narratorCardId).length
+  const hardRound = eligibleVoters > 0 && correctVoteCount < Math.ceil(eligibleVoters / 2)
+
+  const buildEvent = (playerId: string, type: TacticalEventType, description: string) => {
     const reason = TACTICAL_REASON_BY_ACTION[type]
-    const pointsDelta = input.scoreEntries
-      .filter((entry) => entry.player_id === playerId && entry.reason === reason)
-      .reduce((total, entry) => total + entry.points, 0)
+    const pointsDelta = getScorePoints(input.scoreEntries, playerId, reason)
+    const success = pointsDelta > 0
 
     return {
       playerId,
       type,
-      success: pointsDelta > 0,
+      success,
       pointsDelta,
-      intuitionDelta: 0,
-      description: pointsDelta > 0 ? `${type} succeeded` : `${type} failed`,
+      intuitionDelta: getIntuitionDelta(type, success),
+      description,
     }
   }
 
@@ -116,7 +159,28 @@ function buildTacticalEvents(input: RoundResolutionSummaryInput) {
       return []
     }
 
-    return [buildEvent(card.player_id, card.tactical_action)]
+    if (card.tactical_action === 'subtle_bet') {
+      const pointsDelta = getScorePoints(
+        input.scoreEntries,
+        card.player_id,
+        TACTICAL_REASON_BY_ACTION.subtle_bet,
+      )
+
+      return [
+        buildEvent(
+          card.player_id,
+          card.tactical_action,
+          pointsDelta > 0
+            ? 'Subtle Bet hit the balanced clue sweet spot'
+            : 'Subtle Bet missed the balanced clue sweet spot',
+        ),
+      ]
+    }
+
+    const fooledCount = deceptionEvents.filter(
+      (event) => event.sourcePlayerId === card.player_id && event.cardId === card.id,
+    ).length
+    return [buildEvent(card.player_id, card.tactical_action, formatTrapCardDescription(fooledCount))]
   })
 
   const voteEvents = input.votes.flatMap((vote) => {
@@ -124,10 +188,39 @@ function buildTacticalEvents(input: RoundResolutionSummaryInput) {
       return []
     }
 
-    return [buildEvent(vote.voter_id, vote.tactical_action)]
+    const isCorrectVote = vote.card_id === input.narratorCardId
+    return [
+      buildEvent(
+        vote.voter_id,
+        vote.tactical_action,
+        formatFirmReadDescription(isCorrectVote, hardRound),
+      ),
+    ]
   })
 
-  return [...cardEvents, ...voteEvents]
+  const challengePlayers = new Set([
+    ...input.playedCards
+      .filter((card) => card.challenge_leader)
+      .map((card) => card.player_id),
+    ...input.votes
+      .filter((vote) => vote.challenge_leader)
+      .map((vote) => vote.voter_id),
+  ])
+  const challengeEvents = Array.from(challengePlayers).map((playerId) =>
+    buildEvent(
+      playerId,
+      'challenge_leader',
+      getScorePoints(
+        input.scoreEntries,
+        playerId,
+        TACTICAL_REASON_BY_ACTION.challenge_leader,
+      ) > 0
+        ? 'Challenge the leader succeeded'
+        : 'Challenge the leader failed',
+    ),
+  )
+
+  return [...cardEvents, ...voteEvents, ...challengeEvents]
 }
 
 function buildPositions(scores: Record<string, number>) {
@@ -163,6 +256,8 @@ function buildLeaderboardDeltas(
 export function buildRoundResolutionSummary(
   input: RoundResolutionSummaryInput,
 ): RoundResolutionSummary {
+  const deceptionEvents = buildDeceptionEvents(input)
+
   return {
     roundId: input.roundId,
     narratorId: input.narratorId,
@@ -171,8 +266,8 @@ export function buildRoundResolutionSummary(
     correctVoterIds: input.votes
       .filter((vote) => vote.card_id === input.narratorCardId)
       .map((vote) => vote.voter_id),
-    deceptionEvents: buildDeceptionEvents(input),
-    tacticalEvents: buildTacticalEvents(input),
+    deceptionEvents,
+    tacticalEvents: buildTacticalEvents(input, deceptionEvents),
     leaderboardDeltas: buildLeaderboardDeltas(input.scoresBefore, input.scoresAfter),
   }
 }

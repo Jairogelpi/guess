@@ -6,10 +6,6 @@ interface PlayedCardParticipant {
   player_id: string
 }
 
-export function getEligibleVoterCount(activePlayers: string[], narratorId: string) {
-  return activePlayers.filter((playerId) => playerId !== narratorId).length
-}
-
 export function inferRoundPlayers(
   narratorId: string,
   playedCards: PlayedCardParticipant[],
@@ -22,6 +18,26 @@ export function inferRoundPlayers(
       ...votes.map((vote) => vote.voter_id),
     ]),
   )
+}
+
+export function getEligibleVoterCount(activePlayers: string[], narratorId: string) {
+  return activePlayers.filter((playerId) => playerId !== narratorId).length
+}
+
+export function normalizeRoundPlayers(
+  players: string[],
+  narratorId: string,
+  playedCards: PlayedCardParticipant[],
+  votes: VoteParticipant[],
+) {
+  const inferredPlayers = new Set(inferRoundPlayers(narratorId, playedCards, votes))
+  const normalizedPlayers = players.filter(
+    (playerId) => playerId === narratorId || inferredPlayers.has(playerId),
+  )
+
+  return normalizedPlayers.includes(narratorId)
+    ? normalizedPlayers
+    : [narratorId, ...normalizedPlayers]
 }
 
 export function subtleBetSucceeded(correctVotes: number, eligibleVoters: number) {

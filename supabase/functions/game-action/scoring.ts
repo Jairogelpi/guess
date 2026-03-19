@@ -1,7 +1,7 @@
 import {
   firmReadSucceeded,
   getEligibleVoterCount,
-  inferRoundPlayers,
+  normalizeRoundPlayers,
   subtleBetSucceeded,
   trapCardSucceeded,
 } from './tacticalRules'
@@ -39,15 +39,25 @@ export function calculateScores({
   votes,
   playedCards,
 }: ScoreInput): ScoreEntry[] {
+  const rosterSet = new Set(players)
   const roundPlayers =
     activePlayers && activePlayers.length > 0
-      ? activePlayers
-      : inferRoundPlayers(narratorId, playedCards, votes)
+      ? Array.from(
+          new Set(
+            activePlayers.filter((playerId) => playerId === narratorId || rosterSet.has(playerId)),
+          ),
+        )
+      : normalizeRoundPlayers(players, narratorId, playedCards, votes)
+  const roundPlayerSet = new Set(
+    roundPlayers.includes(narratorId) ? roundPlayers : [narratorId, ...roundPlayers],
+  )
+  const roundVotes = votes.filter((vote) => roundPlayerSet.has(vote.voter_id))
+  const roundPlayedCards = playedCards.filter((card) => roundPlayerSet.has(card.player_id))
   const nonNarrators = roundPlayers.filter((p) => p !== narratorId)
-  const narratorCard = playedCards.find((c) => c.player_id === narratorId)
+  const narratorCard = roundPlayedCards.find((c) => c.player_id === narratorId)
   if (!narratorCard) return []
 
-  const correctVoters = votes
+  const correctVoters = roundVotes
     .filter((v) => v.card_id === narratorCard.id)
     .map((v) => v.voter_id)
 
@@ -75,11 +85,11 @@ export function calculateScores({
 
   // Received votes (non-narrator cards only, cannot vote for your own card)
   const cardToPlayer = new Map(
-    playedCards
+    roundPlayedCards
       .filter((c) => c.player_id !== narratorId)
       .map((c) => [c.id, c.player_id]),
   )
-  for (const vote of votes) {
+  for (const vote of roundVotes) {
     const owner = cardToPlayer.get(vote.card_id)
     if (owner && owner !== vote.voter_id) {
       entries.push({ player_id: owner, points: 1, reason: 'received_vote' })
@@ -99,12 +109,12 @@ export function calculateScores({
     })
   }
 
-  for (const playedCard of playedCards) {
+  for (const playedCard of roundPlayedCards) {
     if (playedCard.player_id === narratorId || playedCard.tactical_action !== 'trap_card') {
       continue
     }
 
-    const wrongVotes = votes.filter(
+    const wrongVotes = roundVotes.filter(
       (vote) => vote.card_id === playedCard.id && vote.voter_id !== playedCard.player_id,
     ).length
     if (trapCardSucceeded(wrongVotes)) {
@@ -116,7 +126,7 @@ export function calculateScores({
     }
   }
 
-  for (const vote of votes) {
+  for (const vote of roundVotes) {
     if (
       vote.tactical_action === 'firm_read' &&
       firmReadSucceeded(vote.card_id === narratorCard.id, correctVoters.length, eligibleVoters)
