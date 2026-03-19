@@ -321,6 +321,7 @@ export type Database = {
           created_at: string
           id: string
           narrator_id: string
+          results_started_at: string | null
           room_id: string
           round_number: number
           status: string
@@ -330,6 +331,7 @@ export type Database = {
           created_at?: string
           id?: string
           narrator_id: string
+          results_started_at?: string | null
           room_id: string
           round_number: number
           status?: string
@@ -339,6 +341,7 @@ export type Database = {
           created_at?: string
           id?: string
           narrator_id?: string
+          results_started_at?: string | null
           room_id?: string
           round_number?: number
           status?: string
