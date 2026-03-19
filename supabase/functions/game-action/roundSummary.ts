@@ -1,16 +1,25 @@
 import type { ScoreEntry } from './scoring'
 
 type CardTacticalAction = 'subtle_bet' | 'trap_card' | null | undefined
+type VoteTacticalAction = 'firm_read' | null | undefined
+type TacticalEventType =
+  | 'subtle_bet'
+  | 'trap_card'
+  | 'firm_read'
+  | 'challenge_leader'
 
 interface Vote {
   voter_id: string
   card_id: string
+  tactical_action?: VoteTacticalAction
+  challenge_leader?: boolean
 }
 
 interface PlayedCard {
   id: string
   player_id: string
   tactical_action?: CardTacticalAction
+  challenge_leader?: boolean
 }
 
 export interface RoundResolutionSummaryInput {
@@ -39,7 +48,7 @@ export interface RoundResolutionSummary {
   }>
   tacticalEvents: Array<{
     playerId: string
-    type: 'subtle_bet' | 'trap_card'
+    type: TacticalEventType
     success: boolean
     pointsDelta: number
     intuitionDelta: number
@@ -57,6 +66,8 @@ export interface RoundResolutionSummary {
 const TACTICAL_REASON_BY_ACTION = {
   subtle_bet: 'balanced_clue_bonus',
   trap_card: 'trap_card_bonus',
+  firm_read: 'firm_read_bonus',
+  challenge_leader: 'leader_challenge_bonus',
 } as const
 
 function buildDeceptionEvents(input: RoundResolutionSummaryInput) {
@@ -84,27 +95,39 @@ function buildDeceptionEvents(input: RoundResolutionSummaryInput) {
 }
 
 function buildTacticalEvents(input: RoundResolutionSummaryInput) {
-  return input.playedCards.flatMap((card) => {
+  const buildEvent = (playerId: string, type: TacticalEventType) => {
+    const reason = TACTICAL_REASON_BY_ACTION[type]
+    const pointsDelta = input.scoreEntries
+      .filter((entry) => entry.player_id === playerId && entry.reason === reason)
+      .reduce((total, entry) => total + entry.points, 0)
+
+    return {
+      playerId,
+      type,
+      success: pointsDelta > 0,
+      pointsDelta,
+      intuitionDelta: 0,
+      description: pointsDelta > 0 ? `${type} succeeded` : `${type} failed`,
+    }
+  }
+
+  const cardEvents = input.playedCards.flatMap((card) => {
     if (!card.tactical_action) {
       return []
     }
 
-    const reason = TACTICAL_REASON_BY_ACTION[card.tactical_action]
-    const pointsDelta = input.scoreEntries
-      .filter((entry) => entry.player_id === card.player_id && entry.reason === reason)
-      .reduce((total, entry) => total + entry.points, 0)
-
-    return [
-      {
-        playerId: card.player_id,
-        type: card.tactical_action,
-        success: pointsDelta > 0,
-        pointsDelta,
-        intuitionDelta: 0,
-        description: pointsDelta > 0 ? `${card.tactical_action} succeeded` : `${card.tactical_action} failed`,
-      },
-    ]
+    return [buildEvent(card.player_id, card.tactical_action)]
   })
+
+  const voteEvents = input.votes.flatMap((vote) => {
+    if (!vote.tactical_action) {
+      return []
+    }
+
+    return [buildEvent(vote.voter_id, vote.tactical_action)]
+  })
+
+  return [...cardEvents, ...voteEvents]
 }
 
 function buildPositions(scores: Record<string, number>) {
