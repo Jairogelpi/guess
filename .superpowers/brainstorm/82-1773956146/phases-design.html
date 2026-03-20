@@ -1,0 +1,575 @@
+<h2>Diseño completo — Las 4 fases de la partida</h2>
+<p class="subtitle">Patrón: franja contexto → zona acción → pie fijo. Cada fase con sus estados activo y espera.</p>
+
+<style>
+* { box-sizing: border-box; }
+.phone-frame {
+  width: 185px; height: 390px;
+  background: #0a0602;
+  border-radius: 26px;
+  border: 2px solid rgba(244,192,119,0.4);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  margin: 0 auto;
+}
+.ctx-strip { background: rgba(16,9,5,0.95); border-bottom: 1px solid rgba(244,192,119,0.18); padding: 5px 10px; display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.round-num { font-size: 7px; color: rgba(255,241,222,0.3); letter-spacing:1px; text-transform:uppercase; }
+.phase-name { font-size: 9px; color: #e6b800; font-weight:700; flex:1; text-align:right; }
+.step-pill { font-size: 7px; color: rgba(255,241,222,0.35); background: rgba(244,192,119,0.08); border: 1px solid rgba(244,192,119,0.15); border-radius:99px; padding: 1px 6px; }
+
+.phone-body { flex:1; display:flex; flex-direction:column; padding: 7px; gap: 6px; overflow:hidden; }
+.footer { padding: 5px 7px; border-top: 1px solid rgba(244,192,119,0.1); flex-shrink:0; }
+
+/* Clue hero */
+.clue-hero { background: rgba(25,13,10,0.92); border: 1.5px solid rgba(244,192,119,0.42); border-radius: 9px; padding: 6px 9px; text-align:center; flex-shrink:0; }
+.clue-lbl { font-size: 6px; color: #e6b800; letter-spacing:2px; text-transform:uppercase; }
+.clue-txt { font-size: 11px; color: #fff7ea; font-weight:700; font-style:italic; line-height:1.3; margin-top:2px; }
+
+/* Hand grid 3 cards */
+.hand-grid { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+.slot { border-radius: 7px; aspect-ratio: 2/3; position:relative; overflow:hidden; }
+.slot-empty { background: rgba(25,13,10,0.6); border: 1.5px dashed rgba(244,192,119,0.2); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+.slot-empty-icon { font-size:14px; opacity:0.25; }
+.slot-empty-lbl { font-size:6px; color:rgba(255,241,222,0.2); text-align:center; line-height:1.2; }
+.slot-gen { background: linear-gradient(135deg, #3a1a08, #1a0d05); border: 1.5px solid rgba(244,192,119,0.35); display:flex; align-items:center; justify-content:center; }
+.slot-gen-icon { font-size:18px; opacity:0.35; }
+.slot-sel { border: 2px solid #e6b800 !important; box-shadow: 0 0 7px rgba(230,184,0,0.35); }
+.slot-badge { position:absolute; bottom:0; left:0; right:0; background:rgba(230,184,0,0.88); padding:2px; text-align:center; font-size:6px; font-weight:800; color:#0a0602; }
+.slot-narrator-badge { background:rgba(244,100,36,0.9); color:#fff; font-size:6px; }
+
+/* Prompt area */
+.prompt-area { background: rgba(25,13,10,0.7); border: 1px solid rgba(244,192,119,0.2); border-radius: 8px; padding: 5px 7px; display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+.prompt-row { display:flex; gap:4px; align-items:center; }
+.prompt-input { flex:1; background: rgba(67,34,21,0.5); border: 1px solid rgba(244,192,119,0.2); border-radius:6px; padding:3px 6px; font-size:7px; color:rgba(255,241,222,0.4); }
+.ia-btn { background: rgba(67,34,21,0.8); border: 1px solid rgba(244,192,119,0.3); border-radius:99px; padding:2px 6px; display:flex; align-items:center; gap:2px; flex-shrink:0; }
+.ia-btn span { font-size:7px; color:#fbb024; font-weight:600; }
+.gen-btn { background:#f97316; border-radius:6px; padding:3px 7px; text-align:center; }
+.gen-btn span { font-size:7px; color:#fff7ea; font-weight:700; }
+
+/* Clue input (narrator step 2) */
+.clue-input-area { background: rgba(25,13,10,0.7); border: 1px solid rgba(244,192,119,0.35); border-radius: 8px; padding: 6px 8px; display:flex; flex-direction:column; gap:4px; }
+.clue-input-lbl { font-size:6px; color:#e6b800; letter-spacing:2px; text-transform:uppercase; }
+.clue-input-mock { background: rgba(67,34,21,0.5); border: 1px solid rgba(244,192,119,0.3); border-radius:6px; padding:5px 7px; font-size:9px; color:rgba(255,241,222,0.5); font-style:italic; }
+
+/* Waiting card */
+.waiting-card { background: rgba(25,13,10,0.7); border: 1px solid rgba(244,192,119,0.18); border-radius: 9px; padding: 7px 9px; display:flex; flex-direction:column; gap:5px; }
+.waiting-lbl { font-size:6px; color:rgba(255,241,222,0.25); letter-spacing:2px; text-transform:uppercase; }
+.narrator-row { display:flex; align-items:center; gap:5px; }
+.avatar { width:18px; height:18px; border-radius:50%; background: linear-gradient(135deg, #f97316, #e6b800); display:flex; align-items:center; justify-content:center; font-size:9px; flex-shrink:0; }
+.narrator-name { font-size:8px; color:#fbb024; font-weight:700; }
+.narrator-role { font-size:6px; color:rgba(255,241,222,0.3); }
+.progress-row { display:flex; gap:3px; align-items:center; }
+.p-dot { width:13px; height:2.5px; border-radius:99px; background: rgba(244,192,119,0.15); }
+.p-dot.done { background:#e6b800; }
+.p-dot.me { background:#f97316; }
+.progress-lbl { font-size:6px; color:rgba(255,241,222,0.25); margin-left:3px; }
+.waiting-msg { font-size:8px; color:rgba(255,241,222,0.3); text-align:center; }
+
+/* Vote grid */
+.vote-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 4px; flex:1; }
+.vote-card { border-radius: 7px; aspect-ratio: 2/3; position:relative; overflow:hidden; background: linear-gradient(135deg, #2a1508, #1a0d05); border: 1.5px solid rgba(244,192,119,0.25); display:flex; align-items:center; justify-content:center; }
+.vote-card-icon { font-size:20px; opacity:0.3; }
+.vote-card.selected { border: 2px solid #f97316; box-shadow: 0 0 7px rgba(249,115,22,0.35); }
+.vote-card .v-badge { position:absolute; top:3px; right:3px; background:rgba(249,115,22,0.9); border-radius:99px; width:12px; height:12px; display:flex; align-items:center; justify-content:center; font-size:7px; color:#fff; font-weight:800; }
+.vote-card .name-badge { position:absolute; bottom:0; left:0; right:0; background:rgba(10,6,2,0.82); padding:2px; font-size:6px; color:rgba(255,241,222,0.5); text-align:center; }
+
+/* Results */
+.big-reveal { background: rgba(25,13,10,0.95); border: 2px solid #e6b800; border-radius: 10px; padding: 6px; text-align:center; box-shadow: 0 0 14px rgba(230,184,0,0.2); flex-shrink:0; }
+.reveal-lbl { font-size:6px; color:#e6b800; letter-spacing:2px; text-transform:uppercase; margin-bottom:3px; }
+.reveal-card { width:36px; height:54px; background: linear-gradient(135deg, #3a1a08, #1a0d05); border-radius:5px; border: 2px solid #e6b800; margin: 0 auto 3px; display:flex; align-items:center; justify-content:center; font-size:18px; opacity:0.5; }
+.reveal-clue { font-size:8px; color:#fff7ea; font-style:italic; font-weight:700; }
+
+.score-card { background: rgba(25,13,10,0.7); border: 1px solid rgba(244,192,119,0.2); border-radius: 8px; padding: 5px 7px; flex-shrink:0; }
+.score-lbl { font-size:6px; color:rgba(255,241,222,0.25); letter-spacing:2px; text-transform:uppercase; margin-bottom:3px; }
+.score-row { display:flex; align-items:center; gap:4px; padding:1.5px 0; }
+.s-medal { font-size:8px; width:10px; }
+.s-name { font-size:7px; color:rgba(255,241,222,0.6); flex:1; }
+.s-pts { font-size:8px; color:#e6b800; font-weight:700; }
+.s-delta { font-size:6px; color:#4ade80; }
+
+/* Countdown btn */
+.countdown-btn { border-radius: 10px; overflow:hidden; }
+.btn-inner { background: #f97316; padding: 6px 9px; display:flex; align-items:center; gap:7px; }
+.btn-lbl { font-size:9px; color:#fff7ea; font-weight:700; flex:1; }
+.btn-timer { font-size:13px; color:#fff7ea; font-weight:900; min-width:20px; text-align:center; }
+.prog-bar { height:3px; background: rgba(255,255,255,0.2); }
+.prog-fill { height:100%; background: rgba(255,255,255,0.6); }
+.confirmed-btn { background: rgba(74,222,128,0.12); border: 1.5px solid rgba(74,222,128,0.3); border-radius:10px; padding:6px; display:flex; align-items:center; gap:5px; justify-content:center; }
+.confirmed-lbl { font-size:9px; color:#4ade80; font-weight:700; }
+
+/* Buttons */
+.btn-primary { background:#f97316; border-radius:9px; padding:6px; text-align:center; }
+.btn-primary span { font-size:9px; color:#fff7ea; font-weight:700; }
+.btn-primary.disabled { background:rgba(67,34,21,0.4); }
+.btn-primary.disabled span { color:rgba(255,241,222,0.2); }
+
+/* Ready dots row */
+.ready-dots { display:flex; gap:3px; justify-content:center; align-items:center; margin:2px 0; }
+.r-dot { width:12px; height:12px; border-radius:50%; border: 1.5px solid rgba(244,192,119,0.3); display:flex; align-items:center; justify-content:center; font-size:7px; }
+.r-dot.done { background: rgba(74,222,128,0.15); border-color:#4ade80; color:#4ade80; }
+.r-dot.me { background: rgba(249,115,22,0.15); border-color:#f97316; color:#f97316; }
+
+/* Grid wrapper */
+.section { margin-bottom: 32px; }
+.section-title { font-size:14px; font-weight:800; color:#fff7ea; margin-bottom:6px; }
+.section-sub { font-size:11px; color:rgba(255,241,222,0.45); margin-bottom:14px; }
+.frames-row { display:flex; gap:16px; flex-wrap:wrap; }
+.frame-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.frame-lbl { font-size:8px; color:rgba(255,241,222,0.3); text-transform:uppercase; letter-spacing:1px; text-align:center; }
+.card-back { background: linear-gradient(135deg, #2a1508, #1a0d05); border: 1.5px solid rgba(244,192,119,0.25); width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+.card-back-img { font-size:18px; opacity:0.35; }
+
+/* Section divider */
+.divider { height:1px; background:rgba(244,192,119,0.1); margin: 24px 0; }
+</style>
+
+<!-- ═══════════════════ FASE 1: NARRADOR ═══════════════════ -->
+<div class="section">
+  <div class="section-title">① Fase Narrador — 2 pasos</div>
+  <div class="section-sub">El narrador genera su mano → elige una carta → escribe la pista. Los demás ven pantalla de espera.</div>
+  <div class="frames-row">
+
+    <!-- Narrador Paso 1 -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Narrador — Paso 1/2<br>Elige tu carta</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">Elige tu carta</div></div>
+          <span class="step-pill">Paso 1/2</span>
+        </div>
+        <div class="phone-body">
+          <div style="font-size:6px;color:rgba(255,241,222,0.2);letter-spacing:2px;text-transform:uppercase;">Tu mano — elige una</div>
+          <div class="hand-grid">
+            <div class="slot slot-gen slot-sel">
+              <div class="slot-gen-icon">🎴</div>
+              <div class="slot-badge">✓ Elegida</div>
+            </div>
+            <div class="slot slot-gen">
+              <div class="slot-gen-icon">🃏</div>
+            </div>
+            <div class="slot slot-empty">
+              <div class="slot-empty-icon">+</div>
+              <div class="slot-empty-lbl">Carta 3</div>
+            </div>
+          </div>
+          <div class="prompt-area">
+            <div class="prompt-row">
+              <div class="prompt-input">Describe la carta...</div>
+              <div class="ia-btn"><span>✦ IA</span></div>
+            </div>
+            <div class="gen-btn"><span>Generar</span></div>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="btn-primary"><span>Siguiente: escribir pista →</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Narrador Paso 2 -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Narrador — Paso 2/2<br>Escribe la pista</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">Escribe tu pista</div></div>
+          <span class="step-pill">Paso 2/2</span>
+        </div>
+        <div class="phone-body">
+          <!-- Selected card preview -->
+          <div style="display:flex;gap:8px;align-items:center;background:rgba(25,13,10,0.7);border:1px solid rgba(244,192,119,0.2);border-radius:8px;padding:6px 8px;">
+            <div style="width:36px;height:54px;border-radius:5px;border:1.5px solid #e6b800;background:linear-gradient(135deg,#3a1a08,#1a0d05);display:flex;align-items:center;justify-content:center;font-size:18px;opacity:0.5;flex-shrink:0;">🎴</div>
+            <div>
+              <div style="font-size:6px;color:rgba(255,241,222,0.3);letter-spacing:1px;text-transform:uppercase;">Carta elegida</div>
+              <div style="font-size:8px;color:rgba(255,241,222,0.5);margin-top:2px;line-height:1.3;">La carta que jugarás esta ronda</div>
+            </div>
+          </div>
+          <div class="clue-input-area">
+            <div class="clue-lbl">Escribe una pista</div>
+            <div class="clue-input-mock">El tiempo que nunca vuelve</div>
+            <div style="font-size:6px;color:rgba(255,241,222,0.2);line-height:1.4;">Una palabra, frase o sonido. Ni muy obvia ni muy difícil.</div>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="btn-primary"><span>Enviar pista y carta →</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invitado esperando al narrador -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Invitados — esperando<br>al narrador</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">Esperando narrador</div></div>
+        </div>
+        <div class="phone-body" style="justify-content:center;align-items:center;gap:12px;">
+          <div class="waiting-card" style="width:100%;">
+            <div class="waiting-lbl">Narrador esta ronda</div>
+            <div class="narrator-row">
+              <div class="avatar">C</div>
+              <div><div class="narrator-name">Carlos</div><div class="narrator-role">Eligiendo carta y pista...</div></div>
+            </div>
+          </div>
+          <div class="ready-dots">
+            <div class="r-dot">C</div>
+            <div class="r-dot me">✓</div>
+            <div class="r-dot">A</div>
+            <div class="r-dot">P</div>
+          </div>
+          <div class="waiting-msg">El narrador está preparando<br>su carta y pista</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════ FASE 2: JUGADORES ═══════════════════ -->
+<div class="section">
+  <div class="section-title">② Fase Jugadores — elegir carta</div>
+  <div class="section-sub">Cada jugador ve la pista del narrador, genera su mano y elige la carta más parecida a la pista.</div>
+  <div class="frames-row">
+
+    <!-- Jugador activo -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Jugador — eligiendo carta</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">Elige tu carta</div></div>
+          <span class="step-pill">3/4 quedan</span>
+        </div>
+        <div class="phone-body">
+          <div class="clue-hero">
+            <div class="clue-lbl">Pista del narrador</div>
+            <div class="clue-txt">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div style="font-size:6px;color:rgba(255,241,222,0.2);letter-spacing:2px;text-transform:uppercase;">Tu mano — elige la más cercana</div>
+          <div class="hand-grid">
+            <div class="slot slot-gen slot-sel">
+              <div class="slot-gen-icon">🎴</div>
+              <div class="slot-badge">✓ Elegida</div>
+            </div>
+            <div class="slot slot-gen">
+              <div class="slot-gen-icon">🃏</div>
+            </div>
+            <div class="slot slot-gen">
+              <div class="slot-gen-icon">🃏</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div class="r-dot done" style="width:10px;height:10px;font-size:6px;">✓</div>
+            <div class="r-dot" style="width:10px;height:10px;"></div>
+            <div class="r-dot" style="width:10px;height:10px;"></div>
+            <div class="r-dot me" style="width:10px;height:10px;font-size:6px;">✓</div>
+            <span style="font-size:6px;color:rgba(255,241,222,0.25);margin-left:2px;">2/4 enviados</span>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="btn-primary"><span>Jugar esta carta →</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Jugador ya enviado — espera -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Jugador — ya envió,<br>esperando a los demás</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">Esperando jugadores</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="clue-hero">
+            <div class="clue-lbl">Pista del narrador</div>
+            <div class="clue-txt">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div class="waiting-card">
+            <div class="waiting-lbl">Progreso</div>
+            <div class="narrator-row">
+              <div class="avatar">C</div>
+              <div><div class="narrator-name">Carlos</div><div class="narrator-role">Narrador</div></div>
+            </div>
+            <div class="progress-row">
+              <div class="p-dot done"></div>
+              <div class="p-dot done"></div>
+              <div class="p-dot me"></div>
+              <div class="p-dot"></div>
+              <span class="progress-lbl">3/4 cartas enviadas</span>
+            </div>
+          </div>
+          <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:8px;padding:6px;text-align:center;">
+            <div style="font-size:8px;color:#4ade80;font-weight:700;">✓ Tu carta enviada</div>
+            <div style="font-size:7px;color:rgba(255,241,222,0.3);margin-top:2px;">Esperando a 1 jugador más...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Narrador esperando mientras otros juegan -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Narrador — esperando<br>jugadores</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">Esperando jugadores</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="clue-hero">
+            <div class="clue-lbl">Tu pista</div>
+            <div class="clue-txt">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div class="waiting-card">
+            <div class="waiting-lbl">Progreso</div>
+            <div class="progress-row">
+              <div class="p-dot done"></div>
+              <div class="p-dot done"></div>
+              <div class="p-dot"></div>
+              <div class="p-dot"></div>
+              <span class="progress-lbl">2/3 cartas enviadas</span>
+            </div>
+          </div>
+          <div class="waiting-msg" style="margin-top:4px;">Los jugadores están<br>eligiendo su carta</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════ FASE 3: VOTACIÓN ═══════════════════ -->
+<div class="section">
+  <div class="section-title">③ Fase Votación — ¿cuál es la del narrador?</div>
+  <div class="section-sub">Las cartas se revelan mezcladas (anónimas). Cada jugador vota cuál es la carta original del narrador. El narrador no vota.</div>
+  <div class="frames-row">
+
+    <!-- Jugador votando -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Jugador — votando</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">¿Cuál es la del narrador?</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="clue-hero">
+            <div class="clue-lbl">Pista</div>
+            <div class="clue-txt">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div style="font-size:6px;color:rgba(255,241,222,0.2);letter-spacing:2px;text-transform:uppercase;">Toca la carta del narrador</div>
+          <div class="vote-grid">
+            <div class="vote-card selected">
+              <div class="vote-card-icon">🎴</div>
+              <div class="v-badge">✓</div>
+              <div class="name-badge">? ? ?</div>
+            </div>
+            <div class="vote-card">
+              <div class="vote-card-icon">🃏</div>
+              <div class="name-badge">? ? ?</div>
+            </div>
+            <div class="vote-card">
+              <div class="vote-card-icon">🃏</div>
+              <div class="name-badge">? ? ?</div>
+            </div>
+            <div class="vote-card">
+              <div class="vote-card-icon">🃏</div>
+              <div class="name-badge">? ? ?</div>
+            </div>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="btn-primary"><span>Votar esta carta →</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Jugador ya votó — espera -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Jugador — ya votó,<br>esperando</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">Esperando votos</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="clue-hero">
+            <div class="clue-lbl">Pista</div>
+            <div class="clue-txt">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div class="waiting-card">
+            <div class="waiting-lbl">Progreso</div>
+            <div class="narrator-row">
+              <div class="avatar">C</div>
+              <div><div class="narrator-name">Carlos</div><div class="narrator-role">Narrador (no vota)</div></div>
+            </div>
+            <div class="progress-row">
+              <div class="p-dot done"></div>
+              <div class="p-dot me"></div>
+              <div class="p-dot"></div>
+              <span class="progress-lbl">2/3 votos</span>
+            </div>
+          </div>
+          <div style="background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:8px;padding:6px;text-align:center;">
+            <div style="font-size:8px;color:#4ade80;font-weight:700;">✓ Voto registrado</div>
+            <div style="font-size:7px;color:rgba(255,241,222,0.3);margin-top:2px;">Esperando a 1 jugador más...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Narrador esperando votos -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Narrador — esperando<br>votos</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">Esperando votos</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="clue-hero">
+            <div class="clue-lbl">Tu pista</div>
+            <div class="clue-txt">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div class="waiting-card">
+            <div class="waiting-lbl">Votos recibidos</div>
+            <div class="progress-row">
+              <div class="p-dot done"></div>
+              <div class="p-dot done"></div>
+              <div class="p-dot"></div>
+              <span class="progress-lbl">2/3 votos</span>
+            </div>
+          </div>
+          <div class="waiting-msg" style="margin-top:4px;">Los jugadores están<br>adivinando tu carta</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════ FASE 4: RESULTADOS ═══════════════════ -->
+<div class="section">
+  <div class="section-title">④ Resultados — avance automático en 10s</div>
+  <div class="section-sub">Reveal grande de la carta del narrador → grid con quién votó qué → puntuación → cuenta atrás.</div>
+  <div class="frames-row">
+
+    <!-- Resultados - antes de confirmar -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Resultados — antes<br>de confirmar</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">Resultados</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="big-reveal">
+            <div class="reveal-lbl">✦ Carta del narrador ✦</div>
+            <div class="reveal-card">🎴</div>
+            <div class="reveal-clue">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;">
+            <div class="vote-card" style="aspect-ratio:2/3;border:2px solid #e6b800;">
+              <div class="vote-card-icon" style="font-size:14px;">🎴</div>
+              <div class="name-badge" style="font-size:5px;">Carlos ⭐</div>
+            </div>
+            <div class="vote-card" style="aspect-ratio:2/3;">
+              <div class="vote-card-icon" style="font-size:14px;">🃏</div>
+              <div class="name-badge" style="font-size:5px;">Ana</div>
+            </div>
+            <div class="vote-card" style="aspect-ratio:2/3;">
+              <div class="vote-card-icon" style="font-size:14px;">🃏</div>
+              <div class="name-badge" style="font-size:5px;">Tú</div>
+            </div>
+          </div>
+          <div class="score-card">
+            <div class="score-lbl">Puntuación</div>
+            <div class="score-row"><span class="s-medal">🥇</span><span class="s-name">Carlos</span><span class="s-delta">+3</span><span class="s-pts">12</span></div>
+            <div class="score-row"><span class="s-medal">🥈</span><span class="s-name">Tú</span><span class="s-delta">+1</span><span class="s-pts">9</span></div>
+            <div class="score-row"><span class="s-medal">🥉</span><span class="s-name">Ana</span><span class="s-pts">7</span></div>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="countdown-btn">
+            <div class="btn-inner"><span class="btn-lbl">Siguiente ronda</span><span class="btn-timer">7</span></div>
+            <div class="prog-bar"><div class="prog-fill" style="width:70%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resultados - después de confirmar -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Resultados — después<br>de confirmar</div>
+      <div class="phone-frame">
+        <div class="ctx-strip">
+          <div><div class="round-num">Ronda 2/5</div><div style="font-size:8px;color:#e6b800;font-weight:700;">Resultados</div></div>
+        </div>
+        <div class="phone-body">
+          <div class="big-reveal">
+            <div class="reveal-lbl">✦ Carta del narrador ✦</div>
+            <div class="reveal-card">🎴</div>
+            <div class="reveal-clue">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;">
+            <div class="vote-card" style="aspect-ratio:2/3;border:2px solid #e6b800;">
+              <div class="vote-card-icon" style="font-size:14px;">🎴</div>
+              <div class="name-badge" style="font-size:5px;">Carlos ⭐</div>
+            </div>
+            <div class="vote-card" style="aspect-ratio:2/3;">
+              <div class="vote-card-icon" style="font-size:14px;">🃏</div>
+              <div class="name-badge" style="font-size:5px;">Ana</div>
+            </div>
+            <div class="vote-card" style="aspect-ratio:2/3;">
+              <div class="vote-card-icon" style="font-size:14px;">🃏</div>
+              <div class="name-badge" style="font-size:5px;">Tú</div>
+            </div>
+          </div>
+          <div class="score-card">
+            <div class="score-lbl">Puntuación</div>
+            <div class="score-row"><span class="s-medal">🥇</span><span class="s-name">Carlos</span><span class="s-delta">+3</span><span class="s-pts">12</span></div>
+            <div class="score-row"><span class="s-medal">🥈</span><span class="s-name">Tú</span><span class="s-delta">+1</span><span class="s-pts">9</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;justify-content:center;">
+            <div class="r-dot done" style="width:11px;height:11px;font-size:6px;">✓</div>
+            <div class="r-dot me" style="width:11px;height:11px;font-size:6px;">✓</div>
+            <div class="r-dot" style="width:11px;height:11px;"></div>
+            <div class="r-dot" style="width:11px;height:11px;"></div>
+            <span style="font-size:6px;color:rgba(255,241,222,0.25);">2/4 listos</span>
+          </div>
+        </div>
+        <div class="footer">
+          <div class="confirmed-btn"><span style="font-size:11px;">✓</span><span class="confirmed-lbl">¡Listo! Esperando...</span></div>
+          <div style="font-size:7px;color:rgba(255,241,222,0.25);text-align:center;margin-top:3px;">Empieza en 5s...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div class="frame-wrap">
+      <div class="frame-lbl">Loading state<br>(reemplaza pantalla negra)</div>
+      <div class="phone-frame">
+        <div class="phone-body" style="justify-content:center;align-items:center;gap:16px;">
+          <div style="font-size:32px;opacity:0.4;">🎴</div>
+          <div style="text-align:center;">
+            <div style="font-size:10px;color:#e6b800;font-weight:700;margin-bottom:4px;">Conectando a la partida</div>
+            <div style="font-size:8px;color:rgba(255,241,222,0.3);">Cargando sala y turno...</div>
+          </div>
+          <div style="display:flex;gap:4px;">
+            <div style="width:5px;height:5px;border-radius:50%;background:rgba(244,192,119,0.4);"></div>
+            <div style="width:5px;height:5px;border-radius:50%;background:rgba(244,192,119,0.3);"></div>
+            <div style="width:5px;height:5px;border-radius:50%;background:rgba(244,192,119,0.2);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:20px; padding:14px 16px; background:rgba(251,176,36,0.06); border:1px solid rgba(251,176,36,0.2); border-radius:12px;">
+  <p style="color:rgba(255,241,222,0.7); font-size:12px; line-height:1.6; margin:0;">
+    Este es el diseño completo de las 4 fases. Los patrones son consistentes: franja contexto (siempre) → zona acción → pie fijo con botón principal.<br><br>
+    <strong style="color:#fbb024;">Resumen de cambios respecto al actual:</strong> pantalla de loading temática, WaitingCard contextual en todos los estados de espera, pista como hero element, mano de 3 cartas por turno, reveal grande del narrador en resultados, cuenta atrás integrada en botón de avance.<br><br>
+    ¿Te parece bien este diseño completo? Si confirmas, escribo el spec document.
+  </p>
+</div>

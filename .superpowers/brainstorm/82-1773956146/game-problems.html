@@ -1,0 +1,96 @@
+<h2>Análisis: Problemas actuales de la partida</h2>
+<p class="subtitle">He leído todo el código. Estos son los problemas de diseño y funcionamiento que veo.</p>
+
+<style>
+.problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+.problem-card { background: rgba(30,20,10,0.6); border: 1.5px solid rgba(244,192,119,0.35); border-radius: 14px; padding: 16px; }
+.problem-card.critical { border-color: rgba(239,68,68,0.5); }
+.problem-card.medium { border-color: rgba(251,176,36,0.4); }
+.problem-card.low { border-color: rgba(100,200,100,0.3); }
+.problem-tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; margin-bottom: 8px; }
+.tag-critical { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+.tag-medium { background: rgba(251,176,36,0.12); color: #fbbf24; border: 1px solid rgba(251,176,36,0.3); }
+.tag-low { background: rgba(100,200,100,0.1); color: #86efac; border: 1px solid rgba(100,200,100,0.25); }
+.problem-card h3 { color: #fff7ea; font-size: 13px; font-weight: 700; margin: 0 0 6px 0; }
+.problem-card p { color: rgba(255,241,222,0.6); font-size: 12px; line-height: 1.5; margin: 0; }
+.phase-row { display: flex; gap: 8px; margin: 16px 0 8px; }
+.phase-badge { background: rgba(244,192,119,0.1); border: 1px solid rgba(244,192,119,0.3); border-radius: 99px; padding: 4px 12px; font-size: 11px; color: #e6b800; font-weight: 600; letter-spacing: 0.5px; }
+</style>
+
+<div class="section">
+  <div class="phase-row">
+    <span class="phase-badge">🔴 CRÍTICO</span>
+    <span class="phase-badge">🟡 MODERADO</span>
+    <span class="phase-badge">🟢 MENOR</span>
+  </div>
+
+  <div class="problem-grid">
+
+    <div class="problem-card critical">
+      <span class="problem-tag tag-critical">🔴 Crítico</span>
+      <h3>Los jugadores esperando no ven NADA</h3>
+      <p>Durante la fase del narrador, los jugadores no narradores solo ven un spinner girando. No saben quién es el narrador, qué ronda es, ni cuánto falta. Una pantalla de espera completamente vacía de contexto.</p>
+    </div>
+
+    <div class="problem-card critical">
+      <span class="problem-tag tag-critical">🔴 Crítico</span>
+      <h3>¿Qué tengo que hacer ahora?</h3>
+      <p>No hay una guía clara del paso actual. El jugador tiene que leer el <em>RoundStatus</em> (arriba) y luego los textos informativos de cada fase — demasiadas fuentes para entender lo mismo. El objetivo de cada turno no es obvio de un vistazo.</p>
+    </div>
+
+    <div class="problem-card critical">
+      <span class="problem-tag tag-critical">🔴 Crítico</span>
+      <h3>Resultados: ¿cuál era la carta del narrador?</h3>
+      <p>El grid de resultados muestra todas las cartas con nombres de jugadores, pero no distingue visualmente la carta del narrador del resto. La revelación — el momento clave del juego — no tiene impacto visual.</p>
+    </div>
+
+    <div class="problem-card critical">
+      <span class="problem-tag tag-critical">🔴 Crítico</span>
+      <h3>"Siguiente ronda" visible para todos</h3>
+      <p>Solo el anfitrión avanza la ronda, pero el botón aparece para todos. Los invitados que lo pulsan no ven ningún efecto. No hay explicación de quién controla el ritmo.</p>
+    </div>
+
+    <div class="problem-card medium">
+      <span class="problem-tag tag-medium">🟡 Moderado</span>
+      <h3>Texto informativo duplicado</h3>
+      <p>Cada fase tiene su propio <em>infoCard</em> (título + cuerpo). El <em>CardGenerator</em> tiene otro <em>infoCard</em> encima. En el flujo normal aparecen 2-3 bloques de instrucciones apilados antes de la acción real.</p>
+    </div>
+
+    <div class="problem-card medium">
+      <span class="problem-tag tag-medium">🟡 Moderado</span>
+      <h3>Comodines mostrados dos veces</h3>
+      <p>El <em>RoundStatus</em> muestra "Comodines restantes: N" en todas las fases. El <em>CardGenerator</em> lo muestra de nuevo con un botón. En votación o resultados es información irrelevante y hace ruido.</p>
+    </div>
+
+    <div class="problem-card medium">
+      <span class="problem-tag tag-medium">🟡 Moderado</span>
+      <h3>La pista del narrador no tiene peso</h3>
+      <p>En la fase de elección, la pista aparece en una tarjeta como más del layout. Siendo el elemento más importante de la ronda (guía toda la elección de carta), debería ser el protagonista visual claro.</p>
+    </div>
+
+    <div class="problem-card medium">
+      <span class="problem-tag tag-medium">🟡 Moderado</span>
+      <h3>Pantalla inicial en negro</h3>
+      <p>Mientras no hay <em>round/room/userId</em>, el <code>game.tsx</code> devuelve un <code>View</code> negro vacío. No hay loading state, ni indicador de qué está cargando.</p>
+    </div>
+
+    <div class="problem-card low">
+      <span class="problem-tag tag-low">🟢 Menor</span>
+      <h3>Narrador: flujo de 2 pasos no anunciado</h3>
+      <p>El narrador no sabe que tendrá que escribir una pista hasta después de elegir su carta. El flujo es: elegir carta → escribir pista, pero eso no se comunica al principio.</p>
+    </div>
+
+    <div class="problem-card low">
+      <span class="problem-tag tag-low">🟢 Menor</span>
+      <h3>Confirmación tras enviar carta/pista</h3>
+      <p>Cuando un jugador envía su carta o el narrador envía su pista, la pantalla pasa inmediatamente al waiting state sin confirmación explícita del envío exitoso.</p>
+    </div>
+
+  </div>
+</div>
+
+<div class="section" style="margin-top: 8px; padding: 14px 16px; background: rgba(251,176,36,0.06); border: 1px solid rgba(251,176,36,0.2); border-radius: 12px;">
+  <p style="color: rgba(255,241,222,0.7); font-size: 13px; line-height: 1.6; margin: 0;">
+    <strong style="color: #fbb024;">Pregunta en el terminal →</strong> ¿Confirma que estos son los problemas que notas? ¿Hay alguno que hayas sufrido especialmente?
+  </p>
+</div>

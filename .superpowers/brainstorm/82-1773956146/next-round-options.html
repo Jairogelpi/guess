@@ -1,0 +1,112 @@
+<h2>¿Qué ven los invitados en resultados?</h2>
+<p class="subtitle">Solo el anfitrión puede avanzar la ronda. Los invitados que pulsan "Siguiente ronda" ahora no ven nada. ¿Qué deberían ver?</p>
+
+<style>
+.phone-frame {
+  width: 180px; height: 200px;
+  background: #0a0602;
+  border-radius: 18px;
+  border: 2px solid rgba(244,192,119,0.4);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  margin: 0 auto;
+  padding: 12px;
+  gap: 8px;
+}
+.score-mini { background: rgba(25,13,10,0.92); border: 1px solid rgba(244,192,119,0.3); border-radius: 10px; padding: 8px; flex: 1; }
+.score-label { font-size: 7px; color: rgba(255,241,222,0.3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.score-row { display:flex; align-items:center; gap: 5px; padding: 3px 0; border-bottom: 1px solid rgba(244,192,119,0.08); }
+.score-row:last-child { border-bottom: none; }
+.s-medal { font-size: 9px; width:12px; }
+.s-name { font-size: 8px; color: rgba(255,241,222,0.65); flex:1; }
+.s-pts { font-size: 9px; color: #e6b800; font-weight:700; }
+.s-delta { font-size: 7px; color: #4ade80; }
+
+/* Button variants */
+.btn-primary { background: #f97316; border-radius: 10px; padding: 8px 14px; text-align:center; }
+.btn-primary span { font-size: 10px; color: #fff7ea; font-weight: 700; }
+.btn-disabled { background: rgba(67,34,21,0.4); border: 1px solid rgba(244,192,119,0.15); border-radius: 10px; padding: 7px 14px; text-align:center; }
+.btn-disabled span { font-size: 10px; color: rgba(255,241,222,0.25); font-weight: 600; }
+.btn-disabled .sub { font-size: 8px; color: rgba(255,241,222,0.2); margin-top: 2px; }
+.wait-row { display:flex; align-items:center; justify-content:center; gap: 6px; padding: 7px; }
+.dot { width:5px; height:5px; border-radius:50%; background: rgba(244,192,119,0.4); }
+.wait-label { font-size: 9px; color: rgba(255,241,222,0.4); }
+</style>
+
+<div class="cards" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; max-width: 640px; margin: 0 auto;">
+
+  <!-- Option A: Disabled button -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding: 14px 10px;">
+      <div style="margin-bottom: 8px; text-align:center; font-size:9px; color: rgba(255,241,222,0.3); text-transform:uppercase; letter-spacing:1px;">Vista del invitado</div>
+      <div class="phone-frame">
+        <div class="score-mini">
+          <div class="score-label">Puntuación</div>
+          <div class="score-row"><span class="s-medal">🥇</span><span class="s-name">Carlos</span><span class="s-delta">+3</span><span class="s-pts">12</span></div>
+          <div class="score-row"><span class="s-medal">🥈</span><span class="s-name">Tú</span><span class="s-pts">9</span></div>
+          <div class="score-row"><span class="s-medal">🥉</span><span class="s-name">Ana</span><span class="s-pts">7</span></div>
+        </div>
+        <div class="btn-disabled">
+          <span>Siguiente ronda</span>
+          <div class="sub">El anfitrión avanza la ronda</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Botón desactivado</h3>
+      <p>El botón aparece pero en gris, con un texto pequeño "El anfitrión avanza la ronda". Claro pero algo frustrante de ver.</p>
+    </div>
+  </div>
+
+  <!-- Option B: No button, waiting text -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding: 14px 10px;">
+      <div style="margin-bottom: 8px; text-align:center; font-size:9px; color: rgba(255,241,222,0.3); text-transform:uppercase; letter-spacing:1px;">Vista del invitado</div>
+      <div class="phone-frame">
+        <div class="score-mini">
+          <div class="score-label">Puntuación</div>
+          <div class="score-row"><span class="s-medal">🥇</span><span class="s-name">Carlos</span><span class="s-delta">+3</span><span class="s-pts">12</span></div>
+          <div class="score-row"><span class="s-medal">🥈</span><span class="s-name">Tú</span><span class="s-pts">9</span></div>
+          <div class="score-row"><span class="s-medal">🥉</span><span class="s-name">Ana</span><span class="s-pts">7</span></div>
+        </div>
+        <div class="wait-row">
+          <div class="dot"></div>
+          <span class="wait-label">Esperando al anfitrión...</span>
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Sin botón, texto de espera</h3>
+      <p>El botón no aparece para invitados. Solo un texto "Esperando al anfitrión..." que deja claro que no hay nada que hacer.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Host sees button, guests see nothing different (both see button, but only host works) — LABELED AS CURRENT BAD STATE -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding: 14px 10px;">
+      <div style="margin-bottom: 8px; text-align:center; font-size:9px; color: rgba(255,241,222,0.3); text-transform:uppercase; letter-spacing:1px;">Vista del anfitrión</div>
+      <div class="phone-frame">
+        <div class="score-mini">
+          <div class="score-label">Puntuación</div>
+          <div class="score-row"><span class="s-medal">🥇</span><span class="s-name">Carlos</span><span class="s-delta">+3</span><span class="s-pts">12</span></div>
+          <div class="score-row"><span class="s-medal">🥈</span><span class="s-name">Tú</span><span class="s-pts">9</span></div>
+          <div class="score-row"><span class="s-medal">🥉</span><span class="s-name">Ana</span><span class="s-pts">7</span></div>
+        </div>
+        <div class="btn-primary"><span>▶ Siguiente ronda</span></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Solo el anfitrión lo ve</h3>
+      <p>El botón activo aparece únicamente para el anfitrión. Los invitados no lo ven en absoluto — máxima claridad de roles.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top: 16px; padding: 12px 16px; background: rgba(251,176,36,0.06); border: 1px solid rgba(251,176,36,0.2); border-radius: 12px;">
+  <p style="color: rgba(255,241,222,0.65); font-size: 12px; line-height: 1.6; margin: 0;">
+    💡 Mi recomendación es la <strong style="color:#fbb024">C</strong> — el botón solo existe para quien lo puede usar. Sin ruido visual, sin confusión. Los invitados simplemente esperan (como en el lobby). Haz clic o responde en el terminal.
+  </p>
+</div>

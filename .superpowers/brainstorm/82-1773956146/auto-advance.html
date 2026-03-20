@@ -1,0 +1,154 @@
+<h2>Avance automático con cuenta atrás</h2>
+<p class="subtitle">Todos ven el botón. Si todos pulsan → avanza. Si no → avanza a los 10 segundos. ¿Cómo debería verse?</p>
+
+<style>
+.phone-frame {
+  width: 190px; height: 420px;
+  background: #0a0602;
+  border-radius: 28px;
+  border: 2px solid rgba(244,192,119,0.4);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  margin: 0 auto;
+}
+.phone-status { height: 26px; background: rgba(16,9,5,0.9); display:flex; align-items:center; padding: 0 12px; gap:6px; border-bottom: 1px solid rgba(244,192,119,0.15); }
+.round-pill { font-size: 8px; color: rgba(255,241,222,0.4); letter-spacing: 1px; text-transform: uppercase; }
+.phase-label { font-size: 8px; color: #e6b800; font-weight: 700; flex:1; text-align:right; }
+.phone-body { flex:1; display:flex; flex-direction:column; padding: 10px; gap: 8px; overflow:hidden; }
+
+/* Reveal card */
+.reveal-block { background: rgba(25,13,10,0.95); border: 1.5px solid #e6b800; border-radius: 12px; padding: 8px; text-align:center; box-shadow: 0 0 14px rgba(230,184,0,0.15); }
+.reveal-label { font-size: 7px; color: #e6b800; letter-spacing: 2px; text-transform:uppercase; margin-bottom: 4px; }
+.reveal-card-mock { width: 44px; height: 66px; background: linear-gradient(135deg, #3a1a08, #1a0d05); border-radius: 5px; border: 1.5px solid #e6b800; margin: 0 auto 4px; display:flex; align-items:center; justify-content:center; font-size: 20px; opacity:0.5; }
+.reveal-clue { font-size: 9px; color: #fff7ea; font-style:italic; font-weight:700; }
+
+/* Score mini */
+.score-mini { background: rgba(25,13,10,0.7); border: 1px solid rgba(244,192,119,0.2); border-radius: 10px; padding: 6px 8px; }
+.score-label { font-size: 7px; color: rgba(255,241,222,0.3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+.score-row { display:flex; align-items:center; gap: 5px; padding: 2px 0; }
+.s-medal { font-size: 9px; width:12px; }
+.s-name { font-size: 8px; color: rgba(255,241,222,0.6); flex:1; }
+.s-pts { font-size: 9px; color: #e6b800; font-weight:700; }
+.s-delta { font-size: 7px; color: #4ade80; }
+
+/* Ready indicators */
+.ready-row { display:flex; gap: 4px; justify-content:center; align-items:center; }
+.ready-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid rgba(244,192,119,0.3); display:flex; align-items:center; justify-content:center; font-size:8px; }
+.ready-dot.done { background: rgba(74,222,128,0.15); border-color: #4ade80; }
+.ready-dot.me { background: rgba(249,115,22,0.15); border-color: #f97316; }
+
+/* Countdown button */
+.countdown-btn { border-radius: 12px; overflow:hidden; }
+.btn-inner { background: #f97316; padding: 8px 10px; display:flex; align-items:center; gap: 8px; }
+.btn-label { font-size: 10px; color: #fff7ea; font-weight: 700; flex:1; }
+.btn-timer { font-size: 14px; color: #fff7ea; font-weight: 900; min-width: 22px; text-align:center; }
+.progress-bar { height: 3px; background: rgba(255,255,255,0.2); }
+.progress-fill { height: 100%; background: rgba(255,255,255,0.6); transition: width 1s linear; }
+
+/* Confirmed state */
+.confirmed-btn { background: rgba(74,222,128,0.12); border: 1.5px solid rgba(74,222,128,0.3); border-radius: 12px; padding: 8px 10px; display:flex; align-items:center; gap: 6px; justify-content:center; }
+.confirmed-label { font-size: 10px; color: #4ade80; font-weight: 700; }
+.tick { font-size: 12px; }
+.countdown-text { font-size: 8px; color: rgba(255,241,222,0.35); text-align:center; }
+</style>
+
+<div class="cards" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 560px; margin: 0 auto;">
+
+  <!-- Option A: Before pressing -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding: 14px 10px;">
+      <div style="text-align:center; font-size:9px; color:rgba(255,241,222,0.3); margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">Antes de pulsar</div>
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span class="round-pill">Ronda 2 / 5</span>
+          <span class="phase-label">Resultados</span>
+        </div>
+        <div class="phone-body">
+          <div class="reveal-block">
+            <div class="reveal-label">✦ Carta del narrador ✦</div>
+            <div class="reveal-card-mock">🎴</div>
+            <div class="reveal-clue">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div class="score-mini">
+            <div class="score-label">Puntuación</div>
+            <div class="score-row"><span class="s-medal">🥇</span><span class="s-name">Carlos</span><span class="s-delta">+3</span><span class="s-pts">12</span></div>
+            <div class="score-row"><span class="s-medal">🥈</span><span class="s-name">Tú</span><span class="s-delta">+1</span><span class="s-pts">9</span></div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding: 0 2px;">
+            <div class="ready-row">
+              <div class="ready-dot done">✓</div>
+              <div class="ready-dot"></div>
+              <div class="ready-dot"></div>
+              <div class="ready-dot"></div>
+            </div>
+            <span style="font-size:8px; color:rgba(255,241,222,0.3);">1/4 listos</span>
+          </div>
+          <div class="countdown-btn">
+            <div class="btn-inner">
+              <span class="btn-label">Siguiente ronda</span>
+              <span class="btn-timer">7</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:70%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Cuenta atrás visible en el botón</h3>
+      <p>El botón tiene el contador integrado (7, 6, 5…) y una barra de progreso que se vacía. Los avatares muestran quién ya pulsó.</p>
+    </div>
+  </div>
+
+  <!-- Option B: After pressing -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding: 14px 10px;">
+      <div style="text-align:center; font-size:9px; color:rgba(255,241,222,0.3); margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">Después de pulsar</div>
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span class="round-pill">Ronda 2 / 5</span>
+          <span class="phase-label">Resultados</span>
+        </div>
+        <div class="phone-body">
+          <div class="reveal-block">
+            <div class="reveal-label">✦ Carta del narrador ✦</div>
+            <div class="reveal-card-mock">🎴</div>
+            <div class="reveal-clue">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div class="score-mini">
+            <div class="score-label">Puntuación</div>
+            <div class="score-row"><span class="s-medal">🥇</span><span class="s-name">Carlos</span><span class="s-delta">+3</span><span class="s-pts">12</span></div>
+            <div class="score-row"><span class="s-medal">🥈</span><span class="s-name">Tú</span><span class="s-delta">+1</span><span class="s-pts">9</span></div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding: 0 2px;">
+            <div class="ready-row">
+              <div class="ready-dot done">✓</div>
+              <div class="ready-dot me">✓</div>
+              <div class="ready-dot"></div>
+              <div class="ready-dot"></div>
+            </div>
+            <span style="font-size:8px; color:rgba(255,241,222,0.3);">2/4 listos</span>
+          </div>
+          <div class="confirmed-btn">
+            <span class="tick">✓</span>
+            <span class="confirmed-label">¡Listo! Esperando a los demás</span>
+          </div>
+          <div class="countdown-text">La ronda empieza en 5 segundos...</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Tras confirmar — estado verde</h3>
+      <p>Después de pulsar, el botón se vuelve verde con confirmación. El contador sigue visible. Ves cuántos más quedan.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top: 16px; padding: 14px 16px; background: rgba(251,176,36,0.06); border: 1px solid rgba(251,176,36,0.2); border-radius: 12px;">
+  <p style="color: rgba(255,241,222,0.7); font-size: 12px; line-height: 1.6; margin: 0;">
+    Estos son los dos estados del mismo botón: <strong style="color:#fbb024">izquierda</strong> = antes de pulsar (con cuenta atrás integrada), <strong style="color:#fbb024">derecha</strong> = después de pulsar (confirmación verde + "esperando a los demás"). Si todos pulsan antes de 10s → avanza inmediatamente.
+    <br><br>
+    💡 <strong>Pregunta:</strong> ¿La cuenta atrás debería vivir en la base de datos (sincronizada para todos) o simplemente calcularse en el cliente a partir del momento en que empieza la fase de resultados?
+  </p>
+</div>

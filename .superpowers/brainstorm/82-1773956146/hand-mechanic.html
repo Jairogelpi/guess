@@ -1,0 +1,166 @@
+<h2>Nueva mecánica de mano — Generar 3 cartas, jugar 1</h2>
+<p class="subtitle">Cada ronda: hasta 3 slots de carta. Escribe un prompt (o pide sugerencia IA) → genera → elige cuál juegas.</p>
+
+<style>
+.phone-frame {
+  width: 195px; height: 410px;
+  background: #0a0602;
+  border-radius: 28px;
+  border: 2px solid rgba(244,192,119,0.4);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  margin: 0 auto;
+}
+.ctx-strip { background: rgba(16,9,5,0.95); border-bottom: 1px solid rgba(244,192,119,0.18); padding: 6px 12px; display:flex; align-items:center; gap:8px; }
+.round-num { font-size: 8px; color: rgba(255,241,222,0.35); letter-spacing:1px; text-transform:uppercase; }
+.phase-name { font-size: 10px; color: #e6b800; font-weight:700; flex:1; text-align:right; }
+.narrator-chip { font-size: 8px; color: rgba(255,241,222,0.4); }
+
+.phone-body { flex:1; display:flex; flex-direction:column; padding: 8px; gap: 7px; overflow:hidden; }
+
+/* Clue hero */
+.clue-hero { background: rgba(25,13,10,0.92); border: 1.5px solid rgba(244,192,119,0.42); border-radius: 10px; padding: 7px 10px; text-align:center; }
+.clue-label { font-size: 7px; color: #e6b800; letter-spacing:2px; text-transform:uppercase; }
+.clue-text { font-size: 12px; color: #fff7ea; font-weight:700; font-style:italic; line-height:1.3; margin-top:3px; }
+
+/* Hand grid */
+.hand-grid { display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+.slot { border-radius: 8px; aspect-ratio: 2/3; position:relative; overflow:hidden; cursor:pointer; }
+.slot-empty { background: rgba(25,13,10,0.6); border: 1.5px dashed rgba(244,192,119,0.2); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+.slot-empty-icon { font-size:16px; opacity:0.3; }
+.slot-empty-label { font-size:7px; color:rgba(255,241,222,0.2); text-align:center; line-height:1.3; }
+.slot-generated { background: linear-gradient(135deg, #3a1a08, #1a0d05); border: 1.5px solid rgba(244,192,119,0.35); }
+.slot-selected { border: 2px solid #e6b800 !important; box-shadow: 0 0 8px rgba(230,184,0,0.35); transform: scale(1.04); }
+.slot-img { width:100%; height:100%; object-fit:cover; display:flex; align-items:center; justify-content:center; font-size:20px; opacity:0.4; }
+.slot-badge { position:absolute; bottom:0; left:0; right:0; background:rgba(230,184,0,0.85); padding:2px; text-align:center; font-size:7px; font-weight:800; color:#0a0602; }
+
+/* Prompt area */
+.prompt-area { background: rgba(25,13,10,0.7); border: 1px solid rgba(244,192,119,0.2); border-radius: 9px; padding: 6px 8px; gap:5px; display:flex; flex-direction:column; }
+.prompt-row { display:flex; gap:5px; align-items:center; }
+.prompt-input-mock { flex:1; background: rgba(67,34,21,0.5); border: 1px solid rgba(244,192,119,0.2); border-radius:7px; padding:4px 7px; font-size:8px; color:rgba(255,241,222,0.5); }
+.suggest-btn { background: rgba(67,34,21,0.8); border: 1px solid rgba(244,192,119,0.3); border-radius:99px; padding:3px 7px; display:flex; align-items:center; gap:3px; }
+.suggest-icon { font-size:9px; color:#e6b800; }
+.suggest-text { font-size:7px; color:#fbb024; font-weight:600; }
+.gen-btn { background:#f97316; border-radius:7px; padding:4px 8px; text-align:center; }
+.gen-btn span { font-size:8px; color:#fff7ea; font-weight:700; }
+
+/* Footer */
+.footer { padding:6px 8px; border-top: 1px solid rgba(244,192,119,0.1); }
+.play-btn { background:#f97316; border-radius:10px; padding:7px; text-align:center; }
+.play-btn span { font-size:10px; color:#fff7ea; font-weight:700; }
+.play-btn.disabled { background:rgba(67,34,21,0.4); }
+.play-btn.disabled span { color:rgba(255,241,222,0.2); }
+
+/* Steps annotation */
+.steps { display:flex; flex-direction:column; gap:12px; }
+.step { display:flex; gap:12px; align-items:flex-start; }
+.step-num { width:26px; height:26px; border-radius:50%; background:rgba(244,192,119,0.1); border:1.5px solid rgba(244,192,119,0.3); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#e6b800; flex-shrink:0; }
+.step-text h4 { color:#fff7ea; font-size:13px; font-weight:700; margin:0 0 3px; }
+.step-text p { color:rgba(255,241,222,0.5); font-size:12px; line-height:1.4; margin:0; }
+</style>
+
+<div style="display:grid; grid-template-columns: 220px 1fr; gap:28px; align-items:start;">
+
+  <div>
+    <div style="text-align:center; font-size:9px; color:rgba(255,241,222,0.3); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">Estado: 2 generadas, 1 vacía, 1ª seleccionada</div>
+    <div class="phone-frame">
+      <div class="ctx-strip">
+        <div>
+          <div class="round-num">Ronda 2 / 5</div>
+          <div class="phase-name" style="font-size:9px; text-align:left;">Elige tu carta</div>
+        </div>
+        <span class="narrator-chip">Narrador: Carlos</span>
+      </div>
+      <div class="phone-body">
+
+        <!-- Clue -->
+        <div class="clue-hero">
+          <div class="clue-label">Pista</div>
+          <div class="clue-text">"El tiempo que nunca vuelve"</div>
+        </div>
+
+        <!-- Hand of 3 -->
+        <div style="font-size:7px; color:rgba(255,241,222,0.25); letter-spacing:2px; text-transform:uppercase;">Tu mano — elige una</div>
+        <div class="hand-grid">
+          <!-- Slot 1: generated + selected -->
+          <div class="slot slot-generated slot-selected">
+            <div class="slot-img">🎴</div>
+            <div class="slot-badge">✓ Elegida</div>
+          </div>
+          <!-- Slot 2: generated -->
+          <div class="slot slot-generated">
+            <div class="slot-img">🃏</div>
+          </div>
+          <!-- Slot 3: empty, with prompt -->
+          <div class="slot slot-empty">
+            <div class="slot-empty-icon">+</div>
+            <div class="slot-empty-label">Generar carta 3</div>
+          </div>
+        </div>
+
+        <!-- Prompt area for slot 3 -->
+        <div class="prompt-area">
+          <div class="prompt-row">
+            <div class="prompt-input-mock">Describe la carta...</div>
+            <div class="suggest-btn">
+              <span class="suggest-icon">✦</span>
+              <span class="suggest-text">IA</span>
+            </div>
+          </div>
+          <div class="gen-btn"><span>Generar</span></div>
+        </div>
+
+      </div>
+      <div class="footer">
+        <div class="play-btn"><span>Jugar esta carta →</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        <h4>3 slots de carta visibles desde el principio</h4>
+        <p>El jugador ve su mano vacía con 3 huecos. Sabe de entrada que puede generar hasta 3 opciones. Los slots vacíos muestran un "+" con "Generar carta N".</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        <h4>Prompt + botón "✦ IA" por carta</h4>
+        <p>Al tocar un slot vacío, aparece el área de prompt debajo. Puede escribir manualmente o pulsar <strong>✦ IA</strong> para que la IA sugiera una idea. Luego "Generar" crea la imagen.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        <h4>Toca una carta generada para seleccionarla</h4>
+        <p>Una vez generada, la carta aparece en el slot con borde dorado cuando está seleccionada. Se puede cambiar tocando otra. Las cartas no jugadas se descartan al final de la ronda.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">
+        <h4>"Jugar esta carta" — solo activo con selección</h4>
+        <p>El botón principal en el pie de pantalla está desactivado hasta que hay una carta seleccionada. Con 1 carta seleccionada → botón activo. No hace falta generar las 3 para poder jugar.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">★</div>
+      <div class="step-text">
+        <h4>El narrador: mismo flujo + escribe la pista después</h4>
+        <p>El narrador también genera hasta 3 cartas y elige una. Después de elegir, aparece el input de pista (igual que ahora, pero como paso 2 explícito). La franja de contexto muestra "Paso 1 / 2" y "Paso 2 / 2".</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px; padding:14px 16px; background:rgba(251,176,36,0.06); border:1px solid rgba(251,176,36,0.2); border-radius:12px;">
+  <p style="color:rgba(255,241,222,0.7); font-size:12px; line-height:1.6; margin:0;">
+    ¿Este flujo de mano te parece correcto? Una vez confirmado, presento el diseño completo de todas las fases y escribo el documento de spec.
+  </p>
+</div>

@@ -1,5 +1,5 @@
-import type { ScoreEntry } from './scoring.ts'
-import { getEligibleVoterCount, inferRoundPlayers, normalizeRoundPlayers } from './tacticalRules.ts'
+import type { ScoreEntry } from './scoring'
+import { getEligibleVoterCount, inferRoundPlayers, normalizeRoundPlayers } from './tacticalRules'
 
 type CardTacticalAction = 'subtle_bet' | 'trap_card' | null | undefined
 type VoteTacticalAction = 'firm_read' | null | undefined

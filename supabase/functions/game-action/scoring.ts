@@ -4,7 +4,7 @@ import {
   normalizeRoundPlayers,
   subtleBetSucceeded,
   trapCardSucceeded,
-} from './tacticalRules.ts'
+} from './tacticalRules'
 
 interface Vote {
   voter_id: string

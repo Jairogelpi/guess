@@ -1,0 +1,132 @@
+<h2>Resultados: ¿cómo se revela la carta del narrador?</h2>
+<p class="subtitle">Ahora mismo: aparece en una tarjeta pequeña arriba y el grid no la distingue. ¿Cuál de estas opciones quieres?</p>
+
+<style>
+.phone-frame {
+  width: 190px; height: 370px;
+  background: #0a0602;
+  border-radius: 28px;
+  border: 2px solid rgba(244,192,119,0.4);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  margin: 0 auto;
+}
+.phone-status { height: 26px; background: rgba(16,9,5,0.9); display:flex; align-items:center; padding: 0 12px; gap:6px; border-bottom: 1px solid rgba(244,192,119,0.15); }
+.round-pill { font-size: 8px; color: rgba(255,241,222,0.4); letter-spacing: 1px; text-transform: uppercase; }
+.phase-label { font-size: 8px; color: #e6b800; font-weight: 700; flex:1; text-align:right; }
+.phone-body { flex:1; overflow:hidden; display:flex; flex-direction:column; padding: 8px; gap: 7px; }
+
+.clue-chip { background: rgba(244,192,119,0.08); border: 1px solid rgba(244,192,119,0.3); border-radius: 99px; padding: 3px 10px; text-align:center; }
+.clue-text { font-size: 11px; color: #fff7ea; font-weight: 700; font-style: italic; }
+
+/* Grid mock */
+.mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.mini-card { border-radius: 7px; aspect-ratio: 2/3; position:relative; overflow:hidden; }
+.mini-card-img { width:100%; height:100%; object-fit:cover; background: linear-gradient(135deg, #2a1508, #1a0d05); border-radius:7px; border: 2px solid rgba(244,192,119,0.25); }
+.narrator-highlight { border: 2.5px solid #e6b800 !important; box-shadow: 0 0 10px rgba(230,184,0,0.4); }
+.narrator-badge { position:absolute; bottom:0; left:0; right:0; background: rgba(230,184,0,0.9); padding: 2px; text-align:center; font-size: 7px; font-weight: 800; color: #0a0602; letter-spacing: 0.5px; }
+.name-badge { position:absolute; bottom:0; left:0; right:0; background: rgba(10,6,2,0.82); padding: 2px 4px; font-size: 7px; color: rgba(255,241,222,0.6); text-align:center; }
+.card-icon { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:22px; opacity:0.25; }
+
+/* Reveal style */
+.big-reveal { background: rgba(25,13,10,0.95); border: 2px solid #e6b800; border-radius: 12px; padding: 8px; text-align:center; box-shadow: 0 0 16px rgba(230,184,0,0.2); }
+.reveal-label { font-size: 7px; color: #e6b800; letter-spacing: 2px; text-transform:uppercase; margin-bottom: 4px; }
+.reveal-card { width: 52px; height: 78px; background: linear-gradient(135deg, #3a1a08, #1a0d05); border-radius: 6px; border: 2px solid #e6b800; margin: 0 auto 5px; display:flex; align-items:center; justify-content:center; font-size: 24px; opacity:0.5; }
+.reveal-clue { font-size: 9px; color: #fff7ea; font-style:italic; font-weight:700; }
+
+.section-label { font-size: 7px; color: rgba(255,241,222,0.3); letter-spacing: 2px; text-transform: uppercase; }
+</style>
+
+<div class="cards" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 600px; margin: 0 auto;">
+
+  <!-- Option A: Highlight in grid -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding: 16px 12px;">
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span class="round-pill">Ronda 2 / 5</span>
+          <span class="phase-label">Resultados</span>
+        </div>
+        <div class="phone-body">
+          <div class="clue-chip">
+            <div class="clue-text">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div class="section-label">Cartas de la ronda</div>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <div class="mini-card-img narrator-highlight"></div>
+              <div class="card-icon">🎴</div>
+              <div class="narrator-badge">⭐ NARRADOR</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-card-img"></div>
+              <div class="card-icon">🃏</div>
+              <div class="name-badge">Ana</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-card-img"></div>
+              <div class="card-icon">🃏</div>
+              <div class="name-badge">Pablo</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-card-img"></div>
+              <div class="card-icon">🃏</div>
+              <div class="name-badge">Tú</div>
+            </div>
+          </div>
+          <div style="background: rgba(244,192,119,0.06); border-radius: 8px; padding: 4px 6px; text-align:center;">
+            <div class="section-label">Puntuación</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Destacada en el grid</h3>
+      <p>La carta del narrador tiene borde dorado y badge "NARRADOR" dentro del grid. Todo visible de un vistazo sin pasos extra.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Big reveal first, then grid -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding: 16px 12px;">
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span class="round-pill">Ronda 2 / 5</span>
+          <span class="phase-label">Resultados</span>
+        </div>
+        <div class="phone-body">
+          <div class="big-reveal">
+            <div class="reveal-label">✦ Carta del narrador ✦</div>
+            <div class="reveal-card">🎴</div>
+            <div class="reveal-clue">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div class="section-label">Todas las cartas</div>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <div class="mini-card-img" style="opacity:0.4; border-color: rgba(244,192,119,0.15);"></div>
+              <div class="card-icon" style="font-size:16px;">🃏</div>
+              <div class="name-badge">Ana</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-card-img" style="opacity:0.4; border-color: rgba(244,192,119,0.15);"></div>
+              <div class="card-icon" style="font-size:16px;">🃏</div>
+              <div class="name-badge">Pablo</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Reveal grande primero</h3>
+      <p>La carta del narrador ocupa el protagonismo al principio de la pantalla, con su pista. El grid queda secundario debajo.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top: 16px; padding: 12px 16px; background: rgba(251,176,36,0.06); border: 1px solid rgba(251,176,36,0.2); border-radius: 12px;">
+  <p style="color: rgba(255,241,222,0.65); font-size: 12px; line-height: 1.6; margin: 0;">
+    💡 Mi recomendación es la <strong style="color:#fbb024">B</strong> — la carta del narrador es <em>el</em> momento dramático de la ronda. Darle protagonismo visual arriba crea el efecto "revelación" que hace al juego emocionante. La A es más limpia pero pierde ese impacto.
+  </p>
+</div>

@@ -1,0 +1,165 @@
+<h2>¿Qué ven los jugadores mientras esperan?</h2>
+<p class="subtitle">Ahora mismo: solo un spinner girando. ¿Cuál de estas opciones tiene más sentido para tu juego?</p>
+
+<style>
+.phone-frame {
+  width: 200px;
+  height: 360px;
+  background: #0a0602;
+  border-radius: 28px;
+  border: 2px solid rgba(244,192,119,0.4);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin: 0 auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.phone-status { height: 28px; background: rgba(16,9,5,0.9); display: flex; align-items: center; padding: 0 12px; gap: 6px; border-bottom: 1px solid rgba(244,192,119,0.15); }
+.round-pill { font-size: 9px; color: rgba(255,241,222,0.4); letter-spacing: 1px; text-transform: uppercase; }
+.phase-label { font-size: 9px; color: #e6b800; font-weight: 700; letter-spacing: 0.5px; flex: 1; text-align: right; }
+.phone-body { flex: 1; display: flex; flex-direction: column; padding: 10px; gap: 8px; }
+
+/* Option A — Context card */
+.context-card { background: rgba(25,13,10,0.92); border: 1.5px solid rgba(244,192,119,0.42); border-radius: 12px; padding: 10px; text-align: center; }
+.ctx-label { font-size: 8px; color: rgba(255,241,222,0.35); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 4px; }
+.ctx-narrator { font-size: 11px; color: #e6b800; font-weight: 700; margin-bottom: 6px; }
+.ctx-clue-label { font-size: 7px; color: rgba(255,241,222,0.35); letter-spacing: 1px; text-transform: uppercase; }
+.ctx-clue { font-size: 13px; color: #fff7ea; font-weight: 700; margin-top: 3px; font-style: italic; }
+.wait-badge { background: rgba(67,34,21,0.6); border: 1px solid rgba(244,192,119,0.25); border-radius: 99px; padding: 5px 10px; display: flex; align-items: center; gap: 6px; justify-content: center; }
+.dot-pulse { width: 6px; height: 6px; border-radius: 50%; background: #e6b800; opacity: 0.7; }
+.wait-text { font-size: 9px; color: rgba(255,241,222,0.5); }
+.progress-row { display: flex; gap: 4px; justify-content: center; }
+.progress-dot { width: 18px; height: 3px; border-radius: 99px; background: rgba(244,192,119,0.2); }
+.progress-dot.done { background: #e6b800; }
+.progress-dot.me { background: rgba(249,115,22,0.8); }
+
+/* Option B — Minimal themed */
+.minimal-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.spinner-ring { width: 32px; height: 32px; border: 2.5px solid rgba(244,192,119,0.2); border-top-color: #e6b800; border-radius: 50%; }
+.minimal-title { font-size: 12px; color: #fbb024; font-weight: 700; text-align: center; line-height: 1.4; }
+.minimal-body { font-size: 10px; color: rgba(255,241,222,0.45); text-align: center; line-height: 1.4; padding: 0 8px; }
+
+/* Option C — Scores while waiting */
+.score-mini { background: rgba(25,13,10,0.92); border: 1.5px solid rgba(244,192,119,0.42); border-radius: 12px; padding: 8px; }
+.score-row { display: flex; align-items: center; gap: 6px; padding: 4px 2px; border-bottom: 1px solid rgba(244,192,119,0.1); }
+.score-row:last-child { border-bottom: none; }
+.score-medal { font-size: 10px; width: 14px; }
+.score-name { font-size: 9px; color: rgba(255,241,222,0.7); flex: 1; }
+.score-pts { font-size: 10px; color: #e6b800; font-weight: 700; }
+.score-delta { font-size: 8px; color: #4ade80; }
+</style>
+
+<div class="cards" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding: 16px 12px;">
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span class="round-pill">Ronda 2 / 5</span>
+          <span class="phase-label">Elige carta</span>
+        </div>
+        <div class="phone-body">
+          <div class="context-card">
+            <div class="ctx-label">Narrador</div>
+            <div class="ctx-narrator">Carlos</div>
+            <div class="ctx-clue-label">Su pista</div>
+            <div class="ctx-clue">"El tiempo que nunca vuelve"</div>
+          </div>
+          <div class="wait-badge">
+            <div class="dot-pulse"></div>
+            <span class="wait-text">Carlos está eligiendo carta...</span>
+          </div>
+          <div style="text-align:center; margin-top: 4px;">
+            <div class="ctx-label" style="margin-bottom: 4px;">Jugadores listos</div>
+            <div class="progress-row">
+              <div class="progress-dot done"></div>
+              <div class="progress-dot me"></div>
+              <div class="progress-dot"></div>
+              <div class="progress-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Contexto completo</h3>
+      <p>Narrador, pista visible, progreso de cuántos han enviado carta. Los jugadores saben exactamente qué está pasando.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding: 16px 12px;">
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span class="round-pill">Ronda 2 / 5</span>
+          <span class="phase-label">Elige carta</span>
+        </div>
+        <div class="phone-body">
+          <div class="minimal-center">
+            <div class="spinner-ring"></div>
+            <div class="minimal-title">Tu carta ya está enviada</div>
+            <div class="minimal-body">Ahora falta que jueguen los demás. La votación empezará cuando estén listos.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Espera mínima temática</h3>
+      <p>Como ahora pero con texto claro de contexto. Simple, sin distracciones. El jugador sabe qué hizo y qué viene.</p>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)" style="cursor:pointer;">
+    <div class="card-image" style="padding: 16px 12px;">
+      <div class="phone-frame">
+        <div class="phone-status">
+          <span class="round-pill">Ronda 2 / 5</span>
+          <span class="phase-label">Elige carta</span>
+        </div>
+        <div class="phone-body">
+          <div class="context-card" style="text-align:center; padding: 6px 8px;">
+            <div class="ctx-clue">"El tiempo que nunca vuelve"</div>
+            <div class="wait-badge" style="margin-top: 6px;">
+              <div class="dot-pulse"></div>
+              <span class="wait-text">Esperando a los demás...</span>
+            </div>
+          </div>
+          <div class="score-mini">
+            <div class="ctx-label" style="margin-bottom: 4px;">Puntuación actual</div>
+            <div class="score-row">
+              <span class="score-medal">🥇</span>
+              <span class="score-name">Carlos</span>
+              <span class="score-delta">+3</span>
+              <span class="score-pts">12</span>
+            </div>
+            <div class="score-row">
+              <span class="score-medal">🥈</span>
+              <span class="score-name">Tú</span>
+              <span class="score-pts">9</span>
+            </div>
+            <div class="score-row">
+              <span class="score-medal">🥉</span>
+              <span class="score-name">Ana</span>
+              <span class="score-pts">7</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Pista + Marcador en vivo</h3>
+      <p>La pista siempre visible + marcador actualizado mientras esperan. Más información pero más complejo.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="margin-top: 12px; padding: 12px 16px; background: rgba(251,176,36,0.06); border: 1px solid rgba(251,176,36,0.2); border-radius: 12px;">
+  <p style="color: rgba(255,241,222,0.65); font-size: 12px; line-height: 1.6; margin: 0;">
+    💡 La <strong style="color:#fbb024">opción A</strong> es mi recomendación — da contexto sin sobrecargar. La B es la más conservadora. La C es la más rica pero requiere más datos en tiempo real. Haz clic en el mockup que te guste o responde en el terminal.
+  </p>
+</div>
