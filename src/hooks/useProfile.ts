@@ -22,14 +22,26 @@ export function useProfile() {
 
     setProfileLoading(true)
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('display_name, avatar_url')
       .eq('id', auth.userId)
       .maybeSingle()
 
+    if (error) {
+      console.error('Profile fetch error:', error)
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    const authDisplayName =
+      typeof user?.user_metadata?.display_name === 'string'
+        ? user.user_metadata.display_name
+        : ''
+
     setProfile({
-      displayName: data?.display_name ?? '',
+      displayName: data?.display_name ?? authDisplayName ?? '',
       avatarUrl: data?.avatar_url ?? null,
     })
     setProfileLoading(false)

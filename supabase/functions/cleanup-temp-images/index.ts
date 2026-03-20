@@ -2,13 +2,11 @@ import { handleCors } from '../_shared/cors.ts'
 import { errorResponse, okResponse } from '../_shared/types.ts'
 import { createSupabaseAdmin } from '../_shared/supabaseAdmin.ts'
 
-const FALLBACK_CRON_SECRET = 'cleanup-temp-images-20260318'
-
 Deno.serve(async (req) => {
   const corsResult = handleCors(req)
   if (corsResult) return corsResult
 
-  const cronSecret = Deno.env.get('CLEANUP_TEMP_IMAGES_CRON_SECRET') ?? FALLBACK_CRON_SECRET
+  const cronSecret = Deno.env.get('CLEANUP_TEMP_IMAGES_CRON_SECRET')
   if (!cronSecret || req.headers.get('x-cron-secret') !== cronSecret) {
     return errorResponse('UNAUTHORIZED', 'Invalid cron secret', 401)
   }

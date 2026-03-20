@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { View, Text, Image, Dimensions, StyleSheet, Animated } from 'react-native'
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Animated,
+  Pressable,
+  ActivityIndicator,
+  useWindowDimensions,
+} from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -8,7 +17,6 @@ import { supabase } from '@/lib/supabase'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { Background } from '@/components/layout/Background'
 import { useUIStore } from '@/stores/useUIStore'
-import { Button } from '@/components/ui/Button'
 import {
   WELCOME_HERO_CARD_BACKGROUND,
   WELCOME_HERO_CARD_MAX_WIDTH,
@@ -17,7 +25,6 @@ import {
   WELCOME_HERO_CARD_SHADOW_RADIUS,
   WELCOME_HERO_CARD_WIDTH_FACTOR,
   WELCOME_HERO_CTA_HEIGHT,
-  WELCOME_HERO_CTA_SHADOW_OPACITY,
   WELCOME_HERO_CTA_WIDTH_FACTOR,
   WELCOME_HERO_FOOTER_GAP,
   WELCOME_HERO_FOOTER_MARGIN_TOP,
@@ -26,22 +33,28 @@ import {
   WELCOME_HERO_IMAGE_SCALE,
   WELCOME_HERO_OVERLAY_JUSTIFY_CONTENT,
   WELCOME_HERO_OVERLAY_COLORS,
-  WELCOME_HERO_SECONDARY_ACTION_GAP,
-  WELCOME_HERO_SECONDARY_CTA_HEIGHT,
   WELCOME_HERO_SECONDARY_HINT_MARGIN_TOP,
   WELCOME_HERO_SHOW_LOGO,
   WELCOME_HERO_STACK_GAP,
 } from '@/constants/welcomeHero'
-
-const { width: SCREEN_W } = Dimensions.get('window')
-const CARD_W = Math.min(SCREEN_W * WELCOME_HERO_CARD_WIDTH_FACTOR, WELCOME_HERO_CARD_MAX_WIDTH)
-const CARD_H = CARD_W * WELCOME_HERO_CARD_RATIO
 
 export default function Welcome() {
   const { t } = useTranslation()
   const router = useRouter()
   const showToast = useUIStore((s) => s.showToast)
   const [loading, setLoading] = useState(false)
+  const { width: screenWidth } = useWindowDimensions()
+
+  const cardWidth = Math.min(screenWidth * WELCOME_HERO_CARD_WIDTH_FACTOR, WELCOME_HERO_CARD_MAX_WIDTH)
+  const cardHeight = cardWidth * WELCOME_HERO_CARD_RATIO
+  const compactHero = screenWidth < 390
+  const titleSize = compactHero ? 34 : 40
+  const highlightSize = compactHero ? 45 : 52
+  const subtitleSize = compactHero ? 13 : 15
+  const guestFontSize = compactHero ? 14 : WELCOME_GUEST_CTA_FONT_SIZE
+  const guestButtonHeight = compactHero ? 40 : WELCOME_HERO_CTA_HEIGHT
+  const secondaryButtonHeight = compactHero ? 34 : 38
+  const secondaryFontSize = compactHero ? 10 : 11
 
   const breatheAnim = useRef(new Animated.Value(1)).current
   const riseAnim = useRef(new Animated.Value(0)).current
@@ -97,7 +110,7 @@ export default function Welcome() {
         <AppHeader />
 
         <View style={styles.container}>
-          <Animated.View style={[styles.mainCard, animatedStyle]}>
+          <Animated.View style={[styles.mainCard, animatedStyle, { width: cardWidth, height: cardHeight }]}>
             <Image
               source={require('../../assets/carta.png')}
               style={styles.cardImage}
@@ -119,11 +132,11 @@ export default function Welcome() {
                         resizeMode="contain"
                       />
                     )}
-                    <Text style={styles.brandTitle} adjustsFontSizeToFit numberOfLines={1}>
+                    <Text style={[styles.brandTitle, { fontSize: titleSize }]} adjustsFontSizeToFit numberOfLines={1}>
                       GUESS THE
                     </Text>
                     <Text
-                      style={[styles.brandTitle, styles.brandTitleHighlight]}
+                      style={[styles.brandTitle, styles.brandTitleHighlight, { fontSize: highlightSize }]}
                       adjustsFontSizeToFit
                       numberOfLines={1}
                     >
@@ -132,40 +145,61 @@ export default function Welcome() {
                   </View>
 
                   <View style={styles.divider} />
-                  <Text style={styles.subtitle} adjustsFontSizeToFit numberOfLines={2}>
+                  <Text style={[styles.subtitle, { fontSize: subtitleSize, lineHeight: subtitleSize + 7 }]} adjustsFontSizeToFit numberOfLines={2}>
                     {t('welcome.subtitle')}
                   </Text>
                 </View>
 
                 <View style={styles.cardFooter}>
-                  <Button
+                  <Pressable
+                    accessibilityRole="button"
                     onPress={enterAsGuest}
-                    loading={loading}
-                    style={styles.guestBtn}
-                    textStyle={styles.guestBtnText}
+                    disabled={loading}
+                    style={[
+                      styles.guestBtn,
+                      {
+                        height: guestButtonHeight,
+                      },
+                      loading && styles.disabledBtn,
+                    ]}
                   >
-                    {t('welcome.enterAsGuest').toUpperCase()}
-                  </Button>
+                    <LinearGradient
+                      colors={['rgba(249, 168, 37, 0.92)', 'rgba(249, 115, 22, 0.92)', 'rgba(234, 88, 12, 0.86)']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.guestBtnGradient}
+                    >
+                      {loading ? (
+                        <ActivityIndicator size="small" color="#fff7ea" />
+                      ) : (
+                        <Text style={[styles.guestBtnText, { fontSize: guestFontSize, lineHeight: guestFontSize + 2 }]}>
+                          {t('welcome.enterAsGuest').toUpperCase()}
+                        </Text>
+                      )}
+                    </LinearGradient>
+                  </Pressable>
                   <Text style={styles.hintText}>{t('welcome.guestHint')}</Text>
 
                   <View style={styles.secondaryActions}>
-                    <Button
-                      variant="ghost"
-                      style={styles.smallActionBtn}
-                      textStyle={styles.secondaryBtnText}
+                    <Pressable
+                      accessibilityRole="button"
                       onPress={() => router.push({ pathname: '/(auth)/login', params: { mode: 'signin' } })}
+                      style={[styles.smallActionBtn, { height: secondaryButtonHeight }]}
                     >
-                      {t('welcome.signIn')}
-                    </Button>
+                      <Text style={[styles.secondaryBtnText, { fontSize: secondaryFontSize, lineHeight: secondaryFontSize + 2 }]}>
+                        {t('welcome.signIn')}
+                      </Text>
+                    </Pressable>
                     <View style={styles.actionPipe} />
-                    <Button
-                      variant="ghost"
-                      style={[styles.smallActionBtn, styles.registerBtn]}
-                      textStyle={styles.registerBtnText}
+                    <Pressable
+                      accessibilityRole="button"
                       onPress={() => router.push({ pathname: '/(auth)/login', params: { mode: 'register' } })}
+                      style={[styles.smallActionBtn, styles.registerBtn, { height: secondaryButtonHeight }]}
                     >
-                      {t('profile.upgradeAccount')}
-                    </Button>
+                      <Text style={[styles.registerBtnText, { fontSize: secondaryFontSize, lineHeight: secondaryFontSize + 2 }]}>
+                        {t('profile.upgradeAccount')}
+                      </Text>
+                    </Pressable>
                   </View>
                   <Text style={styles.accountHintText}>{t('welcome.accountHint')}</Text>
                 </View>
@@ -186,8 +220,6 @@ const styles = StyleSheet.create({
   overlayRoot: { flex: 1, backgroundColor: 'transparent' },
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
   mainCard: {
-    width: CARD_W,
-    height: CARD_H,
     borderRadius: 30,
     overflow: 'hidden',
     backgroundColor: WELCOME_HERO_CARD_BACKGROUND,
@@ -274,16 +306,16 @@ const styles = StyleSheet.create({
   },
   guestBtn: {
     width: `${WELCOME_HERO_CTA_WIDTH_FACTOR * 100}%`,
-    height: WELCOME_HERO_CTA_HEIGHT,
-    backgroundColor: 'rgba(196, 120, 12, 0.34)',
     borderRadius: 30,
     borderWidth: 1.5,
     borderColor: 'rgba(230, 184, 0, 0.7)',
-    shadowColor: 'rgba(230, 184, 0, 0.4)',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: WELCOME_HERO_CTA_SHADOW_OPACITY,
-    shadowRadius: 0,
-    elevation: 0,
+    overflow: 'hidden',
+  },
+  guestBtnGradient: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
   },
   guestBtnText: {
     fontFamily: 'CinzelDecorative_700Bold',
@@ -299,6 +331,9 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
+  disabledBtn: {
+    opacity: 0.55,
+  },
   hintText: {
     color: 'rgba(255, 241, 222, 0.75)',
     fontSize: 11,
@@ -311,11 +346,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    gap: WELCOME_HERO_SECONDARY_ACTION_GAP,
+    gap: 12,
   },
   smallActionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 12,
-    height: WELCOME_HERO_SECONDARY_CTA_HEIGHT,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',

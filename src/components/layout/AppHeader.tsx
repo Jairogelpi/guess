@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { APP_HEADER_LOGO_SCALE, APP_HEADER_THEME, APP_VERSION } from '@/constants/appChrome'
+import { APP_HEADER_LOGO_SCALE, APP_HEADER_THEME } from '@/constants/appChrome'
 import { colors, fonts, radii } from '@/constants/theme'
 import { useProfile } from '@/hooks/useProfile'
 import { ProfileAvatar } from '@/components/ui/ProfileAvatar'
@@ -75,7 +75,7 @@ export function AppHeader({ title }: AppHeaderProps) {
             style={styles.profileButton}
           >
             {userId ? (
-              <ProfileAvatar avatarUrl={avatarUrl} fallback={avatarFallback} size={34} />
+              <ProfileAvatar avatarUrl={avatarUrl} fallback={avatarFallback} size={32} />
             ) : (
               <View style={styles.profileIconShell}>
                 <MaterialCommunityIcons name="account-circle-outline" size={22} color={colors.goldLight} />
@@ -90,26 +90,31 @@ export function AppHeader({ title }: AppHeaderProps) {
 
 const styles = StyleSheet.create({
   safe: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingTop: 6,
     paddingBottom: 4,
+    alignItems: 'center',
   },
   shell: {
     minHeight: 52,
+    width: '100%',
+    maxWidth: 336,
+    alignSelf: 'center',
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: APP_HEADER_THEME.borderColor,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    gap: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    gap: 8,
     backgroundColor: 'rgba(12, 7, 3, 0.72)',
   },
   leftRail: {
-    width: 64,
-    height: '100%',
+    minWidth: 38,
+    height: 38,
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   logo: {
     width: '100%',
@@ -122,33 +127,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: 'hidden',
   },
-  versionText: {
-    color: colors.gold,
-    fontFamily: fonts.title,
-    fontSize: 10,
-    letterSpacing: 1.5,
-  },
   titleRail: {
-    flex: 1,
+    flexShrink: 1,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 28,
-    paddingHorizontal: 4,
+    minWidth: 0,
+    maxWidth: 132,
+    paddingHorizontal: 2,
   },
   title: {
     color: '#fff4d6',
     fontFamily: fonts.titleHeavy,
-    fontSize: 14,
-    letterSpacing: 1.0,
+    fontSize: 12,
+    letterSpacing: 0.7,
     textTransform: 'uppercase',
     textAlign: 'center',
   },
   actions: {
-    width: 132,
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: 8,
+    flexShrink: 0,
+    gap: 6,
   },
   langGroup: {
     flexDirection: 'row',
@@ -159,12 +159,12 @@ const styles = StyleSheet.create({
     padding: 3,
   },
   langButton: {
-    minWidth: 32,
-    height: 28,
+    minWidth: 30,
+    height: 26,
     borderRadius: radii.full,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
   },
   langButtonActive: {
     backgroundColor: 'rgba(255, 228, 186, 0.16)',
@@ -172,8 +172,8 @@ const styles = StyleSheet.create({
   langText: {
     color: colors.textMuted,
     fontFamily: fonts.title,
-    fontSize: 11,
-    letterSpacing: 0.9,
+    fontSize: 10,
+    letterSpacing: 0.7,
   },
   langTextActive: {
     color: colors.textPrimary,
@@ -182,9 +182,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
   },
   profileIconShell: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(10, 6, 2, 0.42)',

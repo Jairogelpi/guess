@@ -11,8 +11,6 @@ interface OpenRouterPayload {
   choices?: OpenRouterChoice[]
 }
 
-const FALLBACK_OPENROUTER_API_KEY = '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'
-
 export function extractTextContent(payload: OpenRouterPayload) {
   for (const choice of payload.choices ?? []) {
     const content = choice.message?.content
@@ -38,7 +36,7 @@ export async function callOpenRouter({
   temperature: number
   failureCode?: keyof typeof AI_ERROR_CODES
 }) {
-  const apiKey = Deno.env.get('OPENROUTER_API_KEY') ?? FALLBACK_OPENROUTER_API_KEY
+  const apiKey = Deno.env.get('OPENROUTER_API_KEY')
   if (!apiKey) {
     throw new AiError(AI_ERROR_CODES.AI_CONFIG_ERROR, 'Missing OpenRouter API key')
   }

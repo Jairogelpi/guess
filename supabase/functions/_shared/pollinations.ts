@@ -4,8 +4,6 @@ export interface BuildPollinationsImageUrlParams {
   seed: number
 }
 
-const FALLBACK_POLLINATIONS_API_KEY = 'sk_F4DOb1aDpVMBV1gp3qw7TJYJjqBH3vA8'
-
 export function getPollinationsModels() {
   return {
     primary: 'flux',
@@ -22,7 +20,7 @@ export function getPollinationsApiKey() {
     }
   }
 
-  return runtime.Deno?.env?.get('POLLINATIONS_API_KEY') ?? FALLBACK_POLLINATIONS_API_KEY
+  return runtime.Deno?.env?.get('POLLINATIONS_API_KEY')
 }
 
 export function buildPollinationsAuthHeaders(apiKey: string) {

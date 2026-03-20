@@ -55,14 +55,14 @@ export default function ProfileScreen() {
     const { error: authError } = await supabase.auth.updateUser({ data: { display_name: nextName } })
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({ display_name: nextName })
-      .eq('id', userId)
+      .upsert({ id: userId, display_name: nextName, avatar_url: avatarUrl, updated_at: new Date().toISOString() })
 
     if (!authError && !profileError) {
       setProfile({ displayName: nextName, avatarUrl })
       showToast(t('profile.save'), 'success')
     } else {
-      showToast(t('errors.generic'), 'error')
+      console.error('Save display name error:', authError ?? profileError)
+      showToast((authError ?? profileError)?.message ?? t('errors.generic'), 'error')
     }
     setSaving(false)
   }

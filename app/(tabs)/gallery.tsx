@@ -51,11 +51,17 @@ export default function GalleryScreen() {
   async function fetchCards() {
     if (!userId) return
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('gallery_cards')
       .select('*')
       .eq('player_id', userId)
       .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Gallery fetch error:', error)
+      showToast(error.message, 'error')
+    }
+
     setCards((data as GalleryCard[]) ?? [])
     setLoading(false)
   }
@@ -70,10 +76,14 @@ export default function GalleryScreen() {
     if (!pendingCard || !userId) return
     setSaving(true)
     try {
-      const { count } = await supabase
+      const { count, error: countError } = await supabase
         .from('gallery_cards')
         .select('id', { count: 'exact', head: true })
         .eq('player_id', userId)
+
+      if (countError) {
+        throw countError
+      }
 
       if (!hasGalleryCapacity(count ?? 0)) {
         showToast(t('errors.GALLERY_LIMIT_REACHED'), 'error')
@@ -109,8 +119,11 @@ export default function GalleryScreen() {
       void fetchCards()
     } catch (error) {
       const message = error instanceof Error ? error.message : ''
+      console.error('Save to gallery error:', error)
       showToast(
-        message.includes('GALLERY_LIMIT_REACHED') ? t('errors.GALLERY_LIMIT_REACHED') : t('errors.generic'),
+        message.includes('GALLERY_LIMIT_REACHED')
+          ? t('errors.GALLERY_LIMIT_REACHED')
+          : message || t('errors.generic'),
         'error',
       )
     } finally {
@@ -124,15 +137,20 @@ export default function GalleryScreen() {
     setAvatarSaving(true)
     const { error } = await supabase
       .from('profiles')
-      .update({ avatar_url: selectedCard.image_url })
-      .eq('id', userId)
+      .upsert({
+        id: userId,
+        display_name: displayName || 'Player',
+        avatar_url: selectedCard.image_url,
+        updated_at: new Date().toISOString(),
+      })
 
     if (!error) {
       setProfile({ displayName, avatarUrl: selectedCard.image_url })
       showToast(t('gallery.avatarSaved'), 'success')
       setSelectedCard(null)
     } else {
-      showToast(t('errors.generic'), 'error')
+      console.error('Set avatar error:', error)
+      showToast(error.message || t('errors.generic'), 'error')
     }
 
     setAvatarSaving(false)
@@ -155,7 +173,8 @@ export default function GalleryScreen() {
       setSelectedCard({ ...selectedCard, title: nextTitle })
       showToast(t('gallery.titleSaved'), 'success')
     } else {
-      showToast(t('errors.generic'), 'error')
+      console.error('Save gallery title error:', error)
+      showToast(error.message || t('errors.generic'), 'error')
     }
 
     setTitleSaving(false)
@@ -168,7 +187,13 @@ export default function GalleryScreen() {
         text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
-          await supabase.from('gallery_cards').delete().eq('id', id)
+          const { error } = await supabase.from('gallery_cards').delete().eq('id', id)
+          if (error) {
+            console.error('Delete gallery card error:', error)
+            showToast(error.message || t('errors.generic'), 'error')
+            return
+          }
+
           setCards((prev) => prev.filter((c) => c.id !== id))
           setSelectedCard((prev) => (prev?.id === id ? null : prev))
         },
