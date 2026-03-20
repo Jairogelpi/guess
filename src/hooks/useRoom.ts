@@ -1,39 +1,116 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'expo-router'
 import { supabase } from '@/lib/supabase'
+import { getVisibleLobbyPlayers } from '@/lib/lobbyState'
 import type { Room, RoomPlayer } from '@/types/game'
 
-export function useRoom(code: string | null) {
+export interface UseRoomResult {
+  room: Room | null
+  players: RoomPlayer[]
+  hydratingPlayers: boolean
+  roomNotFound: boolean
+  roomLoadFailed: boolean
+}
+
+export function useRoom(code: string | null): UseRoomResult {
   const router = useRouter()
   const [room, setRoom] = useState<Room | null>(null)
   const [players, setPlayers] = useState<RoomPlayer[]>([])
+  const [hydratingPlayers, setHydratingPlayers] = useState(true)
+  const [roomNotFound, setRoomNotFound] = useState(false)
+  const [roomLoadFailed, setRoomLoadFailed] = useState(false)
   const roomIdRef = useRef<string | null>(null)
 
-  // Keep ref in sync with room state
   useEffect(() => {
     roomIdRef.current = room?.id ?? null
   }, [room?.id])
 
   useEffect(() => {
-    if (!code) return
+    let cancelled = false
 
-    supabase
-      .from('rooms')
-      .select('*')
-      .eq('code', code)
-      .single()
-      .then(({ data }) => {
-        if (data) setRoom(data as Room)
-      })
+    setRoom(null)
+    setPlayers([])
+    setHydratingPlayers(true)
+    setRoomNotFound(false)
+    setRoomLoadFailed(false)
+    roomIdRef.current = null
 
-    const fetchPlayers = (roomId: string) =>
-      supabase
+    if (!code) {
+      setHydratingPlayers(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    const loadPlayers = async (roomId: string) => {
+      const { data, error } = await supabase
         .from('room_players')
         .select('*')
         .eq('room_id', roomId)
-        .then(({ data }) => {
-          if (data) setPlayers(data as RoomPlayer[])
-        })
+
+      if (cancelled) return
+
+      if (error) {
+        setRoomLoadFailed(true)
+        setHydratingPlayers(false)
+        return
+      }
+
+      setPlayers(getVisibleLobbyPlayers((data ?? []) as RoomPlayer[]))
+      setHydratingPlayers(false)
+    }
+
+    const refreshPlayers = async () => {
+      const id = roomIdRef.current
+      if (!id) return
+
+      const { data, error } = await supabase
+        .from('room_players')
+        .select('*')
+        .eq('room_id', id)
+
+      if (cancelled || error || !data) return
+
+      setPlayers(getVisibleLobbyPlayers(data as RoomPlayer[]))
+    }
+
+    const loadRoom = async () => {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('code', code)
+        .single()
+
+      if (cancelled) return
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          setRoomNotFound(true)
+        } else {
+          setRoomLoadFailed(true)
+        }
+        setHydratingPlayers(false)
+        return
+      }
+
+      const resolved = data as Room
+      setRoom(resolved)
+      roomIdRef.current = resolved.id
+
+      if (resolved.status === 'playing') {
+        setHydratingPlayers(false)
+        router.replace(`/room/${code}/game`)
+        return
+      }
+
+      if (resolved.status === 'ended') {
+        setHydratingPlayers(false)
+        router.replace(`/room/${code}/ended`)
+        return
+      }
+
+      await loadPlayers(resolved.id)
+    }
 
     const roomSub = supabase
       .channel(`room:${code}`)
@@ -43,7 +120,11 @@ export function useRoom(code: string | null) {
         (payload) => {
           const updated = payload.new as Room
           setRoom(updated)
-          if (updated.status === 'ended') {
+          roomIdRef.current = updated.id
+
+          if (updated.status === 'playing') {
+            router.replace(`/room/${code}/game`)
+          } else if (updated.status === 'ended') {
             router.replace(`/room/${code}/ended`)
           }
         },
@@ -52,28 +133,18 @@ export function useRoom(code: string | null) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'room_players' },
         () => {
-          // Use ref to avoid stale closure — room state may not be
-          // available yet when this callback was created.
-          const id = roomIdRef.current
-          if (id) fetchPlayers(id)
+          void refreshPlayers()
         },
       )
       .subscribe()
 
-    // Once room is fetched, load players
-    supabase
-      .from('rooms')
-      .select('id')
-      .eq('code', code)
-      .single()
-      .then(({ data }) => {
-        if (data) fetchPlayers(data.id)
-      })
+    void loadRoom()
 
     return () => {
+      cancelled = true
       supabase.removeChannel(roomSub)
     }
-  }, [code])
+  }, [code, router])
 
-  return { room, players }
+  return { room, players, hydratingPlayers, roomNotFound, roomLoadFailed }
 }
