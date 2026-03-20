@@ -1,7 +1,9 @@
 import { TouchableOpacity, Text, ActivityIndicator, StyleSheet, View } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import type { ReactNode } from 'react'
-import { colors, fonts, radii } from '@/constants/theme'
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native'
+import { brandButtons, brandTypography } from '@/constants/brand'
+import { colors, radii } from '@/constants/theme'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
@@ -11,8 +13,9 @@ interface ButtonProps {
   variant?: Variant
   loading?: boolean
   disabled?: boolean
-  style?: any
-  textStyle?: any
+  style?: StyleProp<ViewStyle>
+  contentStyle?: StyleProp<ViewStyle>
+  textStyle?: StyleProp<TextStyle>
 }
 
 export function Button({
@@ -22,9 +25,13 @@ export function Button({
   loading,
   disabled,
   style,
+  contentStyle,
   textStyle,
 }: ButtonProps) {
   const isDisabled = disabled ?? loading
+  const primaryGradient: [string, string] | [string, string, string] = isDisabled
+    ? ['rgba(180,130,0,0.4)', 'rgba(140,100,0,0.4)']
+    : [...brandButtons.primary.gradient]
 
   if (variant === 'primary') {
     return (
@@ -34,17 +41,8 @@ export function Button({
         activeOpacity={0.82}
         style={[styles.base, isDisabled && styles.disabled, style]}
       >
-        <LinearGradient
-          colors={
-            isDisabled
-              ? ['rgba(180,130,0,0.4)', 'rgba(140,100,0,0.4)']
-              : [colors.orangeGrad1, colors.orange, colors.orangeGrad2]
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradient}
-        >
-          <View style={styles.inner}>
+        <LinearGradient colors={primaryGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradient}>
+          <View style={[styles.inner, contentStyle]}>
             {loading && <ActivityIndicator size="small" color={colors.textPrimary} />}
             {typeof children === 'string' ? (
               <Text style={[styles.textPrimary, textStyle]}>{children}</Text>
@@ -65,7 +63,7 @@ export function Button({
         activeOpacity={0.82}
         style={[styles.base, styles.secondary, isDisabled && styles.disabled, style]}
       >
-        <View style={styles.inner}>
+        <View style={[styles.inner, contentStyle]}>
           {loading && <ActivityIndicator size="small" color={colors.gold} />}
           {typeof children === 'string' ? (
             <Text style={[styles.textSecondary, textStyle]}>{children}</Text>
@@ -85,7 +83,7 @@ export function Button({
         activeOpacity={0.75}
         style={[styles.base, styles.ghost, isDisabled && styles.disabled, style]}
       >
-        <View style={styles.inner}>
+        <View style={[styles.inner, contentStyle]}>
           {loading && <ActivityIndicator size="small" color={colors.goldLight} />}
           {typeof children === 'string' ? (
             <Text style={[styles.textGhost, textStyle]}>{children}</Text>
@@ -105,7 +103,7 @@ export function Button({
       activeOpacity={0.82}
       style={[styles.base, styles.danger, isDisabled && styles.disabled, style]}
     >
-      <View style={styles.inner}>
+      <View style={[styles.inner, contentStyle]}>
         {loading && <ActivityIndicator size="small" color={colors.textPrimary} />}
         {typeof children === 'string' ? (
           <Text style={[styles.textPrimary, textStyle]}>{children}</Text>
@@ -119,73 +117,77 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radii.md,
+    borderRadius: radii.full,
     overflow: 'hidden',
   },
   gradient: {
+    borderWidth: 1.5,
+    borderColor: brandButtons.primary.borderColor,
+    borderRadius: radii.full,
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 15,
+    shadowColor: brandButtons.primary.shadowColor,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 18,
+    elevation: 8,
   },
   inner: {
+    minHeight: 26,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
     gap: 8,
   },
   secondary: {
-    backgroundColor: colors.surfaceMid,
+    backgroundColor: brandButtons.secondary.backgroundColor,
     borderWidth: 1,
-    borderColor: colors.goldBorder,
+    borderColor: brandButtons.secondary.borderColor,
+    borderRadius: radii.full,
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 15,
   },
   ghost: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: colors.goldBorder,
+    backgroundColor: brandButtons.ghost.backgroundColor,
+    borderWidth: 1,
+    borderColor: brandButtons.ghost.borderColor,
+    borderRadius: radii.full,
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 15,
   },
   danger: {
-    backgroundColor: colors.danger,
+    backgroundColor: brandButtons.danger.backgroundColor,
+    borderWidth: 1,
+    borderColor: brandButtons.danger.borderColor,
+    borderRadius: radii.full,
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 15,
   },
   disabled: {
     opacity: 0.45,
   },
   textPrimary: {
     color: colors.textPrimary,
-    fontFamily: fonts.title,
-    fontSize: 15,
-    lineHeight: 18,
-    letterSpacing: 0.8,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-    width: '100%',
+    fontFamily: brandTypography.buttonLabel.fontFamily,
+    fontSize: brandTypography.buttonLabel.fontSize,
+    lineHeight: brandTypography.buttonLabel.lineHeight,
+    letterSpacing: brandTypography.buttonLabel.letterSpacing,
+    textTransform: 'uppercase',
   },
   textSecondary: {
-    color: colors.goldLight,
-    fontFamily: fonts.title,
-    fontSize: 14,
-    lineHeight: 17,
-    letterSpacing: 0.7,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-    width: '100%',
+    color: brandButtons.secondary.textColor,
+    fontFamily: brandTypography.buttonLabel.fontFamily,
+    fontSize: brandTypography.buttonLabel.fontSize,
+    lineHeight: brandTypography.buttonLabel.lineHeight,
+    letterSpacing: brandTypography.buttonLabel.letterSpacing,
+    textTransform: 'uppercase',
   },
   textGhost: {
-    color: colors.goldLight,
-    fontFamily: fonts.title,
-    fontSize: 14,
-    lineHeight: 17,
-    letterSpacing: 0.7,
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    includeFontPadding: false,
-    width: '100%',
+    color: brandButtons.ghost.textColor,
+    fontFamily: brandTypography.buttonLabel.fontFamily,
+    fontSize: brandTypography.buttonLabel.fontSize,
+    lineHeight: brandTypography.buttonLabel.lineHeight,
+    letterSpacing: brandTypography.buttonLabel.letterSpacing,
+    textTransform: 'uppercase',
   },
 })
