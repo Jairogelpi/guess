@@ -33,7 +33,7 @@ export default function RoomLayout() {
         headerBackTitle: '',
       }}
     >
-      <Stack.Screen name="lobby" options={{ title: t('lobby.title') }} />
+      <Stack.Screen name="lobby" options={{ headerShown: false }} />
       <Stack.Screen name="game" options={{ headerShown: false }} />
       <Stack.Screen name="ended" options={{ title: t('ended.title'), headerBackVisible: false }} />
     </Stack>

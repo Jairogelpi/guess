@@ -23,6 +23,7 @@ import { useUIStore } from '@/stores/useUIStore'
 import { getLobbyHydrationPhase, getLobbyStartState, getPlayersNeededToStart } from '@/lib/lobbyState'
 import { Button } from '@/components/ui/Button'
 import { Background } from '@/components/layout/Background'
+import { AppHeader } from '@/components/layout/AppHeader'
 import { PlayerList } from '@/components/game/PlayerList'
 import { colors } from '@/constants/theme'
 import type { LobbyMessage } from '@/types/game'
@@ -42,7 +43,8 @@ export default function LobbyScreen() {
   const flatRef = useRef<FlatList>(null)
 
   const me = players.find((p) => p.player_id === userId)
-  const isHost = me?.is_host ?? false
+  // Use room.host_id for reliable host detection — doesn't depend on players loading first
+  const isHost = !!(room?.host_id && userId && room.host_id === userId)
   const activeCount = players.length // already filtered to active by useRoom
 
   const hydrationPhase = getLobbyHydrationPhase({
@@ -125,7 +127,8 @@ export default function LobbyScreen() {
   if (hydrationPhase === 'room-unresolved') {
     return (
       <Background>
-        <SafeAreaView style={styles.centered}>
+        <AppHeader />
+        <SafeAreaView style={styles.centered} edges={['bottom']}>
           <ActivityIndicator color={colors.gold} size="large" />
           <Text style={styles.loadingText}>{t('lobby.preparation')}</Text>
         </SafeAreaView>
@@ -136,7 +139,8 @@ export default function LobbyScreen() {
   if (hydrationPhase === 'room-not-found') {
     return (
       <Background>
-        <SafeAreaView style={styles.centered}>
+        <AppHeader />
+        <SafeAreaView style={styles.centered} edges={['bottom']}>
           <Text style={styles.errorTitle}>{t('lobby.notFound')}</Text>
           <Button onPress={() => router.replace('/(tabs)')} variant="ghost">
             {t('common.back')}
@@ -149,7 +153,8 @@ export default function LobbyScreen() {
   if (hydrationPhase === 'room-load-failed') {
     return (
       <Background>
-        <SafeAreaView style={styles.centered}>
+        <AppHeader />
+        <SafeAreaView style={styles.centered} edges={['bottom']}>
           <Text style={styles.errorTitle}>{t('lobby.loadFailed')}</Text>
           <Button onPress={() => router.replace('/(tabs)')} variant="ghost">
             {t('common.back')}
@@ -163,6 +168,7 @@ export default function LobbyScreen() {
 
   return (
     <Background>
+      <AppHeader />
       <SafeAreaView style={styles.safe} edges={['bottom']}>
         <KeyboardAvoidingView
           style={styles.flex}
