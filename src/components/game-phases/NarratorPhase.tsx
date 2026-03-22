@@ -1,6 +1,6 @@
 // src/components/game-phases/NarratorPhase.tsx
 import { useState } from 'react'
-import { View, Text, ScrollView, StyleSheet, TextInput } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, TextInput, Pressable } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { useGameStore } from '@/stores/useGameStore'
@@ -9,6 +9,7 @@ import { useImageGen } from '@/hooks/useImageGen'
 import { usePromptSuggest } from '@/hooks/usePromptSuggest'
 import { HandGrid } from '@/components/game/HandGrid'
 import { DixitCard } from '@/components/ui/DixitCard'
+import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 import { colors, fonts, radii } from '@/constants/theme'
 import type { HandSlot } from '@/components/game/HandGrid'
 
@@ -91,7 +92,9 @@ export function NarratorPhase({ roomCode, roundNumber, maxRounds }: Props) {
         <View style={styles.cardPreview}>
           <Text style={styles.cardPreviewLabel}>{t('game.chosenCard')}</Text>
           <View style={styles.cardPreviewWrap}>
-            <DixitCard uri={selectedImageUri} />
+            <InteractiveCardTilt profileName="hero" regionKey="narrator-preview" style={styles.cardPreviewTilt}>
+              <DixitCard uri={selectedImageUri} />
+            </InteractiveCardTilt>
           </View>
         </View>
 
@@ -109,19 +112,20 @@ export function NarratorPhase({ roomCode, roundNumber, maxRounds }: Props) {
         </View>
 
         <View style={styles.actions}>
-          <View style={[styles.actionBtn, (!clue.trim() || submitting) && styles.actionBtnDisabled]}>
-            <Text
-              style={styles.actionBtnText}
-              onPress={handleSubmit}
-            >
+          <Pressable
+            style={[styles.actionBtn, (!clue.trim() || submitting) && styles.actionBtnDisabled]}
+            disabled={!clue.trim() || submitting}
+            onPress={handleSubmit}
+          >
+            <Text style={styles.actionBtnText}>
               {submitting ? '...' : t('game.sendClueAndCard')}
             </Text>
-          </View>
-          <View style={styles.ghostBtn}>
-            <Text style={styles.ghostBtnText} onPress={() => goToStep(1)}>
+          </Pressable>
+          <Pressable style={styles.ghostBtn} onPress={() => goToStep(1)}>
+            <Text style={styles.ghostBtnText}>
               {t('game.changeCard')}
             </Text>
-          </View>
+          </Pressable>
         </View>
       </ScrollView>
     )
@@ -138,14 +142,17 @@ export function NarratorPhase({ roomCode, roundNumber, maxRounds }: Props) {
         onSuggestPrompt={handleSuggest}
         generating={generating}
       />
-      <View style={[styles.actionBtn, !hasSelection && styles.actionBtnDisabled]}>
-        <Text
-          style={styles.actionBtnText}
-          onPress={() => { if (hasSelection) goToStep(2) }}
-        >
+      <Pressable
+        style={[styles.actionBtn, !hasSelection && styles.actionBtnDisabled]}
+        disabled={!hasSelection}
+        onPress={() => {
+          if (hasSelection) goToStep(2)
+        }}
+      >
+        <Text style={styles.actionBtnText}>
           {t('game.nextWriteClue')}
         </Text>
-      </View>
+      </Pressable>
     </ScrollView>
   )
 }
@@ -170,6 +177,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   cardPreviewWrap: { width: '45%' },
+  cardPreviewTilt: {
+    zIndex: 2,
+  },
   clueInputCard: {
     gap: 10,
     backgroundColor: 'rgba(25, 13, 10, 0.7)',

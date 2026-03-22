@@ -1,4 +1,4 @@
-import { brandColors, brandTypography } from './brand'
+import { brandColors, brandTypography, decorativeFontFamilyRegular } from './brand'
 
 export const colors = {
   // Backgrounds
@@ -102,3 +102,10 @@ export const typography = {
     textTransform: 'uppercase' as const,
   },
 }
+
+/** Backward-compatible font aliases used across the app. */
+export const fonts = {
+  title: brandTypography.titleSection.fontFamily,
+  titleHeavy: brandTypography.titleScreen.fontFamily,
+  body: decorativeFontFamilyRegular,
+} as const

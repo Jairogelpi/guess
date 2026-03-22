@@ -1,6 +1,7 @@
 import { View, Text, Image, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { colors, fonts, radii } from '@/constants/theme'
+import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 
 interface Props {
   cardUri: string | null | undefined
@@ -13,15 +14,19 @@ export function ResultsReveal({ cardUri, clue }: Props) {
     <View style={styles.container}>
       <Text style={styles.revealLabel}>{t('game.narratorCardReveal')}</Text>
       <View style={styles.cardWrap}>
-        {cardUri ? (
-          <Image source={{ uri: cardUri }} style={styles.card} resizeMode="cover" />
-        ) : (
-          <Image
-            source={require('../../../assets/carta.png')}
-            style={styles.card}
-            resizeMode="cover"
-          />
-        )}
+        <InteractiveCardTilt profileName="hero" regionKey="results-reveal" style={styles.cardTilt}>
+          <View style={styles.cardFrame}>
+            {cardUri ? (
+              <Image source={{ uri: cardUri }} style={styles.card} resizeMode="cover" />
+            ) : (
+              <Image
+                source={require('../../../assets/carta.png')}
+                style={styles.card}
+                resizeMode="cover"
+              />
+            )}
+          </View>
+        </InteractiveCardTilt>
       </View>
       <View style={styles.clueBlock}>
         <Text style={styles.clueLabel}>{t('game.narratorClue')}</Text>
@@ -50,6 +55,12 @@ const styles = StyleSheet.create({
   },
   cardWrap: {
     width: '55%',
+  },
+  cardTilt: {
+    width: '100%',
+    zIndex: 2,
+  },
+  cardFrame: {
     aspectRatio: 2 / 3,
     borderRadius: radii.md,
     overflow: 'hidden',

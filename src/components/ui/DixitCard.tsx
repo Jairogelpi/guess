@@ -1,3 +1,4 @@
+import React from 'react'
 import { TouchableOpacity, Image, View, Text, StyleSheet, ActivityIndicator } from 'react-native'
 import { colors, radii, shadows } from '@/constants/theme'
 
@@ -7,8 +8,11 @@ interface DixitCardProps {
   selected?: boolean
   label?: string
   onPress?: () => void
+  onLongPress?: () => void
   disabled?: boolean
   aspectRatio?: number
+  interactive?: boolean
+  testID?: string
 }
 
 export function DixitCard({
@@ -17,37 +21,61 @@ export function DixitCard({
   selected,
   label,
   onPress,
+  onLongPress,
   disabled,
   aspectRatio = 2 / 3,
+  interactive = false,
+  testID,
 }: DixitCardProps) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled ?? !onPress}
-      activeOpacity={0.88}
-      style={[styles.wrapper, selected && styles.wrapperSelected]}
-    >
-      <View style={[styles.card, selected && styles.cardSelected, { aspectRatio }]}>
-        {loading ? (
-          <View style={styles.placeholder}>
-            <ActivityIndicator size="large" color={colors.gold} />
-          </View>
-        ) : uri ? (
-          <Image source={{ uri }} style={styles.image} resizeMode="cover" />
-        ) : (
-          <Image source={require('../../../assets/carta.png')} style={styles.image} resizeMode="cover" />
-        )}
+  const imageNode = loading
+    ? React.createElement(
+        View,
+        { style: styles.placeholder },
+        React.createElement(ActivityIndicator, { size: 'large', color: colors.gold }),
+      )
+    : React.createElement(Image, {
+        source: uri ? { uri } : require('../../../assets/carta.png'),
+        style: styles.image,
+        resizeMode: 'cover',
+      })
 
-        {/* Gold border overlay (selected highlight) */}
-        {selected && <View style={styles.selectedOverlay} />}
-      </View>
+  const content = React.createElement(
+    React.Fragment,
+    null,
+    React.createElement(
+      View,
+      { style: [styles.card, selected && styles.cardSelected, { aspectRatio }] },
+      imageNode,
+      selected ? React.createElement(View, { style: styles.selectedOverlay }) : null,
+    ),
+    label
+      ? React.createElement(
+          Text,
+          { style: styles.label, numberOfLines: 1 },
+          label,
+        )
+      : null,
+  )
 
-      {label && (
-        <Text style={styles.label} numberOfLines={1}>
-          {label}
-        </Text>
-      )}
-    </TouchableOpacity>
+  if (!interactive) {
+    return React.createElement(
+      View,
+      { style: [styles.wrapper, selected && styles.wrapperSelected], testID },
+      content,
+    )
+  }
+
+  return React.createElement(
+    TouchableOpacity,
+    {
+      onLongPress,
+      onPress,
+      disabled: disabled ?? (!onPress && !onLongPress),
+      activeOpacity: 0.88,
+      style: [styles.wrapper, selected && styles.wrapperSelected],
+      testID,
+    },
+    content,
   )
 }
 

@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   Image,
-  TouchableOpacity,
   Alert,
   ActivityIndicator,
   StyleSheet,
@@ -19,6 +18,7 @@ import { CardGenerator } from '@/components/game/CardGenerator'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { useUIStore } from '@/stores/useUIStore'
 import { hasGalleryCapacity, MAX_GALLERY_CARDS, remainingGallerySlots } from '@/lib/galleryRules'
@@ -205,14 +205,16 @@ export default function GalleryScreen() {
     const isCurrentAvatar = avatarUrl === item.image_url
 
     return (
-      <TouchableOpacity
+      <InteractiveCardTilt
+        profileName="lite"
+        regionKey="gallery-grid"
         style={styles.card}
         onPress={() => {
           setSelectedCard(item)
           setEditingTitle(item.title ?? '')
         }}
         onLongPress={() => deleteCard(item.id)}
-        activeOpacity={0.85}
+        testID={`gallery-card-${item.id}`}
       >
         <Image
           source={{ uri: item.image_url }}
@@ -231,7 +233,7 @@ export default function GalleryScreen() {
             <Text style={styles.cardLabelText} numberOfLines={1}>{item.title}</Text>
           </View>
         )}
-      </TouchableOpacity>
+      </InteractiveCardTilt>
     )
   }, [avatarUrl, t])
 

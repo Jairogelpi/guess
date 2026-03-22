@@ -1,14 +1,15 @@
-import { FlatList, View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native'
+import { FlatList, View, Text, Image, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import type { MaskedCard } from '@/stores/useGameStore'
 import { colors, radii, shadows, fonts } from '@/constants/theme'
+import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 
 interface CardGridProps {
   cards: MaskedCard[]
   selectedId?: string | null
   onSelect?: (card: MaskedCard) => void
   playerNames?: Record<string, string>
-  narratorPlayerId?: string   // highlights narrator's card with gold border + badge
+  narratorPlayerId?: string
   readonly?: boolean
 }
 
@@ -32,35 +33,39 @@ export function CardGrid({
         const isSelected = item.id === selectedId
         const isNarrator = !!narratorPlayerId && item.player_id === narratorPlayerId
         return (
-          <TouchableOpacity
-            style={[
-              styles.cardWrap,
-              isSelected && styles.cardWrapSelected,
-              isNarrator && styles.cardWrapNarrator,
-            ]}
-            onPress={() => !readonly && onSelect?.(item)}
-            disabled={readonly}
-            activeOpacity={0.85}
+          <InteractiveCardTilt
+            profileName="lite"
+            regionKey="card-grid"
+            onPress={readonly ? undefined : () => onSelect?.(item)}
+            style={[styles.cardTilt, (isSelected || isNarrator) && styles.cardTiltRaised]}
           >
-            <Image
-              source={{ uri: item.image_url }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-            {isNarrator && (
-              <View style={styles.narratorBadge}>
-                <Text style={styles.narratorBadgeText}>{t('game.narratorBadge')}</Text>
-              </View>
-            )}
-            {playerNames && item.player_id && !isNarrator && (
-              <View style={styles.nameBadge}>
-                <Text style={styles.nameText} numberOfLines={1}>
-                  {playerNames[item.player_id] ?? '?'}
-                </Text>
-              </View>
-            )}
-            {isSelected && <View style={styles.selectedRing} />}
-          </TouchableOpacity>
+            <View
+              style={[
+                styles.cardWrap,
+                isSelected && styles.cardWrapSelected,
+                isNarrator && styles.cardWrapNarrator,
+              ]}
+            >
+              <Image
+                source={{ uri: item.image_url }}
+                style={styles.image}
+                resizeMode="cover"
+              />
+              {isNarrator && (
+                <View style={styles.narratorBadge}>
+                  <Text style={styles.narratorBadgeText}>{t('game.narratorBadge')}</Text>
+                </View>
+              )}
+              {playerNames && item.player_id && !isNarrator && (
+                <View style={styles.nameBadge}>
+                  <Text style={styles.nameText} numberOfLines={1}>
+                    {playerNames[item.player_id] ?? '?'}
+                  </Text>
+                </View>
+              )}
+              {isSelected && <View style={styles.selectedRing} />}
+            </View>
+          </InteractiveCardTilt>
         )
       }}
     />
@@ -70,8 +75,13 @@ export function CardGrid({
 const styles = StyleSheet.create({
   row: { gap: 12 },
   content: { gap: 12, padding: 16 },
-  cardWrap: {
+  cardTilt: {
     flex: 1,
+  },
+  cardTiltRaised: {
+    zIndex: 3,
+  },
+  cardWrap: {
     borderRadius: radii.md,
     overflow: 'hidden',
     borderWidth: 2.5,
@@ -83,7 +93,6 @@ const styles = StyleSheet.create({
   cardWrapSelected: {
     borderColor: colors.goldLight,
     borderWidth: 3,
-    transform: [{ scale: 1.03 }],
     shadowColor: colors.gold,
     shadowOpacity: 0.45,
     shadowRadius: 16,
@@ -107,6 +116,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(230, 184, 0, 0.9)',
     paddingHorizontal: 8,
     paddingVertical: 6,
+    zIndex: 2,
   },
   narratorBadgeText: {
     color: '#0a0602',
@@ -126,6 +136,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderTopWidth: 1,
     borderTopColor: colors.goldBorder,
+    zIndex: 2,
   },
   nameText: {
     color: colors.textSecondary,
@@ -139,5 +150,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.md - 2,
     borderWidth: 2,
     borderColor: 'rgba(251,176,36,0.35)',
+    zIndex: 3,
   },
 })

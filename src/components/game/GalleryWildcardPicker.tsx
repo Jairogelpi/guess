@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { DixitCard } from '@/components/ui/DixitCard'
+import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 import { Button } from '@/components/ui/Button'
 import { colors, fonts, radii, shadows } from '@/constants/theme'
 import type { GalleryCard } from '@/types/game'
@@ -51,19 +52,22 @@ export function GalleryWildcardPicker({ onPick, onClose }: GalleryWildcardPicker
       ) : (
         <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
           {cards.map((card) => (
-            <TouchableOpacity
+            <InteractiveCardTilt
               key={card.id}
-              style={styles.cardButton}
-              activeOpacity={0.82}
+              profileName="lite"
+              regionKey="wildcard-picker"
               onPress={() => onPick(card)}
+              style={styles.cardButton}
             >
-              <View style={styles.cardWrap}>
-                <DixitCard uri={card.image_url} />
+              <View>
+                <View style={styles.cardWrap}>
+                  <DixitCard uri={card.image_url} />
+                </View>
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  {card.title || card.prompt}
+                </Text>
               </View>
-              <Text style={styles.cardTitle} numberOfLines={1}>
-                {card.title || card.prompt}
-              </Text>
-            </TouchableOpacity>
+            </InteractiveCardTilt>
           ))}
         </ScrollView>
       )}

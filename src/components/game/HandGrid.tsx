@@ -1,12 +1,13 @@
 // src/components/game/HandGrid.tsx
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native'
+import { View, Text, Image, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { colors, fonts, radii } from '@/constants/theme'
 import { PromptArea } from '@/components/game/PromptArea'
+import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 
 export interface HandSlot {
-  id: string           // 'slot-0', 'slot-1', 'slot-2' until generated, then card ID
-  imageUri?: string    // undefined = not yet generated
+  id: string
+  imageUri?: string
   isSelected: boolean
 }
 
@@ -42,14 +43,10 @@ export function HandGrid({
           const hasImage = !!slot.imageUri
 
           return (
-            <TouchableOpacity
+            <InteractiveCardTilt
               key={slot.id}
-              style={[
-                styles.slot,
-                hasImage && styles.slotGenerated,
-                slot.isSelected && styles.slotSelected,
-                isActive && !hasImage && styles.slotActive,
-              ]}
+              profileName="lite"
+              regionKey="hand-grid"
               onPress={() => {
                 if (hasImage) {
                   onSelect(i)
@@ -57,28 +54,37 @@ export function HandGrid({
                   onSlotPress(i)
                 }
               }}
-              activeOpacity={0.8}
+              style={[styles.slotTilt, slot.isSelected && styles.slotTiltRaised]}
             >
-              {hasImage ? (
-                <Image
-                  source={{ uri: slot.imageUri }}
-                  style={styles.slotImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.emptyContent}>
-                  <Text style={styles.plusIcon}>+</Text>
-                  <Text style={styles.slotLabel}>
-                    {t('game.cardSlot', { n: i + 1 })}
-                  </Text>
-                </View>
-              )}
-              {slot.isSelected && (
-                <View style={styles.selectedBadge}>
-                  <Text style={styles.selectedBadgeText}>✓</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+              <View
+                style={[
+                  styles.slot,
+                  hasImage && styles.slotGenerated,
+                  slot.isSelected && styles.slotSelected,
+                  isActive && !hasImage && styles.slotActive,
+                ]}
+              >
+                {hasImage ? (
+                  <Image
+                    source={{ uri: slot.imageUri }}
+                    style={styles.slotImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.emptyContent}>
+                    <Text style={styles.plusIcon}>+</Text>
+                    <Text style={styles.slotLabel}>
+                      {t('game.cardSlot', { n: i + 1 })}
+                    </Text>
+                  </View>
+                )}
+                {slot.isSelected && (
+                  <View style={styles.selectedBadge}>
+                    <Text style={styles.selectedBadgeText}>✓</Text>
+                  </View>
+                )}
+              </View>
+            </InteractiveCardTilt>
           )
         })}
       </View>
@@ -108,8 +114,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  slot: {
+  slotTilt: {
     flex: 1,
+  },
+  slotTiltRaised: {
+    zIndex: 3,
+  },
+  slot: {
     aspectRatio: 2 / 3,
     borderRadius: radii.md,
     backgroundColor: 'rgba(25, 13, 10, 0.6)',
@@ -159,14 +170,15 @@ const styles = StyleSheet.create({
     right: 4,
     backgroundColor: colors.gold,
     borderRadius: 99,
-    width: 16,
+    minWidth: 22,
     height: 16,
+    paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   selectedBadgeText: {
     color: '#0a0602',
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '800',
   },
 })

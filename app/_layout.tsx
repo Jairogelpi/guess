@@ -5,6 +5,7 @@ import { useFonts, CinzelDecorative_400Regular, CinzelDecorative_700Bold, Cinzel
 import * as SplashScreen from 'expo-splash-screen'
 import { supabase } from '@/lib/supabase'
 import { ToastContainer } from '@/components/ui/Toast'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import '@/i18n'
 
 // Keep splash screen visible while loading fonts/auth
@@ -58,9 +59,11 @@ export default function RootLayout() {
   if (!isReady) return null
 
   return (
-    <SafeAreaProvider>
-      <Slot />
-      <ToastContainer />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <Slot />
+        <ToastContainer />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   )
 }

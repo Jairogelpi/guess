@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { Background } from '@/components/layout/Background'
+import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 import { useUIStore } from '@/stores/useUIStore'
 import {
   WELCOME_HERO_CARD_BACKGROUND,
@@ -26,13 +27,17 @@ import {
   WELCOME_HERO_CARD_WIDTH_FACTOR,
   WELCOME_HERO_CTA_HEIGHT,
   WELCOME_HERO_CTA_WIDTH_FACTOR,
+  WELCOME_HERO_CTA_SHADOW_OPACITY,
   WELCOME_HERO_FOOTER_GAP,
-  WELCOME_HERO_FOOTER_MARGIN_TOP,
   WELCOME_GUEST_CTA_FONT_SIZE,
   WELCOME_HERO_IMAGE_BLUR_RADIUS,
   WELCOME_HERO_IMAGE_SCALE,
-  WELCOME_HERO_OVERLAY_JUSTIFY_CONTENT,
   WELCOME_HERO_OVERLAY_COLORS,
+  WELCOME_HERO_OVERLAY_JUSTIFY_CONTENT,
+  WELCOME_HERO_PROMPT_GLOW_COLOR,
+  WELCOME_HERO_PROMPT_GLOW_RADIUS,
+  WELCOME_HERO_SECONDARY_ACTION_GAP,
+  WELCOME_HERO_SECONDARY_CTA_HEIGHT,
   WELCOME_HERO_SECONDARY_HINT_MARGIN_TOP,
   WELCOME_HERO_SHOW_LOGO,
   WELCOME_HERO_STACK_GAP,
@@ -48,31 +53,41 @@ export default function Welcome() {
   const cardWidth = Math.min(screenWidth * WELCOME_HERO_CARD_WIDTH_FACTOR, WELCOME_HERO_CARD_MAX_WIDTH)
   const cardHeight = cardWidth * WELCOME_HERO_CARD_RATIO
   const compactHero = screenWidth < 390
-  const titleSize = compactHero ? 34 : 40
-  const highlightSize = compactHero ? 45 : 52
-  const subtitleSize = compactHero ? 13 : 15
-  const guestFontSize = compactHero ? 14 : WELCOME_GUEST_CTA_FONT_SIZE
+  const titleSize = compactHero ? 42 : 50
+  const highlightSize = compactHero ? 62 : 74
+  const subtitleSize = compactHero ? 14 : 16
+  const guestFontSize = compactHero ? 15 : 18
   const guestButtonHeight = compactHero ? 40 : WELCOME_HERO_CTA_HEIGHT
-  const secondaryButtonHeight = compactHero ? 34 : 38
+  const secondaryButtonHeight = compactHero ? 34 : WELCOME_HERO_SECONDARY_CTA_HEIGHT
   const secondaryFontSize = compactHero ? 10 : 11
+  const secondaryGap = compactHero ? 8 : WELCOME_HERO_SECONDARY_ACTION_GAP
+  const secondaryHintMarginTop = compactHero ? 4 : WELCOME_HERO_SECONDARY_HINT_MARGIN_TOP
+  const footerYear = new Date().getFullYear()
 
   const breatheAnim = useRef(new Animated.Value(1)).current
   const riseAnim = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
-    Animated.loop(
+    const breatheLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(breatheAnim, { toValue: 1.015, duration: 3200, useNativeDriver: true }),
         Animated.timing(breatheAnim, { toValue: 1, duration: 3200, useNativeDriver: true }),
       ]),
-    ).start()
-
-    Animated.spring(riseAnim, {
+    )
+    const riseIn = Animated.spring(riseAnim, {
       toValue: 1,
       tension: 12,
       friction: 9,
       useNativeDriver: true,
-    }).start()
+    })
+
+    breatheLoop.start()
+    riseIn.start()
+
+    return () => {
+      breatheLoop.stop()
+      riseIn.stop()
+    }
   }, [breatheAnim, riseAnim])
 
   async function enterAsGuest() {
@@ -110,106 +125,104 @@ export default function Welcome() {
         <AppHeader />
 
         <View style={styles.container}>
-          <Animated.View style={[styles.mainCard, animatedStyle, { width: cardWidth, height: cardHeight }]}>
-            <Image
-              source={require('../../assets/carta.png')}
-              style={styles.cardImage}
-              resizeMode="cover"
-              blurRadius={WELCOME_HERO_IMAGE_BLUR_RADIUS}
-            />
+          <InteractiveCardTilt profileName="hero" regionKey="welcome-hero" testID="welcome-hero-tilt">
+            <Animated.View style={[styles.mainCard, animatedStyle, { width: cardWidth, height: cardHeight }]}>
+              <Image
+                source={require('../../assets/carta.png')}
+                style={styles.cardImage}
+                resizeMode="cover"
+                blurRadius={WELCOME_HERO_IMAGE_BLUR_RADIUS}
+              />
 
-            <LinearGradient
-              colors={WELCOME_HERO_OVERLAY_COLORS}
-              style={styles.cardOverlay}
-            >
-              <View style={styles.cardColumn}>
-                <View style={styles.cardContent}>
-                  <View style={styles.titleGroup}>
-                    {WELCOME_HERO_SHOW_LOGO && (
-                      <Image
-                        source={require('../../assets/logo.png')}
-                        style={styles.heroLogo}
-                        resizeMode="contain"
-                      />
-                    )}
-                    <Text style={[styles.brandTitle, { fontSize: titleSize }]} adjustsFontSizeToFit numberOfLines={1}>
-                      GUESS THE
-                    </Text>
-                    <Text
-                      style={[styles.brandTitle, styles.brandTitleHighlight, { fontSize: highlightSize }]}
-                      adjustsFontSizeToFit
-                      numberOfLines={1}
-                    >
-                      PROMPT
-                    </Text>
-                  </View>
-
-                  <View style={styles.divider} />
-                  <Text style={[styles.subtitle, { fontSize: subtitleSize, lineHeight: subtitleSize + 7 }]} adjustsFontSizeToFit numberOfLines={2}>
-                    {t('welcome.subtitle')}
-                  </Text>
-                </View>
-
-                <View style={styles.cardFooter}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={enterAsGuest}
-                    disabled={loading}
-                    style={[
-                      styles.guestBtn,
-                      {
-                        height: guestButtonHeight,
-                      },
-                      loading && styles.disabledBtn,
-                    ]}
-                  >
-                    <LinearGradient
-                      colors={['rgba(249, 168, 37, 0.92)', 'rgba(249, 115, 22, 0.92)', 'rgba(234, 88, 12, 0.86)']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.guestBtnGradient}
-                    >
-                      {loading ? (
-                        <ActivityIndicator size="small" color="#fff7ea" />
-                      ) : (
-                        <Text style={[styles.guestBtnText, { fontSize: guestFontSize, lineHeight: guestFontSize + 2 }]}>
-                          {t('welcome.enterAsGuest').toUpperCase()}
-                        </Text>
+              <LinearGradient colors={WELCOME_HERO_OVERLAY_COLORS} style={styles.cardOverlay}>
+                <View style={styles.cardColumn}>
+                  <View style={styles.cardContent}>
+                    <View style={styles.titleGroup}>
+                      {WELCOME_HERO_SHOW_LOGO && (
+                        <Image
+                          source={require('../../assets/logo.png')}
+                          style={styles.heroLogo}
+                          resizeMode="contain"
+                        />
                       )}
-                    </LinearGradient>
-                  </Pressable>
-                  <Text style={styles.hintText}>{t('welcome.guestHint')}</Text>
+                      <Text style={[styles.brandTitle, { fontSize: titleSize }]} adjustsFontSizeToFit numberOfLines={1}>
+                        GUESS THE
+                      </Text>
+                      <Text
+                        style={[styles.brandTitle, styles.brandTitleHighlight, styles.promptTitleFill, { fontSize: highlightSize }]}
+                        adjustsFontSizeToFit
+                        numberOfLines={1}
+                      >
+                        PROMPT
+                      </Text>
+                    </View>
 
-                  <View style={styles.secondaryActions}>
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => router.push({ pathname: '/(auth)/login', params: { mode: 'signin' } })}
-                      style={[styles.smallActionBtn, { height: secondaryButtonHeight }]}
+                    <View style={styles.divider} />
+                    <Text
+                      style={[styles.subtitle, { fontSize: subtitleSize, lineHeight: subtitleSize + 7 }]}
+                      adjustsFontSizeToFit
+                      numberOfLines={2}
                     >
-                      <Text style={[styles.secondaryBtnText, { fontSize: secondaryFontSize, lineHeight: secondaryFontSize + 2 }]}>
-                        {t('welcome.signIn')}
-                      </Text>
-                    </Pressable>
-                    <View style={styles.actionPipe} />
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => router.push({ pathname: '/(auth)/login', params: { mode: 'register' } })}
-                      style={[styles.smallActionBtn, styles.registerBtn, { height: secondaryButtonHeight }]}
-                    >
-                      <Text style={[styles.registerBtnText, { fontSize: secondaryFontSize, lineHeight: secondaryFontSize + 2 }]}>
-                        {t('profile.upgradeAccount')}
-                      </Text>
-                    </Pressable>
+                      {t('welcome.subtitle')}
+                    </Text>
                   </View>
-                  <Text style={styles.accountHintText}>{t('welcome.accountHint')}</Text>
+
+                  <View style={styles.cardFooter}>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={enterAsGuest}
+                      disabled={loading}
+                      style={[
+                        styles.guestBtn,
+                        {
+                          height: guestButtonHeight,
+                          width: `${WELCOME_HERO_CTA_WIDTH_FACTOR * 100}%`,
+                        },
+                        loading && styles.disabledBtn,
+                      ]}
+                    >
+                      <View style={styles.guestBtnGradient}>
+                        {loading ? (
+                          <ActivityIndicator size="small" color="#fff7ea" />
+                        ) : (
+                          <Text style={[styles.guestBtnText, { fontSize: guestFontSize, lineHeight: guestFontSize + 2 }]}>
+                            {t('welcome.enterAsGuest').toUpperCase()}
+                          </Text>
+                        )}
+                      </View>
+                    </Pressable>
+                    <Text style={styles.hintText}>{t('welcome.guestHint')}</Text>
+
+                    <View style={[styles.secondaryActions, { gap: secondaryGap }]}>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => router.push({ pathname: '/(auth)/login', params: { mode: 'signin' } })}
+                        style={[styles.smallActionBtn, { height: secondaryButtonHeight }]}
+                      >
+                        <Text style={[styles.secondaryBtnText, { fontSize: secondaryFontSize, lineHeight: secondaryFontSize + 2 }]}>
+                          {t('welcome.signIn')}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => router.push({ pathname: '/(auth)/login', params: { mode: 'register' } })}
+                        style={[styles.smallActionBtn, styles.registerBtn, { height: secondaryButtonHeight }]}
+                      >
+                        <Text style={[styles.registerBtnText, { fontSize: secondaryFontSize, lineHeight: secondaryFontSize + 2 }]}>
+                          {t('profile.upgradeAccount')}
+                        </Text>
+                      </Pressable>
+                    </View>
+                    <Text style={[styles.accountHintText, { marginTop: secondaryHintMarginTop }]}>{t('welcome.accountHint')}</Text>
+                  </View>
                 </View>
-              </View>
-            </LinearGradient>
-          </Animated.View>
+              </LinearGradient>
+            </Animated.View>
+          </InteractiveCardTilt>
         </View>
 
         <SafeAreaView edges={['bottom']} style={styles.footerContainer}>
-          <Text style={styles.footerText}>GUESS THE PROMPT 2026</Text>
+          <Text style={styles.footerText}>{`GUESS THE PROMPT ${footerYear}`}</Text>
         </SafeAreaView>
       </View>
     </Background>
@@ -238,7 +251,7 @@ const styles = StyleSheet.create({
   cardOverlay: {
     ...StyleSheet.absoluteFillObject,
     paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingTop: 4,
     paddingBottom: 16,
     alignItems: 'center',
     justifyContent: WELCOME_HERO_OVERLAY_JUSTIFY_CONTENT,
@@ -251,7 +264,7 @@ const styles = StyleSheet.create({
   cardContent: {
     alignItems: 'center',
     width: '100%',
-    gap: 10,
+    gap: 12,
   },
   titleGroup: {
     alignItems: 'center',
@@ -269,136 +282,145 @@ const styles = StyleSheet.create({
     color: '#fff7ea',
     fontSize: 40,
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowColor: 'rgba(24, 10, 4, 0.88)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-    letterSpacing: 0.8,
+    textShadowRadius: 2,
+    letterSpacing: 1.1,
     width: '100%',
   },
   brandTitleHighlight: {
     fontSize: 52,
-    marginTop: -6,
-    textShadowColor: 'rgba(230,184,0,0.45)',
-    textShadowRadius: 14,
+    marginTop: -8,
+    color: '#fff4e3',
+    textShadowColor: WELCOME_HERO_PROMPT_GLOW_COLOR,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: WELCOME_HERO_PROMPT_GLOW_RADIUS,
+  },
+  promptTitleFill: {
+    color: '#f39a33',
   },
   divider: {
-    width: 68,
+    width: 74,
     height: 2,
-    backgroundColor: '#e6b800',
+    backgroundColor: 'rgba(245, 196, 104, 0.88)',
     marginVertical: 6,
-    opacity: 0.7,
   },
   subtitle: {
     fontFamily: 'CinzelDecorative_400Regular',
-    color: '#fff',
+    color: 'rgba(255, 247, 234, 0.98)',
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
-    textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowRadius: 4,
-    width: '100%',
+    textShadowColor: 'rgba(0,0,0,0.18)',
+    textShadowRadius: 2,
+    width: '92%',
   },
   cardFooter: {
     alignItems: 'center',
     width: '100%',
     gap: WELCOME_HERO_FOOTER_GAP,
-    marginTop: WELCOME_HERO_FOOTER_MARGIN_TOP,
+    marginTop: 10,
   },
   guestBtn: {
-    width: `${WELCOME_HERO_CTA_WIDTH_FACTOR * 100}%`,
-    borderRadius: 30,
-    borderWidth: 1.5,
-    borderColor: 'rgba(230, 184, 0, 0.7)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 244, 226, 0.62)',
     overflow: 'hidden',
+    shadowColor: 'rgba(26, 10, 2, 0.92)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 4,
   },
   guestBtnGradient: {
     flex: 1,
+    backgroundColor: '#e68a2e',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
   },
   guestBtnText: {
     fontFamily: 'CinzelDecorative_700Bold',
-    color: '#fff7ea',
+    color: '#fffaf1',
     fontSize: WELCOME_GUEST_CTA_FONT_SIZE,
     lineHeight: WELCOME_GUEST_CTA_FONT_SIZE + 2,
-    letterSpacing: 1.6,
+    letterSpacing: 1.7,
     textAlign: 'center',
     textAlignVertical: 'center',
     includeFontPadding: false,
     width: '100%',
-    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowColor: 'rgba(0,0,0,0.58)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 2,
   },
   disabledBtn: {
     opacity: 0.55,
   },
   hintText: {
-    color: 'rgba(255, 241, 222, 0.75)',
-    fontSize: 11,
-    lineHeight: 15,
+    color: 'rgba(255, 241, 222, 0.96)',
+    fontSize: 12,
+    lineHeight: 16,
     textAlign: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
   secondaryActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    gap: 12,
   },
   smallActionBtn: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255, 244, 220, 0.5)',
+    backgroundColor: 'rgba(255, 239, 221, 0.44)',
+    shadowColor: 'rgba(26, 10, 2, 0.92)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 4,
   },
   registerBtn: {
-    borderColor: 'rgba(230,184,0,0.55)',
-    backgroundColor: 'rgba(230,184,0,0.12)',
+    borderColor: 'rgba(255, 218, 145, 0.62)',
+    backgroundColor: 'rgba(255, 204, 122, 0.5)',
   },
   secondaryBtnText: {
     fontFamily: 'CinzelDecorative_700Bold',
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 11,
-    lineHeight: 13,
+    color: '#fffaf1',
+    fontSize: 12,
+    lineHeight: 14,
     letterSpacing: 0.8,
     textAlign: 'center',
     textAlignVertical: 'center',
     includeFontPadding: false,
     width: '100%',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowRadius: 3,
+    textShadowColor: 'rgba(0,0,0,0.64)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   registerBtnText: {
     fontFamily: 'CinzelDecorative_700Bold',
-    color: '#f5d36a',
-    fontSize: 11,
-    lineHeight: 13,
+    color: '#fffaf1',
+    fontSize: 12,
+    lineHeight: 14,
     letterSpacing: 0.8,
     textAlign: 'center',
     textAlignVertical: 'center',
     includeFontPadding: false,
     width: '100%',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowRadius: 3,
-  },
-  actionPipe: {
-    width: 2,
-    height: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    textShadowColor: 'rgba(0,0,0,0.64)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   accountHintText: {
-    color: 'rgba(255, 241, 222, 0.68)',
-    fontSize: 11,
-    lineHeight: 16,
+    color: 'rgba(255, 241, 222, 0.9)',
+    fontSize: 12,
+    lineHeight: 17,
     textAlign: 'center',
-    marginTop: WELCOME_HERO_SECONDARY_HINT_MARGIN_TOP,
     paddingHorizontal: 18,
   },
   footerContainer: { alignItems: 'center', paddingBottom: 25 },

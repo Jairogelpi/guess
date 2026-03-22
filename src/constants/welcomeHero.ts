@@ -1,28 +1,26 @@
 export const WELCOME_HERO_CARD_RATIO = 1.42
 
-export const WELCOME_HERO_CARD_WIDTH_FACTOR = 0.97
+export const WELCOME_HERO_CARD_WIDTH_FACTOR = 0.95
 
-export const WELCOME_HERO_CARD_MAX_WIDTH = 448
+export const WELCOME_HERO_CARD_MAX_WIDTH = 442
 
 export const WELCOME_HERO_OVERLAY_JUSTIFY_CONTENT = 'center' as const
 
-export const WELCOME_HERO_STACK_GAP = 18
+export const WELCOME_HERO_STACK_GAP = 24
 
-export const WELCOME_HERO_FOOTER_MARGIN_TOP = 4
+export const WELCOME_HERO_CTA_WIDTH_FACTOR = 0.92
 
-export const WELCOME_HERO_CTA_WIDTH_FACTOR = 0.88
-
-export const WELCOME_HERO_CTA_HEIGHT = 42
+export const WELCOME_HERO_CTA_HEIGHT = 48
 
 export const WELCOME_HERO_CTA_SHADOW_OPACITY = 0
 
-export const WELCOME_HERO_FOOTER_GAP = 12
+export const WELCOME_HERO_FOOTER_GAP = 16
 
-export const WELCOME_HERO_SECONDARY_CTA_HEIGHT = 36
+export const WELCOME_HERO_SECONDARY_CTA_HEIGHT = 40
 
-export const WELCOME_HERO_SECONDARY_ACTION_GAP = 12
+export const WELCOME_HERO_SECONDARY_ACTION_GAP = 16
 
-export const WELCOME_HERO_SECONDARY_HINT_MARGIN_TOP = 8
+export const WELCOME_HERO_SECONDARY_HINT_MARGIN_TOP = 12
 
 export const WELCOME_HERO_CARD_BACKGROUND = 'transparent'
 
@@ -38,12 +36,16 @@ export const WELCOME_HERO_IMAGE_BLUR_RADIUS = 0
 
 export const WELCOME_GUEST_CTA_FONT_SIZE = 16
 
+export const WELCOME_HERO_PROMPT_GLOW_COLOR = 'transparent'
+
+export const WELCOME_HERO_PROMPT_GLOW_RADIUS = 0
+
 export const CREATE_ROOM_CODE_FONT_SIZE = 18
 
 export const CREATE_ROOM_CODE_LETTER_SPACING = 4
 
 export const WELCOME_HERO_OVERLAY_COLORS = [
   'rgba(0, 0, 0, 0)',
-  'rgba(8, 4, 1, 0.1)',
-  'rgba(4, 2, 1, 0.22)',
+  'rgba(12, 7, 2, 0.14)',
+  'rgba(5, 2, 1, 0.28)',
 ] as const
