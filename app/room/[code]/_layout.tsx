@@ -27,7 +27,6 @@ export default function RoomLayout() {
         headerTitleStyle: {
           fontFamily: 'CinzelDecorative_700Bold',
           fontSize: 17,
-          letterSpacing: 1.1,
           color: colors.textPrimary,
         } as object,
         headerBackTitle: '',

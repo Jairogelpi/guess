@@ -178,6 +178,17 @@ export default function LobbyScreen() {
     showToast(t('lobby.codeCopied'), 'success')
   }
 
+  async function handleCopyCode() {
+    if (!code) return
+    const clipboard = globalThis.navigator?.clipboard
+    if (clipboard?.writeText) {
+      await clipboard.writeText(code)
+    } else {
+      await Share.share({ message: code })
+    }
+    showToast(t('lobby.codeCopied'), 'success')
+  }
+
   async function handleShare() {
     if (!code) return
     const deepLink = Linking.createURL(`/room/${code}/lobby`)
