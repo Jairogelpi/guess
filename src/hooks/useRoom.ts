@@ -19,7 +19,6 @@ export function useRoom(code: string | null): UseRoomResult {
   const [hydratingPlayers, setHydratingPlayers] = useState(true)
   const [roomNotFound, setRoomNotFound] = useState(false)
   const [roomLoadFailed, setRoomLoadFailed] = useState(false)
-
   const roomIdRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -27,16 +26,59 @@ export function useRoom(code: string | null): UseRoomResult {
   }, [room?.id])
 
   useEffect(() => {
-    if (!code) return
-
-    const roomCode = code
     let cancelled = false
 
-    async function loadRoom() {
+    setRoom(null)
+    setPlayers([])
+    setHydratingPlayers(true)
+    setRoomNotFound(false)
+    setRoomLoadFailed(false)
+    roomIdRef.current = null
+
+    if (!code) {
+      setHydratingPlayers(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    const loadPlayers = async (roomId: string) => {
+      const { data, error } = await supabase
+        .from('room_players')
+        .select('*')
+        .eq('room_id', roomId)
+
+      if (cancelled) return
+
+      if (error) {
+        setRoomLoadFailed(true)
+        setHydratingPlayers(false)
+        return
+      }
+
+      setPlayers(getVisibleLobbyPlayers((data ?? []) as RoomPlayer[]))
+      setHydratingPlayers(false)
+    }
+
+    const refreshPlayers = async () => {
+      const id = roomIdRef.current
+      if (!id) return
+
+      const { data, error } = await supabase
+        .from('room_players')
+        .select('*')
+        .eq('room_id', id)
+
+      if (cancelled || error || !data) return
+
+      setPlayers(getVisibleLobbyPlayers(data as RoomPlayer[]))
+    }
+
+    const loadRoom = async () => {
       const { data, error } = await supabase
         .from('rooms')
         .select('*')
-        .eq('code', roomCode)
+        .eq('code', code)
         .single()
 
       if (cancelled) return
@@ -56,40 +98,18 @@ export function useRoom(code: string | null): UseRoomResult {
       roomIdRef.current = resolved.id
 
       if (resolved.status === 'playing') {
+        setHydratingPlayers(false)
         router.replace(`/room/${code}/game`)
         return
       }
+
       if (resolved.status === 'ended') {
+        setHydratingPlayers(false)
         router.replace(`/room/${code}/ended`)
         return
       }
 
       await loadPlayers(resolved.id)
-    }
-
-    async function loadPlayers(roomId: string) {
-      if (cancelled) return
-      const { data } = await supabase
-        .from('room_players')
-        .select('*')
-        .eq('room_id', roomId)
-
-      if (cancelled) return
-      if (data) setPlayers(getVisibleLobbyPlayers(data as RoomPlayer[]))
-      setHydratingPlayers(false)
-    }
-
-    function refreshPlayers() {
-      const id = roomIdRef.current
-      if (!id) return
-      supabase
-        .from('room_players')
-        .select('*')
-        .eq('room_id', id)
-        .then(({ data }) => {
-          if (cancelled || !data) return
-          setPlayers(getVisibleLobbyPlayers(data as RoomPlayer[]))
-        })
     }
 
     const roomSub = supabase
@@ -100,6 +120,8 @@ export function useRoom(code: string | null): UseRoomResult {
         (payload) => {
           const updated = payload.new as Room
           setRoom(updated)
+          roomIdRef.current = updated.id
+
           if (updated.status === 'playing') {
             router.replace(`/room/${code}/game`)
           } else if (updated.status === 'ended') {
@@ -110,17 +132,19 @@ export function useRoom(code: string | null): UseRoomResult {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'room_players' },
-        refreshPlayers,
+        () => {
+          void refreshPlayers()
+        },
       )
       .subscribe()
 
-    loadRoom()
+    void loadRoom()
 
     return () => {
       cancelled = true
       supabase.removeChannel(roomSub)
     }
-  }, [code])
+  }, [code, router])
 
   return { room, players, hydratingPlayers, roomNotFound, roomLoadFailed }
 }

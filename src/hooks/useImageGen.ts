@@ -1,7 +1,13 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '@/lib/api'
+import { useUIStore } from '@/stores/useUIStore'
+import type { EdgeFunctionError } from '@/types/game'
 
 export function useImageGen() {
+  const showToast = useUIStore((s) => s.showToast)
+  const { t } = useTranslation()
+
   const [loading, setLoading] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [brief, setBrief] = useState<string | null>(null)
@@ -26,8 +32,10 @@ export function useImageGen() {
       return result
     } catch (e) {
       console.error('Image generation error:', e)
-      const code = (e as { error?: { code?: string } })?.error?.code
-      setError(code ? `errors.${code}` : 'game.imageGenError')
+      const code = (e as { error?: EdgeFunctionError })?.error?.code
+      const errorKey = code ? `errors.${code}` : 'game.imageGenError'
+      setError(errorKey)
+      showToast(t(errorKey), 'error')
       return null
     } finally {
       setLoading(false)

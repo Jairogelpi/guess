@@ -5,13 +5,11 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { useGameStore } from '@/stores/useGameStore'
 import { useGameActions } from '@/hooks/useGameActions'
-import { useImageGen } from '@/hooks/useImageGen'
-import { usePromptSuggest } from '@/hooks/usePromptSuggest'
+import { useCardSelection } from '@/hooks/useCardSelection'
 import { HandGrid } from '@/components/game/HandGrid'
 import { DixitCard } from '@/components/ui/DixitCard'
 import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 import { colors, fonts, radii } from '@/constants/theme'
-import type { HandSlot } from '@/components/game/HandGrid'
 
 interface Props {
   roomCode: string
@@ -19,64 +17,36 @@ interface Props {
   maxRounds: number
 }
 
-const EMPTY_SLOTS: HandSlot[] = [
-  { id: 'slot-0', isSelected: false },
-  { id: 'slot-1', isSelected: false },
-  { id: 'slot-2', isSelected: false },
-]
-
-export function NarratorPhase({ roomCode, roundNumber, maxRounds }: Props) {
+export function NarratorPhase({ roomCode }: Props) {
   const { t } = useTranslation()
   const { userId } = useAuth()
   const round = useGameStore((s) => s.round)
   const setNarratorStep = useGameStore((s) => s.setNarratorStep)
-  const { gameAction, insertCard } = useGameActions()
-  const { loading: generating, generate } = useImageGen()
-  const { suggest } = usePromptSuggest()
+  const { gameAction } = useGameActions()
+
+  const {
+    slots,
+    activeSlotIndex,
+    setActiveSlotIndex,
+    selectedSlot,
+    hasSelection,
+    isGenerating,
+    handleGenerate,
+    handleSuggest,
+    handleSelect,
+  } = useCardSelection({ roomCode, round, userId })
 
   const [step, setStep] = useState<1 | 2>(1)
-  const [slots, setSlots] = useState<HandSlot[]>(EMPTY_SLOTS)
-  const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(0)
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
-  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null)
   const [clue, setClue] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const selectedIndex = slots.findIndex((s) => s.isSelected)
-  const hasSelection = selectedIndex !== -1
+  // Derived from the selected slot — no separate state needed
+  const selectedCardId = selectedSlot?.id ?? null
+  const selectedImageUri = selectedSlot?.imageUri ?? null
 
   function goToStep(s: 1 | 2) {
     setStep(s)
     setNarratorStep(s)
-  }
-
-  async function handleGenerate(index: number, prompt: string) {
-    if (!round || !userId) return
-    const result = await generate({ prompt, scope: 'round', roomCode, roundId: round.id })
-    if (!result?.imageUrl) return
-    const cardId = await insertCard(round.id, userId, result.imageUrl, result.brief ?? prompt)
-    if (!cardId) return
-    setSlots((prev) =>
-      prev.map((s, i) => i === index ? { ...s, id: cardId, imageUri: result.imageUrl } : s),
-    )
-    if (!hasSelection) {
-      setSlots((prev) => prev.map((s, i) => ({ ...s, isSelected: i === index })))
-      setSelectedCardId(cardId)
-      setSelectedImageUri(result.imageUrl)
-    }
-    setActiveSlotIndex(null)
-  }
-
-  async function handleSuggest(_index: number): Promise<string> {
-    return (await suggest()) ?? ''
-  }
-
-  function handleSelect(index: number) {
-    const slot = slots[index]
-    if (!slot?.imageUri) return
-    setSlots((prev) => prev.map((s, i) => ({ ...s, isSelected: i === index })))
-    setSelectedCardId(slot.id)
-    setSelectedImageUri(slot.imageUri)
   }
 
   async function handleSubmit() {
@@ -140,14 +110,12 @@ export function NarratorPhase({ roomCode, roundNumber, maxRounds }: Props) {
         onSelect={handleSelect}
         onGenerate={handleGenerate}
         onSuggestPrompt={handleSuggest}
-        generating={generating}
+        generating={isGenerating}
       />
       <Pressable
         style={[styles.actionBtn, !hasSelection && styles.actionBtnDisabled]}
         disabled={!hasSelection}
-        onPress={() => {
-          if (hasSelection) goToStep(2)
-        }}
+        onPress={() => { if (hasSelection) goToStep(2) }}
       >
         <Text style={styles.actionBtnText}>
           {t('game.nextWriteClue')}
@@ -163,9 +131,9 @@ const styles = StyleSheet.create({
   cardPreview: {
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(25, 13, 10, 0.7)',
+    backgroundColor: colors.surfaceCard,
     borderWidth: 1,
-    borderColor: 'rgba(244, 192, 119, 0.2)',
+    borderColor: colors.goldBorderSubtle,
     borderRadius: radii.md,
     padding: 14,
   },
@@ -177,14 +145,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   cardPreviewWrap: { width: '45%' },
-  cardPreviewTilt: {
-    zIndex: 2,
-  },
+  cardPreviewTilt: { zIndex: 2 },
   clueInputCard: {
     gap: 10,
-    backgroundColor: 'rgba(25, 13, 10, 0.7)',
+    backgroundColor: colors.surfaceCard,
     borderWidth: 1,
-    borderColor: 'rgba(244, 192, 119, 0.35)',
+    borderColor: colors.goldBorderMid,
     borderRadius: radii.md,
     padding: 14,
   },
@@ -196,9 +162,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   clueInput: {
-    backgroundColor: 'rgba(67, 34, 21, 0.5)',
+    backgroundColor: colors.surfaceInput,
     borderWidth: 1,
-    borderColor: 'rgba(244, 192, 119, 0.2)',
+    borderColor: colors.goldBorderSubtle,
     borderRadius: radii.md,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -213,12 +179,12 @@ const styles = StyleSheet.create({
   },
   actions: { gap: 10 },
   actionBtn: {
-    backgroundColor: '#f97316',
+    backgroundColor: colors.orange,
     borderRadius: radii.md,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  actionBtnDisabled: { opacity: 0.35 },
+  actionBtnDisabled: { opacity: 0.45 },
   actionBtnText: {
     color: '#fff7ea',
     fontSize: 14,

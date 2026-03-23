@@ -36,9 +36,9 @@ export const WELCOME_HERO_IMAGE_BLUR_RADIUS = 0
 
 export const WELCOME_GUEST_CTA_FONT_SIZE = 16
 
-export const WELCOME_HERO_PROMPT_GLOW_COLOR = 'transparent'
+export const WELCOME_HERO_PROMPT_GLOW_COLOR = 'rgba(255, 158, 44, 0.28)'
 
-export const WELCOME_HERO_PROMPT_GLOW_RADIUS = 0
+export const WELCOME_HERO_PROMPT_GLOW_RADIUS = 6
 
 export const CREATE_ROOM_CODE_FONT_SIZE = 18
 

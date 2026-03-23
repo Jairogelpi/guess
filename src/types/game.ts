@@ -502,3 +502,18 @@ export type ScoreReason =
   | 'correct_vote'
   | 'received_vote'
   | 'consolation_bonus'
+
+/**
+ * A Card whose player_id has been nulled during the voting phase
+ * to prevent the UI from revealing who played which card.
+ */
+export type MaskedCard = Omit<Card, 'player_id'> & { player_id: string | null }
+
+/**
+ * Structured error payload thrown by Supabase Edge Functions.
+ * Callers receive this as `{ error: EdgeFunctionError }`.
+ */
+export interface EdgeFunctionError {
+  code: string
+  message?: string
+}

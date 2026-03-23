@@ -1,26 +1,23 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import {
   View,
   Text,
   FlatList,
   Image,
-  Alert,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useFocusEffect, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { supabase } from '@/lib/supabase'
-import { useProfile } from '@/hooks/useProfile'
+import { useRouter } from 'expo-router'
+import { useGallery } from '@/hooks/useGallery'
 import { CardGenerator } from '@/components/game/CardGenerator'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 import { AppHeader } from '@/components/layout/AppHeader'
-import { useUIStore } from '@/stores/useUIStore'
 import { hasGalleryCapacity, MAX_GALLERY_CARDS, remainingGallerySlots } from '@/lib/galleryRules'
 import { colors, fonts, radii, shadows } from '@/constants/theme'
 import type { GalleryCard } from '@/types/game'
@@ -28,178 +25,18 @@ import type { GalleryCard } from '@/types/game'
 export default function GalleryScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const showToast = useUIStore((s) => s.showToast)
-  const { userId, isAnon, avatarUrl, displayName, setProfile } = useProfile()
-
-  const [cards, setCards] = useState<GalleryCard[]>([])
-  const [loading, setLoading] = useState(false)
-  const [showModal, setShowModal] = useState(false)
-  const [pendingCard, setPendingCard] = useState<{ imageUrl: string; prompt: string } | null>(null)
-  const [selectedCard, setSelectedCard] = useState<GalleryCard | null>(null)
-  const [title, setTitle] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [avatarSaving, setAvatarSaving] = useState(false)
-  const [editingTitle, setEditingTitle] = useState('')
-  const [titleSaving, setTitleSaving] = useState(false)
-
-  useFocusEffect(
-    useCallback(() => {
-      void fetchCards()
-    }, [userId]),
-  )
-
-  async function fetchCards() {
-    if (!userId) return
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('gallery_cards')
-      .select('*')
-      .eq('player_id', userId)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Gallery fetch error:', error)
-      showToast(error.message, 'error')
-    }
-
-    setCards((data as GalleryCard[]) ?? [])
-    setLoading(false)
-  }
-
-  function handleSelect(imageUrl: string, prompt: string) {
-    setPendingCard({ imageUrl, prompt })
-    setTitle('')
-    setShowModal(true)
-  }
-
-  async function saveToGallery() {
-    if (!pendingCard || !userId) return
-    setSaving(true)
-    try {
-      const { count, error: countError } = await supabase
-        .from('gallery_cards')
-        .select('id', { count: 'exact', head: true })
-        .eq('player_id', userId)
-
-      if (countError) {
-        throw countError
-      }
-
-      if (!hasGalleryCapacity(count ?? 0)) {
-        showToast(t('errors.GALLERY_LIMIT_REACHED'), 'error')
-        setSaving(false)
-        return
-      }
-
-      const response = await fetch(pendingCard.imageUrl)
-      const blob = await response.blob()
-      const fileName = `${userId}/${Date.now()}.jpg`
-
-      const { data: uploaded, error: uploadError } = await supabase.storage
-        .from('gallery')
-        .upload(fileName, blob, { contentType: 'image/jpeg' })
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage.from('gallery').getPublicUrl(uploaded.path)
-
-      const { error: insertError } = await supabase.from('gallery_cards').insert({
-        player_id: userId,
-        image_url: publicUrl,
-        prompt: pendingCard.prompt,
-        title: title.trim() || pendingCard.prompt.slice(0, 40),
-      })
-      if (insertError) {
-        await supabase.storage.from('gallery').remove([uploaded.path])
-        throw insertError
-      }
-
-      setShowModal(false)
-      setPendingCard(null)
-      showToast(t('gallery.savedSuccess'), 'success')
-      void fetchCards()
-    } catch (error) {
-      const message = error instanceof Error ? error.message : ''
-      console.error('Save to gallery error:', error)
-      showToast(
-        message.includes('GALLERY_LIMIT_REACHED')
-          ? t('errors.GALLERY_LIMIT_REACHED')
-          : message || t('errors.generic'),
-        'error',
-      )
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function setAsAvatar() {
-    if (!selectedCard || !userId) return
-
-    setAvatarSaving(true)
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: userId,
-        display_name: displayName || 'Player',
-        avatar_url: selectedCard.image_url,
-        updated_at: new Date().toISOString(),
-      })
-
-    if (!error) {
-      setProfile({ displayName, avatarUrl: selectedCard.image_url })
-      showToast(t('gallery.avatarSaved'), 'success')
-      setSelectedCard(null)
-    } else {
-      console.error('Set avatar error:', error)
-      showToast(error.message || t('errors.generic'), 'error')
-    }
-
-    setAvatarSaving(false)
-  }
-
-  async function saveSelectedTitle() {
-    if (!selectedCard) return
-    setTitleSaving(true)
-    const nextTitle = editingTitle.trim() || selectedCard.prompt.slice(0, 40)
-
-    const { error } = await supabase
-      .from('gallery_cards')
-      .update({ title: nextTitle })
-      .eq('id', selectedCard.id)
-
-    if (!error) {
-      setCards((prev) => prev.map((card) => (
-        card.id === selectedCard.id ? { ...card, title: nextTitle } : card
-      )))
-      setSelectedCard({ ...selectedCard, title: nextTitle })
-      showToast(t('gallery.titleSaved'), 'success')
-    } else {
-      console.error('Save gallery title error:', error)
-      showToast(error.message || t('errors.generic'), 'error')
-    }
-
-    setTitleSaving(false)
-  }
-
-  async function deleteCard(id: string) {
-    Alert.alert(t('gallery.deleteTitle'), t('gallery.deleteConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await supabase.from('gallery_cards').delete().eq('id', id)
-          if (error) {
-            console.error('Delete gallery card error:', error)
-            showToast(error.message || t('errors.generic'), 'error')
-            return
-          }
-
-          setCards((prev) => prev.filter((c) => c.id !== id))
-          setSelectedCard((prev) => (prev?.id === id ? null : prev))
-        },
-      },
-    ])
-  }
+  const {
+    userId, isAnon, avatarUrl,
+    cards, loading,
+    showModal, setShowModal,
+    pendingCard, setPendingCard,
+    title, setTitle,
+    saving, saveToGallery, handleSelect,
+    selectedCard, setSelectedCard,
+    editingTitle, setEditingTitle,
+    titleSaving, avatarSaving,
+    saveSelectedTitle, setAsAvatar, deleteCard,
+  } = useGallery()
 
   const renderCard = useCallback(({ item }: { item: GalleryCard }) => {
     const isCurrentAvatar = avatarUrl === item.image_url
@@ -216,11 +53,7 @@ export default function GalleryScreen() {
         onLongPress={() => deleteCard(item.id)}
         testID={`gallery-card-${item.id}`}
       >
-        <Image
-          source={{ uri: item.image_url }}
-          style={styles.cardImage}
-          resizeMode="cover"
-        />
+        <Image source={{ uri: item.image_url }} style={styles.cardImage} resizeMode="cover" />
 
         {isCurrentAvatar && (
           <View style={styles.avatarBadge}>
@@ -235,7 +68,7 @@ export default function GalleryScreen() {
         )}
       </InteractiveCardTilt>
     )
-  }, [avatarUrl, t])
+  }, [avatarUrl, t, deleteCard, setSelectedCard, setEditingTitle])
 
   if (loading) {
     return (
@@ -285,6 +118,7 @@ export default function GalleryScreen() {
           />
         )}
 
+        {/* Generate & save modal */}
         <Modal
           visible={showModal}
           onClose={() => { setShowModal(false); setPendingCard(null) }}
@@ -295,10 +129,7 @@ export default function GalleryScreen() {
               <Text style={styles.guestWallIcon}>✦</Text>
               <Text style={styles.guestWallTitle}>{t('gallery.guestWallTitle')}</Text>
               <Text style={styles.guestWallBody}>{t('gallery.guestWallBody')}</Text>
-              <Button onPress={() => {
-                setShowModal(false)
-                router.push('/(auth)/login?mode=register')
-              }}>
+              <Button onPress={() => { setShowModal(false); router.push('/(auth)/login?mode=register') }}>
                 {t('gallery.guestWallCta')}
               </Button>
             </View>
@@ -306,11 +137,7 @@ export default function GalleryScreen() {
             <CardGenerator scope="gallery" onSelect={handleSelect} />
           ) : (
             <View style={styles.saveBlock}>
-              <Image
-                source={{ uri: pendingCard.imageUrl }}
-                style={styles.previewImage}
-                resizeMode="cover"
-              />
+              <Image source={{ uri: pendingCard.imageUrl }} style={styles.previewImage} resizeMode="cover" />
               <Input
                 label={t('gallery.titlePlaceholder')}
                 value={title}
@@ -325,6 +152,7 @@ export default function GalleryScreen() {
           )}
         </Modal>
 
+        {/* Card detail modal */}
         <Modal
           visible={!!selectedCard}
           onClose={() => setSelectedCard(null)}
@@ -339,28 +167,18 @@ export default function GalleryScreen() {
                 placeholder={t('gallery.titlePlaceholder')}
                 maxLength={60}
               />
-              <Image
-                source={{ uri: selectedCard.image_url }}
-                style={styles.previewLargeImage}
-                resizeMode="cover"
-              />
-
+              <Image source={{ uri: selectedCard.image_url }} style={styles.previewLargeImage} resizeMode="cover" />
               <Text style={styles.previewPrompt}>{selectedCard.prompt}</Text>
-
               <Button onPress={saveSelectedTitle} variant="secondary" loading={titleSaving}>
                 {t('gallery.saveTitle')}
               </Button>
-
               <Button
                 onPress={setAsAvatar}
                 loading={avatarSaving}
                 disabled={selectedCard.image_url === avatarUrl}
               >
-                {selectedCard.image_url === avatarUrl
-                  ? t('gallery.currentAvatar')
-                  : t('gallery.useAsAvatar')}
+                {selectedCard.image_url === avatarUrl ? t('gallery.currentAvatar') : t('gallery.useAsAvatar')}
               </Button>
-
               <Button variant="ghost" onPress={() => deleteCard(selectedCard.id)}>
                 {t('common.delete')}
               </Button>
@@ -381,11 +199,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 16,
     paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    color: colors.gold,
-    fontSize: 34,
-    fontFamily: fonts.title,
   },
   emptyText: {
     color: '#fff4d6',
@@ -412,10 +225,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceDeep,
     ...shadows.card,
   },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-  },
+  cardImage: { width: '100%', height: '100%' },
   avatarBadge: {
     position: 'absolute',
     top: 8,
@@ -450,20 +260,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: fonts.title,
   },
-  footerBtn: {
-    marginTop: 8,
-  },
-  guestWall: {
-    alignItems: 'center',
-    gap: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-  },
-  guestWallIcon: {
-    color: colors.gold,
-    fontSize: 28,
-    fontFamily: fonts.title,
-  },
+  footerBtn: { marginTop: 8 },
+  guestWall: { alignItems: 'center', gap: 16, paddingVertical: 12, paddingHorizontal: 8 },
+  guestWallIcon: { color: colors.gold, fontSize: 28, fontFamily: fonts.title },
   guestWallTitle: {
     color: colors.goldLight,
     fontSize: 16,
@@ -471,12 +270,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.6,
   },
-  guestWallBody: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 21,
-    textAlign: 'center',
-  },
+  guestWallBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center' },
   saveBlock: { gap: 14 },
   previewImage: {
     width: '60%',
@@ -486,9 +280,7 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
     alignSelf: 'center',
   },
-  previewBlock: {
-    gap: 14,
-  },
+  previewBlock: { gap: 14 },
   previewLargeImage: {
     width: '72%',
     aspectRatio: 2 / 3,
@@ -497,10 +289,5 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
     alignSelf: 'center',
   },
-  previewPrompt: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: 'center',
-  },
+  previewPrompt: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center' },
 })

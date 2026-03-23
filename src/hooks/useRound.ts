@@ -1,29 +1,41 @@
 import { useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useGameStore, type MaskedCard } from '@/stores/useGameStore'
+import { useGameStore } from '@/stores/useGameStore'
+import { maskCard } from '@/lib/cardMasking'
 import type { Round, Card } from '@/types/game'
 
+/**
+ * Subscribes to the active round for a given room.
+ *
+ * - Fetches the latest round on mount and writes it to `useGameStore`.
+ * - Subscribes to `rounds` and `cards` changes via a single Supabase channel.
+ * - Masks `player_id` on cards during the voting phase so the UI can't reveal
+ *   who played which card before results are shown.
+ * - Computes a server-time offset when the round transitions to `results` so
+ *   the countdown timer stays in sync across all clients.
+ * - Cancels all pending async work and removes the channel on unmount.
+ *
+ * State is written directly to `useGameStore`; this hook has no return value.
+ */
 export function useRound(roomId: string | undefined) {
   const { setRound, setCards } = useGameStore()
 
-  async function refreshCards(roundId: string, status: string) {
-    const { data } = await supabase
-      .from('cards')
-      .select('*')
-      .eq('round_id', roundId)
-      .eq('is_played', true)
-    if (!data) return
-    const cards = data as Card[]
-    // Mask player_id during voting phase so UI can't tell who played what
-    const masked: MaskedCard[] = cards.map((c) => ({
-      ...c,
-      player_id: status === 'voting' ? null : c.player_id,
-    }))
-    setCards(masked)
-  }
-
   useEffect(() => {
     if (!roomId) return
+    let cancelled = false
+
+    // Moved inside effect so it has access to `cancelled` and won't
+    // update state after the component unmounts or roomId changes.
+    async function refreshCards(roundId: string, status: string) {
+      const { data } = await supabase
+        .from('cards')
+        .select('*')
+        .eq('round_id', roundId)
+        .eq('is_played', true)
+      if (cancelled || !data) return
+      const cards = data as Card[]
+      setCards(cards.map((c) => maskCard(c, status)))
+    }
 
     // Fetch latest round on mount
     supabase
@@ -34,11 +46,10 @@ export function useRound(roomId: string | undefined) {
       .limit(1)
       .single()
       .then(({ data }) => {
-        if (data) {
-          const round = data as Round
-          setRound(round)
-          refreshCards(round.id, round.status)
-        }
+        if (cancelled || !data) return
+        const round = data as Round
+        setRound(round)
+        refreshCards(round.id, round.status)
       })
 
     const sub = supabase
@@ -52,6 +63,7 @@ export function useRound(roomId: string | undefined) {
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
+          if (cancelled) return
           const round = payload.new as Round
           setRound(round)
           refreshCards(round.id, round.status)
@@ -65,6 +77,7 @@ export function useRound(roomId: string | undefined) {
         },
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cards' }, () => {
+        if (cancelled) return
         supabase
           .from('rounds')
           .select('id, status')
@@ -73,12 +86,14 @@ export function useRound(roomId: string | undefined) {
           .limit(1)
           .single()
           .then(({ data }) => {
-            if (data) refreshCards(data.id, data.status)
+            if (cancelled || !data) return
+            refreshCards(data.id, data.status)
           })
       })
       .subscribe()
 
     return () => {
+      cancelled = true
       supabase.removeChannel(sub)
     }
   }, [roomId])

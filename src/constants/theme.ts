@@ -30,6 +30,14 @@ export const colors = {
 
   // Danger
   danger: 'rgba(185, 28, 28, 0.85)',
+
+  // Surfaces (semantic tokens for dark cards/containers)
+  surfaceCard: 'rgba(25, 13, 10, 0.7)',   // clue input, narrator card, prompt area
+  surfaceInput: 'rgba(67, 34, 21, 0.5)',  // text input backgrounds
+
+  // Border variants
+  goldBorderSubtle: 'rgba(244, 192, 119, 0.2)',  // light card borders
+  goldBorderMid: 'rgba(244, 192, 119, 0.35)',    // slightly stronger borders
 }
 
 export const radii = {

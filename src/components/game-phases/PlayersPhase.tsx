@@ -1,16 +1,15 @@
 // src/components/game-phases/PlayersPhase.tsx
 import { useState } from 'react'
-import { ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native'
+import { colors } from '@/constants/theme'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { useGameStore } from '@/stores/useGameStore'
 import { useGameActions } from '@/hooks/useGameActions'
-import { useImageGen } from '@/hooks/useImageGen'
-import { usePromptSuggest } from '@/hooks/usePromptSuggest'
+import { useCardSelection } from '@/hooks/useCardSelection'
 import { HandGrid } from '@/components/game/HandGrid'
 import { ClueHero } from '@/components/game/ClueHero'
 import { WaitingCard } from '@/components/game/WaitingCard'
-import type { HandSlot } from '@/components/game/HandGrid'
 import type { RoomPlayer } from '@/types/game'
 
 interface Props {
@@ -23,12 +22,6 @@ interface Props {
   roundNumber: number
   maxRounds: number
 }
-
-const EMPTY_SLOTS: HandSlot[] = [
-  { id: 'slot-0', isSelected: false },
-  { id: 'slot-1', isSelected: false },
-  { id: 'slot-2', isSelected: false },
-]
 
 export function PlayersPhase({
   roomCode,
@@ -43,41 +36,24 @@ export function PlayersPhase({
   const round = useGameStore((s) => s.round)
   const myPlayedCardId = useGameStore((s) => s.myPlayedCardId)
   const setMyPlayedCardId = useGameStore((s) => s.setMyPlayedCardId)
-  const { gameAction, insertCard } = useGameActions()
-  const { loading: generating, generate } = useImageGen()
-  const { suggest } = usePromptSuggest()
+  const { gameAction } = useGameActions()
 
-  const [slots, setSlots] = useState<HandSlot[]>(EMPTY_SLOTS)
-  const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(0)
+  const {
+    slots,
+    activeSlotIndex,
+    setActiveSlotIndex,
+    selectedSlot,
+    isGenerating,
+    handleGenerate,
+    handleSuggest,
+    handleSelect,
+  } = useCardSelection({ roomCode, round, userId })
+
   const [submitting, setSubmitting] = useState(false)
 
-  const selectedSlot = slots.find((s) => s.isSelected)
   const clue = round?.clue ?? undefined
   const hasSubmitted = isNarrator || !!myPlayedCardId
   const submittedCount = submittedPlayerIds.length
-
-  async function handleGenerate(index: number, prompt: string) {
-    if (!round || !userId) return
-    const result = await generate({ prompt, scope: 'round', roomCode, roundId: round.id })
-    if (!result?.imageUrl) return
-    const cardId = await insertCard(round.id, userId, result.imageUrl, result.brief ?? prompt)
-    if (!cardId) return
-    setSlots((prev) =>
-      prev.map((s, i) => i === index ? { ...s, id: cardId, imageUri: result.imageUrl } : s),
-    )
-    if (!slots.some((s) => s.isSelected)) {
-      setSlots((prev) => prev.map((s, i) => ({ ...s, isSelected: i === index })))
-    }
-    setActiveSlotIndex(null)
-  }
-
-  async function handleSuggest(_index: number): Promise<string> {
-    return (await suggest()) ?? ''
-  }
-
-  function handleSelect(index: number) {
-    setSlots((prev) => prev.map((s, i) => ({ ...s, isSelected: i === index })))
-  }
 
   async function handleSubmit() {
     if (!selectedSlot?.id || !selectedSlot.imageUri) return
@@ -116,17 +92,18 @@ export function PlayersPhase({
         onSelect={handleSelect}
         onGenerate={handleGenerate}
         onSuggestPrompt={handleSuggest}
-        generating={generating}
+        generating={isGenerating}
         clue={clue}
       />
-      <View style={[styles.submitBtn, (!selectedSlot?.imageUri || submitting) && styles.submitBtnDisabled]}>
-        <Text
-          style={styles.submitBtnText}
-          onPress={handleSubmit}
-        >
+      <Pressable
+        style={[styles.submitBtn, (!selectedSlot?.imageUri || submitting) && styles.submitBtnDisabled]}
+        disabled={!selectedSlot?.imageUri || submitting}
+        onPress={handleSubmit}
+      >
+        <Text style={styles.submitBtnText}>
           {submitting ? '...' : t('game.playThisCard')}
         </Text>
-      </View>
+      </Pressable>
     </ScrollView>
   )
 }
@@ -135,12 +112,12 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: 14, gap: 14 },
   submitBtn: {
-    backgroundColor: '#f97316',
+    backgroundColor: colors.orange,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  submitBtnDisabled: { opacity: 0.35 },
+  submitBtnDisabled: { opacity: 0.45 },
   submitBtnText: {
     color: '#fff7ea',
     fontSize: 14,

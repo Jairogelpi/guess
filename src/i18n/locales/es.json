@@ -12,6 +12,11 @@
     "delete": "Eliminar",
     "back": "Volver"
   },
+  "roomExit": {
+    "title": "Salir de la partida",
+    "message": "Si sales ahora, abandonaras la sala actual.",
+    "confirm": "Salir"
+  },
   "home": {
     "createRoom": "Crear sala",
     "joinRoom": "Unirse",
@@ -30,22 +35,27 @@
     "notReady": "No listo",
     "startGame": "Empezar partida",
     "shareCode": "Compartir codigo",
+    "tapToCopy": "toca para copiar",
     "tapToShare": "toca para compartir",
     "copied": "Copiado",
+    "codeCopied": "Codigo copiado",
+    "shareInviteLink": "Compartir enlace de invitacion",
+    "inviteMessage": "Entra a mi sala con el codigo {{code}}",
     "chat": "Chat",
     "messagePlaceholder": "Escribe un mensaje...",
     "leave": "Salir",
+    "roomCode": "Codigo de sala",
     "shareHint": "Comparte este codigo con tus amigos para que puedan entrar.",
     "hostHint": "Cuando haya al menos 3 jugadores, el anfitrion puede empezar la partida.",
     "guestHint": "Espera aqui hasta que el anfitrion empiece la partida.",
     "playerCount_one": "{{count}} jugador",
     "playerCount_other": "{{count}} jugadores",
     "roomRules": "3-8 jugadores",
-    "preparation": "Cargando sala...",
-    "hostWaiting_one": "Falta {{count}} jugador mas para poder empezar",
-    "hostWaiting_other": "Faltan {{count}} jugadores mas para poder empezar",
-    "hostReady": "Listo para empezar. Pulsa cuando quieras.",
-    "guestWaiting": "Esperando a que el anfitrion empiece la partida.",
+    "preparation": "Preparando sala...",
+    "hostWaiting_one": "Falta {{count}} jugador para empezar",
+    "hostWaiting_other": "Faltan {{count}} jugadores para empezar",
+    "hostReady": "Ya podeis empezar.",
+    "guestWaiting": "Esperando a que el anfitrion inicie la partida.",
     "notFound": "Sala no encontrada",
     "loadFailed": "No se pudo cargar la sala. Intentalo de nuevo."
   },
@@ -186,6 +196,8 @@
     "goHome": "Volver al inicio"
   },
   "errors": {
+    "phaseCrashTitle": "Algo salió mal",
+    "phaseCrashBody": "Esta fase encontró un error inesperado. La partida continúa para los demás jugadores.",
     "AI_CONFIG_ERROR": "Falta configurar la IA en el servidor.",
     "PROMPT_SUGGEST_FAILED": "No se pudo sugerir una idea ahora mismo.",
     "PROMPT_REFINEMENT_FAILED": "No se pudo preparar la descripcion de la carta.",

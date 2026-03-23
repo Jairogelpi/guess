@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react'
-import { View, Text, ScrollView, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { DecorativeTitle } from '@/components/branding/DecorativeTitle'
+import { AppHeader } from '@/components/layout/AppHeader'
 import { Background } from '@/components/layout/Background'
 import { ScoreBoard } from '@/components/game/ScoreBoard'
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
 import { colors } from '@/constants/theme'
+import { buildLeaveRoomConfirmCopy } from '@/lib/leaveRoomConfirm'
+import { useConfirmRoomExit } from '@/hooks/useConfirmRoomExit'
 import type { RoomPlayer } from '@/types/game'
 
 export default function EndedScreen() {
@@ -17,6 +20,14 @@ export default function EndedScreen() {
   const router = useRouter()
   const [players, setPlayers] = useState<RoomPlayer[]>([])
   const [winner, setWinner] = useState<string | null>(null)
+
+  useConfirmRoomExit({
+    enabled: true,
+    t,
+    onConfirmExit: () => {
+      router.replace('/(tabs)')
+    },
+  })
 
   useEffect(() => {
     if (!code) return
@@ -39,9 +50,23 @@ export default function EndedScreen() {
       })
   }, [code])
 
+  function handleGoHome() {
+    const copy = buildLeaveRoomConfirmCopy(t)
+
+    Alert.alert(copy.title, copy.message, [
+      { text: copy.cancelLabel, style: 'cancel' },
+      {
+        text: copy.confirmLabel,
+        style: 'destructive',
+        onPress: () => router.replace('/(tabs)'),
+      },
+    ])
+  }
+
   return (
     <Background>
       <SafeAreaView style={styles.safe}>
+        <AppHeader title={t('ended.title')} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.hero}>
             <Text style={styles.trophy}>🏆</Text>
@@ -63,7 +88,7 @@ export default function EndedScreen() {
             <ScoreBoard players={players} />
           </View>
 
-          <Button onPress={() => router.replace('/(tabs)')}>
+          <Button onPress={handleGoHome}>
             {t('ended.goHome')}
           </Button>
         </ScrollView>
@@ -77,7 +102,7 @@ const styles = StyleSheet.create({
   content: {
     gap: 24,
     padding: 24,
-    paddingTop: 40,
+    paddingTop: 20,
   },
   hero: {
     alignItems: 'center',

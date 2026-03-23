@@ -29,13 +29,13 @@ export default function RoomLayout() {
           fontSize: 17,
           letterSpacing: 1.1,
           color: colors.textPrimary,
-        },
+        } as object,
         headerBackTitle: '',
       }}
     >
       <Stack.Screen name="lobby" options={{ headerShown: false }} />
       <Stack.Screen name="game" options={{ headerShown: false }} />
-      <Stack.Screen name="ended" options={{ title: t('ended.title'), headerBackVisible: false }} />
+      <Stack.Screen name="ended" options={{ headerShown: false }} />
     </Stack>
   )
 }

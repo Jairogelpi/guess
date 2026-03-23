@@ -292,12 +292,15 @@ const styles = StyleSheet.create({
     fontSize: 52,
     marginTop: -8,
     color: '#fff4e3',
+    textShadowColor: 'rgba(10, 4, 1, 0.95)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 0,
+  },
+  promptTitleFill: {
+    color: '#fff7ea',
     textShadowColor: WELCOME_HERO_PROMPT_GLOW_COLOR,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: WELCOME_HERO_PROMPT_GLOW_RADIUS,
-  },
-  promptTitleFill: {
-    color: '#f39a33',
   },
   divider: {
     width: 74,

@@ -1,12 +1,12 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { APP_HEADER_LOGO_SCALE, APP_HEADER_THEME } from '@/constants/appChrome'
 import { colors, fonts, radii } from '@/constants/theme'
 import { useProfile } from '@/hooks/useProfile'
-import { ProfileAvatar } from '@/components/ui/ProfileAvatar'
+import { LanguageToggle } from '@/components/ui/LanguageToggle'
+import { ProfileButton } from '@/components/ui/ProfileButton'
 
 interface AppHeaderProps {
   title?: string
@@ -18,14 +18,6 @@ export function AppHeader({ title }: AppHeaderProps) {
   const { userId, avatarUrl, avatarFallback } = useProfile()
 
   const currentLang = (i18n.resolvedLanguage ?? i18n.language).startsWith('en') ? 'en' : 'es'
-
-  function goToProfile() {
-    router.push(userId ? '/(tabs)/profile' : '/(auth)/login')
-  }
-
-  function changeLanguage(lang: 'es' | 'en') {
-    void i18n.changeLanguage(lang)
-  }
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
@@ -49,39 +41,17 @@ export function AppHeader({ title }: AppHeaderProps) {
         </View>
 
         <View style={styles.actions}>
-          <View style={styles.langGroup} accessibilityRole="radiogroup">
-            {(['es', 'en'] as const).map((lang) => {
-              const active = currentLang === lang
-
-              return (
-                <Pressable
-                  key={lang}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: active }}
-                  onPress={() => changeLanguage(lang)}
-                  style={[styles.langButton, active && styles.langButtonActive]}
-                >
-                  <Text style={[styles.langText, active && styles.langTextActive]}>
-                    {lang.toUpperCase()}
-                  </Text>
-                </Pressable>
-              )
-            })}
-          </View>
-
-          <Pressable
+          <LanguageToggle
+            currentLang={currentLang}
+            onChange={(lang) => void i18n.changeLanguage(lang)}
+          />
+          <ProfileButton
+            userId={userId}
+            avatarUrl={avatarUrl}
+            avatarFallback={avatarFallback}
             accessibilityLabel={userId ? t('profile.title') : t('welcome.signIn')}
-            onPress={goToProfile}
-            style={styles.profileButton}
-          >
-            {userId ? (
-              <ProfileAvatar avatarUrl={avatarUrl} fallback={avatarFallback} size={32} />
-            ) : (
-              <View style={styles.profileIconShell}>
-                <MaterialCommunityIcons name="account-circle-outline" size={22} color={colors.goldLight} />
-              </View>
-            )}
-          </Pressable>
+            onPress={() => router.push(userId ? '/(tabs)/profile' : '/(auth)/login')}
+          />
         </View>
       </View>
     </SafeAreaView>
@@ -149,46 +119,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexShrink: 0,
     gap: 6,
-  },
-  langGroup: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(10, 6, 2, 0.36)',
-    borderRadius: radii.full,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 228, 186, 0.18)',
-    padding: 3,
-  },
-  langButton: {
-    minWidth: 30,
-    height: 26,
-    borderRadius: radii.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 7,
-  },
-  langButtonActive: {
-    backgroundColor: 'rgba(255, 228, 186, 0.16)',
-  },
-  langText: {
-    color: colors.textMuted,
-    fontFamily: fonts.title,
-    fontSize: 10,
-    letterSpacing: 0.7,
-  },
-  langTextActive: {
-    color: colors.textPrimary,
-  },
-  profileButton: {
-    borderRadius: radii.full,
-  },
-  profileIconShell: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(10, 6, 2, 0.42)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 228, 186, 0.2)',
   },
 })

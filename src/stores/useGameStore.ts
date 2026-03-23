@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import type { Round, Card } from '@/types/game'
+import type { Round, MaskedCard } from '@/types/game'
 
-export type MaskedCard = Omit<Card, 'player_id'> & { player_id: string | null }
+export type { MaskedCard }  // re-export so existing importers don't break
 
 interface GameState {
   round: Round | null

@@ -76,9 +76,9 @@ export function PromptArea({ onGenerate, onSuggestPrompt, generating, clue }: Pr
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(25, 13, 10, 0.7)',
+    backgroundColor: colors.surfaceCard,
     borderWidth: 1,
-    borderColor: 'rgba(244, 192, 119, 0.2)',
+    borderColor: colors.goldBorderSubtle,
     borderRadius: radii.md,
     padding: 10,
     gap: 8,
@@ -96,9 +96,9 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: 'rgba(67, 34, 21, 0.5)',
+    backgroundColor: colors.surfaceInput,
     borderWidth: 1,
-    borderColor: 'rgba(244, 192, 119, 0.2)',
+    borderColor: colors.goldBorderSubtle,
     borderRadius: radii.sm,
     paddingHorizontal: 10,
     paddingVertical: 7,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.title,
   },
   genBtn: {
-    backgroundColor: '#f97316',
+    backgroundColor: colors.orange,
     borderRadius: radii.sm,
     paddingVertical: 9,
     alignItems: 'center',
@@ -136,6 +136,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.title,
   },
   btnDisabled: {
-    opacity: 0.4,
+    opacity: 0.45,
   },
 })

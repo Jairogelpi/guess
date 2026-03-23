@@ -45,13 +45,16 @@ describe('welcome hero treatment', () => {
     ])
   })
 
-  test('removes glow from PROMPT and uses a more vivid solid orange fill', () => {
-    expect(WELCOME_HERO_PROMPT_GLOW_COLOR).toBe('transparent')
-    expect(WELCOME_HERO_PROMPT_GLOW_RADIUS).toBe(0)
+  test('makes PROMPT match GUESS THE in white while keeping stronger 3d edging', () => {
+    expect(WELCOME_HERO_PROMPT_GLOW_COLOR).toBe('rgba(255, 158, 44, 0.28)')
+    expect(WELCOME_HERO_PROMPT_GLOW_RADIUS).toBe(6)
     expect(welcomeScreenSource).not.toContain("@react-native-masked-view/masked-view")
     expect(welcomeScreenSource).toContain("style={[styles.brandTitle, styles.brandTitleHighlight, styles.promptTitleFill, { fontSize: highlightSize }]}")
     expect(welcomeScreenSource).not.toContain('styles.promptLetter')
-    expect(welcomeScreenSource).toContain("color: '#f39a33'")
+    expect(welcomeScreenSource).toContain("color: '#fff7ea'")
+    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(10, 4, 1, 0.95)'")
+    expect(welcomeScreenSource).toContain("textShadowOffset: { width: 0, height: 3 }")
+    expect(welcomeScreenSource).toContain('textShadowRadius: 0')
   })
 
   test('keeps the guest CTA typography smaller than before', () => {

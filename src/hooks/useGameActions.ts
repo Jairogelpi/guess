@@ -2,13 +2,22 @@ import { useTranslation } from 'react-i18next'
 import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { useUIStore } from '@/stores/useUIStore'
+import type { EdgeFunctionError } from '@/types/game'
 
+/**
+ * Provides all game-level actions: room management, game flow, and card insertion.
+ *
+ * Every method catches errors internally and shows a user-visible toast via
+ * `useUIStore`, so callers don't need their own try/catch.
+ *
+ * Returns `null` / `false` on failure so callers can still branch on the result.
+ */
 export function useGameActions() {
   const showToast = useUIStore((s) => s.showToast)
   const { t } = useTranslation()
 
   function handleError(error: unknown) {
-    const code = (error as { error?: { code?: string } })?.error?.code
+    const code = (error as { error?: EdgeFunctionError })?.error?.code
     const message = code ? t(`errors.${code}`, t('errors.generic')) : t('errors.generic')
     showToast(message, 'error')
   }

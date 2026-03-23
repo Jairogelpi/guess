@@ -1,5 +1,5 @@
 // src/components/game-phases/VotingPhase.tsx
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
@@ -39,7 +39,12 @@ export function VotingPhase({
   const [submitting, setSubmitting] = useState(false)
 
   const hasVoted = isNarrator || !!myVotedCardId
-  const votableCards = cards.filter((c) => c.player_id !== userId)
+  // Memoized — avoids creating a new array reference on every render,
+  // which would force CardGrid to re-render even when cards haven't changed.
+  const votableCards = useMemo(
+    () => cards.filter((c) => c.player_id !== userId),
+    [cards, userId],
+  )
 
   async function handleVote() {
     if (!selectedId) return

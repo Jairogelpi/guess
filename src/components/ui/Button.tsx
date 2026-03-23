@@ -28,7 +28,7 @@ export function Button({
   contentStyle,
   textStyle,
 }: ButtonProps) {
-  const isDisabled = disabled ?? loading
+  const isDisabled = !!disabled || !!loading
   const primaryGradient: [string, string] | [string, string, string] = isDisabled
     ? ['rgba(180,130,0,0.4)', 'rgba(140,100,0,0.4)']
     : [...brandButtons.primary.gradient]

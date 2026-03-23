@@ -12,6 +12,11 @@
     "delete": "Delete",
     "back": "Back"
   },
+  "roomExit": {
+    "title": "Leave match",
+    "message": "If you leave now, you will abandon the current room.",
+    "confirm": "Leave"
+  },
   "home": {
     "createRoom": "Create room",
     "joinRoom": "Join",
@@ -30,24 +35,29 @@
     "notReady": "Not ready",
     "startGame": "Start game",
     "shareCode": "Share code",
+    "tapToCopy": "tap to copy",
     "tapToShare": "tap to share",
     "copied": "Copied!",
+    "codeCopied": "Code copied",
     "chat": "Chat",
     "messagePlaceholder": "Write a message...",
     "leave": "Leave",
+    "roomCode": "Room code",
+    "shareInviteLink": "Share invite link",
+    "inviteMessage": "Join my room with code {{code}}",
     "shareHint": "Share this code with your friends so they can join.",
     "hostHint": "When at least 3 players are ready, the host can start the game.",
     "guestHint": "Wait here until the host starts the game.",
     "playerCount_one": "{{count}} player",
     "playerCount_other": "{{count}} players",
     "roomRules": "3-8 players",
-    "preparation": "Loading room...",
+    "preparation": "Preparing room...",
     "hostWaiting_one": "{{count}} more player needed to start",
     "hostWaiting_other": "{{count}} more players needed to start",
-    "hostReady": "Ready to start. Tap whenever you like.",
+    "hostReady": "You are ready to start.",
     "guestWaiting": "Waiting for the host to start the game.",
     "notFound": "Room not found",
-    "loadFailed": "Could not load the room. Please try again."
+    "loadFailed": "Could not load the room. Try again."
   },
   "game": {
     "narrator": "Narrator",
@@ -186,6 +196,8 @@
     "goHome": "Go home"
   },
   "errors": {
+    "phaseCrashTitle": "Something went wrong",
+    "phaseCrashBody": "This phase encountered an unexpected error. The game continues for other players.",
     "AI_CONFIG_ERROR": "The AI provider is not configured on the server.",
     "PROMPT_SUGGEST_FAILED": "We could not suggest an idea right now.",
     "PROMPT_REFINEMENT_FAILED": "We could not prepare the card description.",
