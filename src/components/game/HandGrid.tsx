@@ -1,9 +1,11 @@
-// src/components/game/HandGrid.tsx
-import { View, Text, Image, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
-import { colors, fonts, radii } from '@/constants/theme'
 import { PromptArea } from '@/components/game/PromptArea'
 import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
+import { DixitCard } from '@/components/ui/DixitCard'
+import { colors, fonts, radii } from '@/constants/theme'
+import type { GalleryCard } from '@/types/game'
 
 export interface HandSlot {
   id: string
@@ -18,6 +20,9 @@ interface Props {
   onSelect: (index: number) => void
   onGenerate: (index: number, prompt: string) => Promise<void>
   onSuggestPrompt: (index: number) => Promise<string>
+  onUseWildcard: (index: number, card: GalleryCard) => Promise<void>
+  wildcardsLeft: number
+  generationTokens: number
   generating: boolean
   clue?: string
 }
@@ -29,14 +34,17 @@ export function HandGrid({
   onSelect,
   onGenerate,
   onSuggestPrompt,
+  onUseWildcard,
+  wildcardsLeft,
+  generationTokens,
   generating,
   clue,
 }: Props) {
   const { t } = useTranslation()
+  const usedSlots = slots.filter(s => !!s.imageUri).length
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{t('game.yourHand')}</Text>
       <View style={styles.grid}>
         {slots.map((slot, i) => {
           const isActive = activeSlotIndex === i
@@ -54,45 +62,61 @@ export function HandGrid({
                   onSlotPress(i)
                 }
               }}
-              style={[styles.slotTilt, slot.isSelected && styles.slotTiltRaised]}
+              style={[
+                styles.slotTilt,
+                slot.isSelected && styles.slotTiltRaised,
+                isActive && !hasImage && styles.slotActive,
+              ]}
             >
-              <View
-                style={[
-                  styles.slot,
-                  hasImage && styles.slotGenerated,
-                  slot.isSelected && styles.slotSelected,
-                  isActive && !hasImage && styles.slotActive,
-                ]}
-              >
-                {hasImage ? (
-                  <Image
-                    source={{ uri: slot.imageUri }}
-                    style={styles.slotImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.emptyContent}>
-                    <Text style={styles.plusIcon}>+</Text>
-                    <Text style={styles.slotLabel}>
-                      {t('game.cardSlot', { n: i + 1 })}
-                    </Text>
-                  </View>
-                )}
-                {slot.isSelected && (
-                  <View style={styles.selectedBadge}>
-                    <Text style={styles.selectedBadgeText}>✓</Text>
-                  </View>
-                )}
-              </View>
+              <DixitCard
+                uri={slot.imageUri}
+                selected={slot.isSelected}
+                loading={isActive && generating}
+                interactive={false} // Handled by Tilt wrapper
+              />
+              {slot.isSelected && (
+                <View style={styles.selectedBadge}>
+                  <Text style={styles.selectedBadgeText}>✓</Text>
+                </View>
+              )}
             </InteractiveCardTilt>
           )
         })}
+      </View>
+
+      <View style={styles.slotCounter}>
+        <View style={styles.counterGroup}>
+          <Text style={styles.slotCounterText}>
+            {t('game.slotsUsed', { count: usedSlots, max: 3 })}
+          </Text>
+          <View style={styles.slotDots}>
+            {[0, 1, 2].map(i => (
+              <View 
+                key={i} 
+                style={[styles.slotDot, i < usedSlots && styles.slotDotActive]} 
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.vDivider} />
+
+        <View style={styles.counterGroup}>
+           <MaterialCommunityIcons name="database" size={12} color={colors.goldDim} />
+           <Text style={styles.slotCounterText}>
+             {t('game.tokensLabel', { defaultValue: 'TOKENS' })}
+           </Text>
+           <Text style={styles.tokenValue}>{generationTokens}</Text>
+        </View>
       </View>
 
       {activeSlotIndex !== null && !slots[activeSlotIndex]?.imageUri && (
         <PromptArea
           onGenerate={(prompt) => onGenerate(activeSlotIndex, prompt)}
           onSuggestPrompt={() => onSuggestPrompt(activeSlotIndex)}
+          onUseWildcard={(card) => onUseWildcard(activeSlotIndex, card)}
+          wildcardsLeft={wildcardsLeft}
+          generationTokens={generationTokens}
           generating={generating}
           clue={clue}
         />
@@ -102,83 +126,98 @@ export function HandGrid({
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 10 },
-  label: {
-    color: 'rgba(255, 241, 222, 0.25)',
-    fontSize: 8,
-    fontFamily: fonts.title,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
+  container: { gap: 16, paddingBottom: 10 },
   grid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
+    justifyContent: 'center',
+    paddingVertical: 14,
   },
   slotTilt: {
-    flex: 1,
+    width: '31%',
+    aspectRatio: 2 / 3,
   },
   slotTiltRaised: {
-    zIndex: 3,
-  },
-  slot: {
-    aspectRatio: 2 / 3,
-    borderRadius: radii.md,
-    backgroundColor: 'rgba(25, 13, 10, 0.6)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(244, 192, 119, 0.2)',
-    borderStyle: 'dashed',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slotGenerated: {
-    borderStyle: 'solid',
-    borderColor: 'rgba(244, 192, 119, 0.35)',
-    backgroundColor: 'rgba(58, 26, 8, 0.8)',
-  },
-  slotSelected: {
-    borderStyle: 'solid',
-    borderColor: colors.gold,
-    borderWidth: 2.5,
+    zIndex: 10,
+    transform: [{ translateY: -18 }, { scale: 1.1 }],
   },
   slotActive: {
-    borderColor: 'rgba(244, 192, 119, 0.5)',
-    borderStyle: 'solid',
-  },
-  slotImage: {
-    width: '100%',
-    height: '100%',
-  },
-  emptyContent: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  plusIcon: {
-    fontSize: 22,
-    color: 'rgba(244, 192, 119, 0.25)',
-  },
-  slotLabel: {
-    fontSize: 7,
-    color: 'rgba(255, 241, 222, 0.2)',
-    fontFamily: fonts.title,
-    letterSpacing: 0.5,
-    textAlign: 'center',
+    zIndex: 5,
+    transform: [{ scale: 1.05 }],
   },
   selectedBadge: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: colors.gold,
-    borderRadius: 99,
-    minWidth: 22,
-    height: 16,
-    paddingHorizontal: 4,
+    top: -6,
+    right: -6,
+    backgroundColor: '#ffb024',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 30,
   },
   selectedBadgeText: {
-    color: '#0a0602',
-    fontSize: 8,
-    fontWeight: '800',
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  slotCounter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(230, 184, 0, 0.05)',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: radii.full,
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
+  slotCounterText: {
+    color: colors.goldDim,
+    fontSize: 11,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  slotDots: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  slotDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(230, 184, 0, 0.15)',
+  },
+  slotDotActive: {
+    backgroundColor: colors.gold,
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+  },
+  counterGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  vDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: 'rgba(230, 184, 0, 0.15)',
+    marginHorizontal: 4,
+  },
+  tokenValue: {
+    color: colors.gold,
+    fontSize: 12,
+    fontFamily: fonts.titleHeavy,
+    marginLeft: 2,
   },
 })

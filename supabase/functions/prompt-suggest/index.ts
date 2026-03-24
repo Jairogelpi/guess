@@ -1,7 +1,7 @@
 import { handleCors } from '../_shared/cors.ts'
 import { errorResponse, okResponse } from '../_shared/types.ts'
 import { createSupabaseAdmin } from '../_shared/supabaseAdmin.ts'
-import { buildSuggestionMessages } from '../_shared/dixitPrompts.ts'
+import { buildSuggestionMessages, buildRefinementMessages } from '../_shared/dixitPrompts.ts'
 import { AI_ERROR_CODES, ensureAiError } from '../_shared/errors.ts'
 import { callOpenRouter, extractTextContent } from '../_shared/openrouter.ts'
 
@@ -29,9 +29,16 @@ Deno.serve(async (req) => {
       )
     }
 
+    const reqBody = await req.json().catch(() => ({}))
+    const basePrompt = reqBody.basePrompt as string | undefined
+
+    const messages = basePrompt 
+      ? buildRefinementMessages(basePrompt) 
+      : buildSuggestionMessages()
+
     const payload = await callOpenRouter({
-      messages: buildSuggestionMessages(),
-      temperature: 1,
+      messages,
+      temperature: basePrompt ? 0.7 : 1, // slightly tighter temperature for refinement
       failureCode: 'PROMPT_SUGGEST_FAILED',
     })
 

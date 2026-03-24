@@ -16,11 +16,11 @@ export function usePromptSuggest() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function suggest(): Promise<string | null> {
+  async function suggest(basePrompt?: string): Promise<string | null> {
     setLoading(true)
     setError(null)
     try {
-      const result = await api.promptSuggest()
+      const result = await api.promptSuggest(basePrompt ? { basePrompt } : undefined)
       return result.prompt
     } catch (e) {
       console.error('Prompt suggestion error:', e)

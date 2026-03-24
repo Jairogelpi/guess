@@ -55,7 +55,7 @@ export default function Welcome() {
   const compactHero = screenWidth < 390
   const titleSize = compactHero ? 42 : 50
   const highlightSize = compactHero ? 62 : 74
-  const subtitleSize = compactHero ? 14 : 16
+  const subtitleSize = compactHero ? 15 : 18
   const guestFontSize = compactHero ? 15 : 18
   const guestButtonHeight = compactHero ? 40 : WELCOME_HERO_CTA_HEIGHT
   const secondaryButtonHeight = compactHero ? 34 : WELCOME_HERO_SECONDARY_CTA_HEIGHT
@@ -168,52 +168,57 @@ export default function Welcome() {
                   </View>
 
                   <View style={styles.cardFooter}>
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={enterAsGuest}
-                      disabled={loading}
-                      style={[
-                        styles.guestBtn,
-                        {
-                          height: guestButtonHeight,
-                          width: `${WELCOME_HERO_CTA_WIDTH_FACTOR * 100}%`,
-                        },
-                        loading && styles.disabledBtn,
-                      ]}
-                    >
-                      <View style={styles.guestBtnGradient}>
-                        {loading ? (
-                          <ActivityIndicator size="small" color="#fff7ea" />
-                        ) : (
-                          <Text style={[styles.guestBtnText, { fontSize: guestFontSize, lineHeight: guestFontSize + 2 }]}>
-                            {t('welcome.enterAsGuest').toUpperCase()}
-                          </Text>
-                        )}
-                      </View>
-                    </Pressable>
-                    <Text style={styles.hintText}>{t('welcome.guestHint')}</Text>
-
-                    <View style={[styles.secondaryActions, { gap: secondaryGap }]}>
+                    <View style={styles.actionGroup}>
                       <Pressable
                         accessibilityRole="button"
-                        onPress={() => router.push({ pathname: '/(auth)/login', params: { mode: 'signin' } })}
-                        style={[styles.smallActionBtn, { height: secondaryButtonHeight }]}
+                        testID="welcome-enter-guest-button"
+                        onPress={enterAsGuest}
+                        disabled={loading}
+                        style={[
+                          styles.guestBtn,
+                          {
+                            height: guestButtonHeight,
+                            width: `${WELCOME_HERO_CTA_WIDTH_FACTOR * 100}%`,
+                          },
+                          loading && styles.disabledBtn,
+                        ]}
                       >
-                        <Text style={[styles.secondaryBtnText, { fontSize: secondaryFontSize, lineHeight: secondaryFontSize + 2 }]}>
-                          {t('welcome.signIn')}
-                        </Text>
+                        <LinearGradient colors={['#FF8C00', '#E65100']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.guestBtnGradient}>
+                          {loading ? (
+                            <ActivityIndicator size="small" color="#fff7ea" />
+                          ) : (
+                            <Text style={[styles.guestBtnText, { fontSize: guestFontSize, lineHeight: guestFontSize + 2 }]}>
+                              {t('welcome.enterAsGuest').toUpperCase()}
+                            </Text>
+                          )}
+                        </LinearGradient>
                       </Pressable>
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => router.push({ pathname: '/(auth)/login', params: { mode: 'register' } })}
-                        style={[styles.smallActionBtn, styles.registerBtn, { height: secondaryButtonHeight }]}
-                      >
-                        <Text style={[styles.registerBtnText, { fontSize: secondaryFontSize, lineHeight: secondaryFontSize + 2 }]}>
-                          {t('profile.upgradeAccount')}
-                        </Text>
-                      </Pressable>
+                      <Text style={styles.hintText}>{t('welcome.guestHint')}</Text>
                     </View>
-                    <Text style={[styles.accountHintText, { marginTop: secondaryHintMarginTop }]}>{t('welcome.accountHint')}</Text>
+
+                    <View style={styles.actionGroup}>
+                      <View style={[styles.secondaryActions, { gap: secondaryGap }]}>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => router.push({ pathname: '/(auth)/login', params: { mode: 'signin' } })}
+                          style={[styles.smallActionBtn, { height: secondaryButtonHeight }]}
+                        >
+                          <Text style={[styles.secondaryBtnText, { fontSize: secondaryFontSize, lineHeight: secondaryFontSize + 2 }]}>
+                            {t('welcome.signIn')}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => router.push({ pathname: '/(auth)/login', params: { mode: 'register' } })}
+                          style={[styles.smallActionBtn, styles.registerBtn, { height: secondaryButtonHeight }]}
+                        >
+                          <Text style={[styles.registerBtnText, { fontSize: secondaryFontSize, lineHeight: secondaryFontSize + 2 }]}>
+                            {t('profile.upgradeAccount')}
+                          </Text>
+                        </Pressable>
+                      </View>
+                      <Text style={[styles.accountHintText, { marginTop: compactHero ? 2 : 4 }]}>{t('welcome.accountHint')}</Text>
+                    </View>
                   </View>
                 </View>
               </LinearGradient>
@@ -321,23 +326,27 @@ const styles = StyleSheet.create({
   cardFooter: {
     alignItems: 'center',
     width: '100%',
-    gap: WELCOME_HERO_FOOTER_GAP,
-    marginTop: 10,
+    gap: 24,
+    marginTop: 8,
+  },
+  actionGroup: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 6,
   },
   guestBtn: {
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 244, 226, 0.62)',
+    borderWidth: 2,
+    borderColor: '#FFA726',
     overflow: 'hidden',
-    shadowColor: 'rgba(26, 10, 2, 0.92)',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: '#FF9500',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 8,
   },
   guestBtnGradient: {
     flex: 1,
-    backgroundColor: '#e68a2e',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
@@ -361,8 +370,8 @@ const styles = StyleSheet.create({
   },
   hintText: {
     color: 'rgba(255, 241, 222, 0.96)',
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
     textAlign: 'center',
     paddingHorizontal: 12,
   },
@@ -378,18 +387,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 12,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 244, 220, 0.5)',
-    backgroundColor: 'rgba(255, 239, 221, 0.44)',
-    shadowColor: 'rgba(26, 10, 2, 0.92)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 212, 100, 0.95)',
+    backgroundColor: 'rgba(255, 180, 50, 0.85)',
+    shadowColor: '#ffaa00',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 4,
   },
   registerBtn: {
-    borderColor: 'rgba(255, 218, 145, 0.62)',
-    backgroundColor: 'rgba(255, 204, 122, 0.5)',
+    // Colors removed to match `smallActionBtn` exactly as requested.
   },
   secondaryBtnText: {
     fontFamily: 'CinzelDecorative_700Bold',
@@ -420,9 +428,9 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   accountHintText: {
-    color: 'rgba(255, 241, 222, 0.9)',
-    fontSize: 12,
-    lineHeight: 17,
+    color: 'rgba(255, 241, 222, 0.65)',
+    fontSize: 11,
+    lineHeight: 16,
     textAlign: 'center',
     paddingHorizontal: 18,
   },

@@ -1,14 +1,13 @@
-import { StyleSheet } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { StyleSheet, View } from 'react-native'
 import type { ReactNode } from 'react'
 import { Background } from '@/components/layout/Background'
 
 export function GameLayout({ children }: { children: ReactNode }) {
   return (
     <Background>
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.safe}>
         {children}
-      </SafeAreaView>
+      </View>
     </Background>
   )
 }

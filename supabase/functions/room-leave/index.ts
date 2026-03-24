@@ -31,11 +31,13 @@ Deno.serve(async (req) => {
     .eq('code', body.data.code)
     .maybeSingle()
   if (!room) return errorResponse('ROOM_NOT_FOUND', 'Room not found', 404)
+  const roomStatus = String(room.status ?? '').trim().toLowerCase()
+  const leavingHost = room.host_id === user.id
 
   // Mark player inactive
   await supabase
     .from('room_players')
-    .update({ is_active: false })
+    .update({ is_active: false, is_ready: false })
     .eq('room_id', room.id)
     .eq('player_id', user.id)
 
@@ -48,20 +50,47 @@ Deno.serve(async (req) => {
 
   const remainingCount = remaining ?? 0
 
-  // End game if no one left or if mid-game with fewer than 3
-  if (
-    remainingCount === 0 ||
-    (room.status === 'playing' && remainingCount < 3)
-  ) {
+  if (remainingCount === 0) {
     await supabase
       .from('rooms')
-      .update({ status: 'ended', ended_at: new Date().toISOString() })
+      .update({
+        status: 'ended',
+        ended_by: user.id,
+        ended_at: new Date().toISOString(),
+        ended_reason: 'all_players_left',
+      })
       .eq('id', room.id)
     return okResponse({ ok: true })
   }
 
-  // Transfer host if leaving player was host
-  if (room.host_id === user.id && remainingCount > 0) {
+  if (roomStatus === 'lobby' && leavingHost) {
+    await supabase
+      .from('rooms')
+      .update({
+        status: 'ended',
+        ended_by: user.id,
+        ended_at: new Date().toISOString(),
+        ended_reason: 'host_cancelled_lobby',
+      })
+      .eq('id', room.id)
+    return okResponse({ ok: true })
+  }
+
+  if (roomStatus === 'playing' && remainingCount < 3) {
+    await supabase
+      .from('rooms')
+      .update({
+        status: 'ended',
+        ended_by: user.id,
+        ended_at: new Date().toISOString(),
+        ended_reason: 'too_few_players_in_game',
+      })
+      .eq('id', room.id)
+    return okResponse({ ok: true })
+  }
+
+  // Transfer host if leaving player was host after the lobby is already over
+  if (leavingHost && remainingCount > 0) {
     const { data: nextHost } = await supabase
       .from('room_players')
       .select('player_id')

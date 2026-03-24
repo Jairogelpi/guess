@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import {
   View,
   Text,
-  FlatList,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -12,18 +10,20 @@ import {
   ActivityIndicator,
   StyleSheet,
   Alert,
+  Modal,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import * as Linking from 'expo-linking'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useRoom } from '@/hooks/useRoom'
 import { useGameActions } from '@/hooks/useGameActions'
 import { useConfirmRoomExit } from '@/hooks/useConfirmRoomExit'
 import { useUIStore } from '@/stores/useUIStore'
 import {
+  areAllGuestsReady,
+  getBlockingLobbyPlayers,
   getLobbyHydrationPhase,
   getLobbyStartState,
   getPlayersNeededToStart,
@@ -32,23 +32,22 @@ import { Button } from '@/components/ui/Button'
 import { Background } from '@/components/layout/Background'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { PlayerList } from '@/components/game/PlayerList'
-import { colors } from '@/constants/theme'
+import { ChatPanel } from '@/components/game/ChatPanel'
+import { Avatar } from '@/components/ui/Avatar'
+import { colors, fonts, radii } from '@/constants/theme'
 import { buildLeaveRoomConfirmCopy } from '@/lib/leaveRoomConfirm'
-import type { LobbyMessage } from '@/types/game'
+import type { RoomPlayer } from '@/types/game'
 
 export default function LobbyScreen() {
   const { code } = useLocalSearchParams<{ code: string }>()
   const { t } = useTranslation()
   const router = useRouter()
   const showToast = useUIStore((s) => s.showToast)
-  const { room, players, hydratingPlayers, roomNotFound, roomLoadFailed } = useRoom(code ?? null)
+  const { room, players, hydratingPlayers, roomNotFound, roomLoadFailed, refresh } = useRoom(code ?? null)
   const { leaveRoom, gameAction } = useGameActions()
   const { userId } = useAuth()
-
-  const [messages, setMessages] = useState<LobbyMessage[]>([])
-  const [chatText, setChatText] = useState('')
   const [starting, setStarting] = useState(false)
-  const flatRef = useRef<FlatList>(null)
+  const [selectedPlayer, setSelectedPlayer] = useState<RoomPlayer | null>(null)
 
   const hydrationPhase = getLobbyHydrationPhase({
     roomResolved: room !== null,
@@ -59,11 +58,14 @@ export default function LobbyScreen() {
 
   const isHost = !!(room?.host_id && userId && room.host_id === userId)
   const activeCount = players.length
-  const startState = getLobbyStartState({ isHost, activeCount, hydratingPlayers })
+  const allGuestsReady = areAllGuestsReady(players)
+  const blockingPlayers = getBlockingLobbyPlayers(players)
+  const currentPlayer = players.find((player) => player.player_id === userId) ?? null
+  const startState = getLobbyStartState({ isHost, activeCount, hydratingPlayers, allGuestsReady })
   const playersNeeded = getPlayersNeededToStart(activeCount)
-  const canStart = isHost && !hydratingPlayers && activeCount >= 3
+  const canStart = isHost && !hydratingPlayers && activeCount >= 3 && allGuestsReady
 
-  useConfirmRoomExit({
+  const { allowNextNavigation } = useConfirmRoomExit({
     enabled: !!code,
     t,
     onConfirmExit: async () => {
@@ -75,77 +77,39 @@ export default function LobbyScreen() {
 
   useEffect(() => {
     if (room?.status === 'playing') {
+      allowNextNavigation()
       router.replace(`/room/${code}/game`)
-    }
-  }, [room?.status, router, code])
-
-  useEffect(() => {
-    if (!room?.id) {
-      setMessages([])
       return
     }
 
-    let cancelled = false
-
-    setMessages([])
-
-    supabase
-      .from('lobby_messages')
-      .select('*')
-      .eq('room_id', room.id)
-      .order('created_at', { ascending: true })
-      .then(({ data }) => {
-        if (cancelled || !data) return
-        setMessages(data as LobbyMessage[])
-      })
-
-    const sub = supabase
-      .channel(`lobby-chat:${room.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'lobby_messages',
-          filter: `room_id=eq.${room.id}`,
-        },
-        (payload) => {
-          setMessages((prev) => [...prev, payload.new as LobbyMessage])
-          setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50)
-        },
-      )
-      .subscribe()
-
-    return () => {
-      cancelled = true
-      supabase.removeChannel(sub)
+    if (room?.status === 'ended') {
+      allowNextNavigation()
+      router.replace(`/room/${code}/ended`)
     }
-  }, [room?.id])
-
-  async function sendMessage() {
-    if (!chatText.trim() || !room?.id || !userId) return
-    if (room.status !== 'lobby') return
-
-    const player = players.find((p) => p.player_id === userId)
-    if (!player) return
-
-    await supabase.from('lobby_messages').insert({
-      room_id: room.id,
-      player_id: player.player_id,
-      sender_name: player.display_name,
-      text: chatText.trim(),
-    })
-    setChatText('')
-  }
+  }, [allowNextNavigation, code, room?.status, router])
 
   async function handleStart() {
     if (!code || !canStart) return
 
     setStarting(true)
     try {
-      await gameAction(code, 'start_game')
+      const ok = await gameAction(code, 'start_game')
+      if (ok) {
+        allowNextNavigation()
+        router.replace(`/room/${code}/game`)
+      } else {
+        await refresh()
+      }
     } finally {
       setStarting(false)
+    }
+  }
+
+  async function handleReadyToggle(nextReady: boolean) {
+    if (!code || !currentPlayer || currentPlayer.is_host) return
+    const ok = await gameAction(code, 'set_ready', { ready: nextReady })
+    if (ok) {
+      await refresh()
     }
   }
 
@@ -186,13 +150,6 @@ export default function LobbyScreen() {
       url: deepLink,
     })
   }
-
-  const renderChatItem = useCallback(({ item }: { item: LobbyMessage }) => (
-    <View style={styles.chatMessage}>
-      <Text style={styles.chatSender}>{item.sender_name}</Text>
-      <Text style={styles.chatText}>{item.text}</Text>
-    </View>
-  ), [])
 
   if (hydrationPhase === 'room-unresolved') {
     return (
@@ -237,9 +194,15 @@ export default function LobbyScreen() {
       ? t('lobby.preparation')
       : startState === 'host_waiting_for_more_players'
         ? t('lobby.hostWaiting', { count: playersNeeded })
-        : startState === 'host_ready'
-          ? t('lobby.hostReady')
-          : t('lobby.guestWaiting')
+        : startState === 'host_waiting_for_ready_players'
+          ? t('lobby.hostWaitingReady', {
+            names: blockingPlayers.map((player) => player.display_name).join(', '),
+          })
+          : startState === 'host_ready'
+            ? t('lobby.hostReady')
+            : currentPlayer?.is_ready
+              ? t('lobby.readySubmitted')
+              : t('lobby.guestWaiting')
 
   return (
     <Background>
@@ -264,13 +227,12 @@ export default function LobbyScreen() {
                 <Text style={styles.codeText}>{code}</Text>
                 <Text style={styles.copyHint}>{t('lobby.tapToShare')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
+              <Button
                 onPress={handleShare}
-                activeOpacity={0.82}
-                style={styles.shareButton}
+                variant="secondary"
               >
-                <Text style={styles.shareButtonText}>{t('lobby.shareInviteLink')}</Text>
-              </TouchableOpacity>
+                {t('lobby.shareInviteLink')}
+              </Button>
               <View style={styles.rulePill}>
                 <Text style={styles.ruleText}>{t('lobby.roomRules')}</Text>
               </View>
@@ -287,7 +249,7 @@ export default function LobbyScreen() {
                   <Text style={styles.rosterPrepText}>{t('lobby.preparation')}</Text>
                 </View>
               ) : players.length > 0 ? (
-                <PlayerList players={players} />
+                <PlayerList players={players} onPlayerPress={setSelectedPlayer} />
               ) : (
                 <View style={styles.rosterPrep}>
                   <Text style={styles.rosterPrepText}>{t('lobby.preparation')}</Text>
@@ -304,48 +266,50 @@ export default function LobbyScreen() {
               ) : isHost ? (
                 <>
                   <Text style={styles.helperText}>{statusCopy}</Text>
-                  <Button onPress={handleStart} loading={starting} disabled={!canStart}>
+                  <Button
+                    onPress={handleStart}
+                    loading={starting}
+                    disabled={!canStart}
+                    testID="lobby-start-game-button"
+                  >
                     {t('lobby.startGame')}
                   </Button>
                   {!canStart && (
-                    <Text style={styles.hintText}>{t('errors.MIN_PLAYERS_REQUIRED')}</Text>
+                    <Text style={styles.hintText}>
+                      {activeCount < 3 ? t('errors.MIN_PLAYERS_REQUIRED') : t('errors.PLAYERS_NOT_READY')}
+                    </Text>
                   )}
                 </>
               ) : (
                 <>
                   <Text style={styles.waitingText}>{statusCopy}</Text>
-                  <Text style={styles.helperText}>{t('lobby.guestHint')}</Text>
+                  {!currentPlayer?.is_ready ? (
+                    <>
+                      <Text style={styles.helperText}>{t('lobby.guestReadyHint')}</Text>
+                      <Button onPress={() => void handleReadyToggle(true)} variant="secondary" testID="lobby-ready-button">
+                        {t('lobby.readyUp')}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.helperText}>{t('lobby.guestHint')}</Text>
+                      <Button onPress={() => void handleReadyToggle(false)} variant="ghost" testID="lobby-unready-button">
+                        {t('lobby.undoReady')}
+                      </Button>
+                    </>
+                  )}
                 </>
               )}
             </View>
 
-            <View style={styles.chatCard}>
-              <Text style={styles.sectionLabel}>{t('lobby.chat')}</Text>
-              <FlatList
-                ref={flatRef}
-                data={messages}
-                keyExtractor={(m) => m.id}
-                style={styles.chatList}
-                renderItem={renderChatItem}
+            {room?.id && (
+              <ChatPanel
+                roomId={room.id}
+                roomStatus={room.status}
+                currentPlayer={currentPlayer}
+                players={players}
               />
-              {room?.status === 'lobby' && (
-                <View style={styles.chatInput}>
-                  <TextInput
-                    style={styles.chatField}
-                    placeholder={t('lobby.messagePlaceholder')}
-                    placeholderTextColor={colors.textMuted}
-                    value={chatText}
-                    onChangeText={setChatText}
-                    onSubmitEditing={sendMessage}
-                    returnKeyType="send"
-                    maxLength={200}
-                  />
-                  <TouchableOpacity onPress={sendMessage} style={styles.sendBtn} activeOpacity={0.8}>
-                    <Text style={styles.sendIcon}>→</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
+            )}
           </ScrollView>
 
           <View style={styles.footer}>
@@ -355,6 +319,45 @@ export default function LobbyScreen() {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <Modal
+        visible={!!selectedPlayer}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedPlayer(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedPlayer(null)}
+        >
+          <View style={styles.profileModal}>
+            <View style={styles.modalContent}>
+              <View style={styles.largeAvatarGlow}>
+                <Avatar
+                  uri={selectedPlayer?.profiles?.avatar_url}
+                  name={selectedPlayer?.display_name}
+                  size={180}
+                  borderColor={colors.gold}
+                />
+              </View>
+              <Text style={styles.profileName}>{selectedPlayer?.display_name}</Text>
+              {selectedPlayer?.is_host && (
+                <View style={styles.modalHostPill}>
+                  <Text style={styles.modalHostBadge}>HOST</Text>
+                </View>
+              )}
+              <Button
+                onPress={() => setSelectedPlayer(null)}
+                variant="secondary"
+                style={{ marginTop: 24, paddingVertical: 10 }}
+              >
+                {t('common.back')}
+              </Button>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </Background>
   )
 }
@@ -374,11 +377,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+    fontFamily: fonts.title,
   },
   errorTitle: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
+    color: colors.goldLight,
+    fontSize: 22,
+    fontFamily: fonts.titleHeavy,
     textAlign: 'center',
   },
   scroll: {
@@ -388,34 +392,54 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     backgroundColor: colors.surfaceDeep,
-    borderWidth: 1.5,
-    borderColor: colors.goldBorder,
-    borderRadius: 22,
-    padding: 18,
-    gap: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(230, 184, 0, 0.4)',
+    borderRadius: radii.xl,
+    padding: 24,
+    gap: 12,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 8,
   },
   eyebrow: {
-    color: colors.textMuted,
-    fontSize: 11,
-    letterSpacing: 3,
-    fontWeight: '700',
+    color: colors.goldLight,
+    fontSize: 15,
+    letterSpacing: 6,
+    fontFamily: fonts.titleHeavy,
     textTransform: 'uppercase',
+    marginBottom: 4,
   },
   codeBlock: {
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
+    backgroundColor: 'rgba(10, 5, 0, 0.5)',
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.goldDim,
+    width: '100%',
   },
   codeText: {
     color: colors.goldLight,
-    fontSize: 36,
-    fontWeight: '900',
-    letterSpacing: 10,
+    fontSize: 54,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 16,
     textAlign: 'center',
+    textShadowColor: 'rgba(230, 184, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   copyHint: {
-    color: colors.textMuted,
-    fontSize: 11,
+    color: colors.goldDim,
+    fontSize: 12,
+    letterSpacing: 3,
+    fontFamily: fonts.title,
+    textTransform: 'uppercase',
+    marginTop: 6,
   },
   shareButton: {
     backgroundColor: colors.surfaceMid,
@@ -427,9 +451,9 @@ const styles = StyleSheet.create({
   },
   shareButtonText: {
     color: colors.goldLight,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontSize: 13,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
   rulePill: {
@@ -441,30 +465,31 @@ const styles = StyleSheet.create({
   },
   ruleText: {
     color: colors.gold,
-    fontSize: 11,
-    letterSpacing: 1.5,
-    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 2,
+    fontFamily: fonts.titleHeavy,
     textTransform: 'uppercase',
   },
   statusCopy: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    lineHeight: 20,
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontFamily: fonts.title,
+    lineHeight: 22,
     textAlign: 'center',
   },
   card: {
     backgroundColor: colors.surfaceDeep,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    borderRadius: 18,
-    padding: 16,
-    gap: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.3)',
+    borderRadius: radii.xl,
+    padding: 20,
+    gap: 12,
   },
   sectionLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-    letterSpacing: 2.5,
-    fontWeight: '700',
+    color: colors.goldLight,
+    fontSize: 13,
+    letterSpacing: 4,
+    fontFamily: fonts.titleHeavy,
     textTransform: 'uppercase',
   },
   rosterPrep: {
@@ -474,15 +499,16 @@ const styles = StyleSheet.create({
   },
   rosterPrepText: {
     color: colors.textSecondary,
-    fontSize: 13,
+    fontSize: 14,
+    fontFamily: fonts.title,
   },
   actionCard: {
     backgroundColor: colors.surfaceDeep,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    borderRadius: 18,
-    padding: 16,
-    gap: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.3)',
+    borderRadius: radii.xl,
+    padding: 20,
+    gap: 12,
   },
   actionPrep: {
     alignItems: 'center',
@@ -491,76 +517,75 @@ const styles = StyleSheet.create({
   },
   helperText: {
     color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 14,
+    fontFamily: fonts.title,
+    lineHeight: 20,
     textAlign: 'center',
   },
   hintText: {
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: 13,
+    fontFamily: fonts.title,
     textAlign: 'center',
   },
   waitingText: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontWeight: '700',
+    color: colors.goldLight,
+    fontSize: 18,
+    fontFamily: fonts.titleHeavy,
     textAlign: 'center',
-  },
-  chatCard: {
-    backgroundColor: colors.surfaceDeep,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    borderRadius: 18,
-    padding: 16,
-    gap: 10,
-    minHeight: 180,
-  },
-  chatList: {
-    minHeight: 90,
-  },
-  chatMessage: {
-    paddingVertical: 4,
-  },
-  chatSender: {
-    color: colors.gold,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  chatText: {
-    color: colors.textPrimary,
-    fontSize: 14,
-  },
-  chatInput: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  chatField: {
-    flex: 1,
-    backgroundColor: colors.surfaceMid,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    color: colors.textPrimary,
-    fontSize: 14,
-  },
-  sendBtn: {
-    backgroundColor: colors.orange,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  sendIcon: {
-    color: colors.textPrimary,
-    fontWeight: '700',
-    fontSize: 16,
   },
   footer: {
     paddingHorizontal: 16,
     paddingBottom: 20,
     paddingTop: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  profileModal: {
+    width: '100%',
+    backgroundColor: colors.surfaceDeep,
+    borderRadius: radii.xl,
+    borderWidth: 2,
+    borderColor: 'rgba(230, 184, 0, 0.45)',
+    overflow: 'hidden',
+  },
+  modalContent: {
+    paddingVertical: 42,
+    alignItems: 'center',
+    gap: 20,
+  },
+  largeAvatarGlow: {
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    elevation: 20,
+    borderRadius: 999,
+  },
+  profileName: {
+    color: colors.goldLight,
+    fontSize: 28,
+    fontFamily: fonts.titleHeavy,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  modalHostPill: {
+    borderColor: colors.gold,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(230, 184, 0, 0.08)',
+  },
+  modalHostBadge: {
+    color: colors.gold,
+    fontSize: 12,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 2.5,
   },
 })

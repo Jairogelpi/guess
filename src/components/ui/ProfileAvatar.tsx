@@ -11,6 +11,25 @@ interface ProfileAvatarProps {
 export function ProfileAvatar({ avatarUrl, fallback, size }: ProfileAvatarProps) {
   const frame = getProfileAvatarFrame(size)
 
+  let offsetY = 0.5
+
+  if (avatarUrl) {
+    try {
+      const urlObj = new URL(avatarUrl)
+      const offsetParam = urlObj.searchParams.get('offsetY')
+      if (offsetParam && !isNaN(parseFloat(offsetParam))) {
+        offsetY = parseFloat(offsetParam)
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  const imageWidth = frame.innerSize
+  const imageHeight = frame.innerSize * 1.5
+  const maxTranslateY = frame.innerSize - imageHeight
+  const translateY = maxTranslateY * offsetY
+
   return (
     <View
       style={[
@@ -36,7 +55,14 @@ export function ProfileAvatar({ avatarUrl, fallback, size }: ProfileAvatarProps)
         {avatarUrl ? (
           <Image
             source={{ uri: avatarUrl }}
-            style={styles.image}
+            style={[
+              styles.image,
+              {
+                width: imageWidth,
+                height: imageHeight,
+                transform: [{ translateY }],
+              },
+            ]}
             resizeMode="cover"
           />
         ) : (

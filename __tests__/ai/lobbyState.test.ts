@@ -3,8 +3,8 @@ import {
   getLobbyStartState,
   getPlayersNeededToStart,
   getLobbyHydrationPhase,
-} from '@/lib/lobbyState'
-import type { RoomPlayer } from '@/types/game'
+} from '../../src/lib/lobbyState'
+import type { RoomPlayer } from '../../src/types/game'
 
 const players: RoomPlayer[] = [
   {
@@ -13,6 +13,7 @@ const players: RoomPlayer[] = [
     display_name: 'Invitado',
     is_host: false,
     is_active: true,
+    is_ready: false,
     joined_at: '2026-03-19T10:02:00Z',
     room_id: 'r1',
     score: 0,
@@ -26,6 +27,7 @@ const players: RoomPlayer[] = [
     display_name: 'Host',
     is_host: true,
     is_active: true,
+    is_ready: false,
     joined_at: '2026-03-19T10:01:00Z',
     room_id: 'r1',
     score: 0,
@@ -39,6 +41,7 @@ const players: RoomPlayer[] = [
     display_name: 'Ausente',
     is_host: false,
     is_active: false,
+    is_ready: false,
     joined_at: '2026-03-19T10:03:00Z',
     room_id: 'r1',
     score: 0,
@@ -65,33 +68,33 @@ describe('getVisibleLobbyPlayers', () => {
 
 describe('getLobbyStartState', () => {
   it('returns host-preparation when players are hydrating', () => {
-    const state = getLobbyStartState({ isHost: true, activeCount: 1, hydratingPlayers: true })
-    expect(state).toBe('host-preparation')
+    const state = getLobbyStartState({ isHost: true, activeCount: 1, hydratingPlayers: true, allGuestsReady: false })
+    expect(state).toBe('host_preparation')
   })
 
   it('returns host-waiting when host is alone (needs more players)', () => {
-    const state = getLobbyStartState({ isHost: true, activeCount: 1, hydratingPlayers: false })
-    expect(state).toBe('host-waiting')
+    const state = getLobbyStartState({ isHost: true, activeCount: 1, hydratingPlayers: false, allGuestsReady: false })
+    expect(state).toBe('host_waiting_for_more_players')
   })
 
   it('returns host-waiting when host has 2 players (needs 1 more)', () => {
-    const state = getLobbyStartState({ isHost: true, activeCount: 2, hydratingPlayers: false })
-    expect(state).toBe('host-waiting')
+    const state = getLobbyStartState({ isHost: true, activeCount: 2, hydratingPlayers: false, allGuestsReady: false })
+    expect(state).toBe('host_waiting_for_more_players')
   })
 
   it('returns host-ready when host has 3+ active players', () => {
-    const state = getLobbyStartState({ isHost: true, activeCount: 3, hydratingPlayers: false })
-    expect(state).toBe('host-ready')
+    const state = getLobbyStartState({ isHost: true, activeCount: 3, hydratingPlayers: false, allGuestsReady: true })
+    expect(state).toBe('host_ready')
   })
 
   it('returns host-ready when host has more than 3 active players', () => {
-    const state = getLobbyStartState({ isHost: true, activeCount: 5, hydratingPlayers: false })
-    expect(state).toBe('host-ready')
+    const state = getLobbyStartState({ isHost: true, activeCount: 5, hydratingPlayers: false, allGuestsReady: true })
+    expect(state).toBe('host_ready')
   })
 
   it('returns guest-waiting for non-host players', () => {
-    const state = getLobbyStartState({ isHost: false, activeCount: 3, hydratingPlayers: false })
-    expect(state).toBe('guest-waiting')
+    const state = getLobbyStartState({ isHost: false, activeCount: 3, hydratingPlayers: false, allGuestsReady: true })
+    expect(state).toBe('guest_waiting')
   })
 })
 
@@ -113,7 +116,7 @@ describe('getLobbyHydrationPhase', () => {
   })
 
   it('returns players-hydrated when room is resolved and players are loaded', () => {
-    expect(getLobbyHydrationPhase({ roomResolved: true, hydratingPlayers: false, roomNotFound: false, roomLoadFailed: false })).toBe('players-hydrated')
+    expect(getLobbyHydrationPhase({ roomResolved: true, hydratingPlayers: false, roomNotFound: false, roomLoadFailed: false })).toBe('ready')
   })
 })
 

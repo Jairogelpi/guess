@@ -60,13 +60,19 @@ export default function HomeScreen() {
               onChangeText={setDisplayName}
               maxLength={30}
               autoCapitalize="words"
+              testID="home-display-name-input"
             />
             <Text style={styles.fieldHint}>{t('home.nameHint')}</Text>
 
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>{t('home.createRoom')}</Text>
               <Text style={styles.sectionHint}>{t('home.createHint')}</Text>
-              <Button onPress={handleCreate} loading={creating} disabled={!displayName.trim()}>
+              <Button
+                onPress={handleCreate}
+                loading={creating}
+                disabled={!displayName.trim()}
+                testID="home-create-room-button"
+              >
                 {t('home.createRoom')}
               </Button>
             </View>
@@ -86,6 +92,7 @@ export default function HomeScreen() {
                 placeholder={t('home.codePlaceholder')}
                 maxLength={6}
                 autoCapitalize="characters"
+                testID="home-join-code-input"
                 style={styles.codeInput}
               />
               <Button
@@ -93,6 +100,7 @@ export default function HomeScreen() {
                 loading={joining}
                 disabled={!displayName.trim() || joinCode.trim().length !== 6}
                 variant="secondary"
+                testID="home-join-room-button"
               >
                 {t('home.joinRoom')}
               </Button>

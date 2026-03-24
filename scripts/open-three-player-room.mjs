@@ -1,5 +1,4 @@
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
 import { chromium } from 'playwright'
 
@@ -7,28 +6,18 @@ const baseUrl = process.argv[2] ?? 'http://localhost:8081'
 const hostName = process.argv[3] ?? 'Host'
 const player2Name = process.argv[4] ?? 'Player 2'
 const player3Name = process.argv[5] ?? 'Player 3'
-
-function makeProfileDir(name) {
-  const safe = name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-  return path.join(os.tmpdir(), `dixit-3p-${safe}`)
-}
+const exitOnSuccess = process.env.ROOM_OPEN_EXIT_ON_SUCCESS === '1'
 
 function debugArtifactPath(name, suffix) {
   const safe = name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
   return path.join(process.cwd(), '.tmp-room-open-debug', `${safe}-${suffix}`)
 }
 
-async function launchPlayer(name) {
-  const userDataDir = makeProfileDir(name)
-  fs.rmSync(userDataDir, { recursive: true, force: true })
-
-  const context = await chromium.launchPersistentContext(userDataDir, {
-    channel: 'msedge',
-    headless: false,
+async function launchPlayer(browser, name) {
+  const context = await browser.newContext({
     viewport: { width: 430, height: 920 },
   })
-
-  const page = context.pages()[0] ?? await context.newPage()
+  const page = await context.newPage()
   return { name, context, page }
 }
 
@@ -36,24 +25,8 @@ async function gotoHome(page) {
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
 }
 
-async function forceTabsHome(page) {
-  await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
-  await page.waitForTimeout(1200)
-}
-
-async function waitForAuthHydration(page) {
-  await page.waitForFunction(
-    () => Object.keys(window.localStorage).some((key) => {
-      if (!key.includes('auth-token')) return false
-      const value = window.localStorage.getItem(key)
-      return typeof value === 'string' && value.includes('access_token')
-    }),
-    { timeout: 30000 },
-  )
-}
-
 async function clickGuest(page) {
-  const guestButton = page.getByRole('button', { name: /Entrar como invitado|Enter as guest/i })
+  const guestButton = page.getByTestId('welcome-enter-guest-button')
   await guestButton.waitFor({ state: 'visible', timeout: 30000 })
   await clickLocator(guestButton)
 }
@@ -68,22 +41,22 @@ async function clickLocator(locator) {
   }
 }
 
-function buttonByText(page, pattern) {
-  return page.locator('button, [role="button"]').filter({ hasText: pattern }).first()
-}
-
 async function waitForRoomHome(page, playerName) {
-  const nameInput = page.locator('input').first()
-  const createButton = buttonByText(page, /Crear sala|Create room/i)
-  const joinButton = buttonByText(page, /Unirse|Join/i)
+  const nameInput = page.getByTestId('home-display-name-input')
+  const createButton = page.getByTestId('home-create-room-button')
+  const joinButton = page.getByTestId('home-join-room-button')
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    await nameInput.waitFor({ state: 'visible', timeout: 30000 })
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if (await nameInput.isVisible().catch(() => false)) {
+      if (await createButton.isVisible().catch(() => false)) return
+      if (await joinButton.isVisible().catch(() => false)) return
+    }
 
-    if (await createButton.isVisible().catch(() => false)) return
-    if (await joinButton.isVisible().catch(() => false)) return
+    await page.waitForTimeout(1500)
 
-    await forceTabsHome(page)
+    if (attempt === 2 || attempt === 4) {
+      await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
+    }
   }
 
   const currentUrl = page.url()
@@ -113,16 +86,17 @@ async function waitForRoomHome(page, playerName) {
 }
 
 async function fillHome(page, displayName, joinCode = null) {
-  const inputs = page.locator('input')
-  await inputs.nth(0).fill(displayName)
+  const nameInput = page.getByTestId('home-display-name-input')
+  await nameInput.fill(displayName)
   if (joinCode) {
-    await inputs.nth(1).fill(joinCode)
+    const joinCodeInput = page.getByTestId('home-join-code-input')
+    await joinCodeInput.fill(joinCode)
   }
 }
 
 async function createRoom(page, displayName) {
   await fillHome(page, displayName)
-  const createButton = buttonByText(page, /Crear sala|Create room/i)
+  const createButton = page.getByTestId('home-create-room-button')
   await createButton.waitFor({ state: 'attached', timeout: 30000 })
   await createButton.scrollIntoViewIfNeeded()
   await createButton.waitFor({ state: 'visible', timeout: 30000 })
@@ -137,13 +111,27 @@ async function createRoom(page, displayName) {
 
 async function joinRoom(page, displayName, code) {
   await fillHome(page, displayName, code)
-  const joinButton = buttonByText(page, /Unirse|Join/i)
+  const joinButton = page.getByTestId('home-join-room-button')
   await joinButton.waitFor({ state: 'attached', timeout: 30000 })
   await joinButton.scrollIntoViewIfNeeded()
   await joinButton.waitFor({ state: 'visible', timeout: 30000 })
   await clickLocator(joinButton)
   await page.waitForURL(new RegExp(`/room/${code}/lobby`), { timeout: 30000 })
   await ensureLobbyReady(page, code)
+}
+
+async function markReady(page) {
+  const readyButton = page.getByTestId('lobby-ready-button')
+  await readyButton.waitFor({ state: 'visible', timeout: 30000 })
+  await readyButton.scrollIntoViewIfNeeded()
+  await clickLocator(readyButton)
+  await page.waitForFunction(
+    () => {
+      const ready = document.querySelector('[data-testid="lobby-unready-button"]')
+      return !!ready
+    },
+    { timeout: 30000 },
+  )
 }
 
 async function waitForEnabled(page, locator, timeoutMs = 30000) {
@@ -182,10 +170,31 @@ async function ensureLobbyReady(page, code) {
   throw new Error(`Lobby did not become ready for room ${code}`)
 }
 
+async function waitForGame(page, code, playerName) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await page.waitForURL(new RegExp(`/room/${code}/game`), { timeout: 12000 })
+      return
+    } catch {
+      await page.reload({ waitUntil: 'domcontentloaded' })
+      await page.waitForTimeout(1500)
+    }
+  }
+
+  const currentUrl = page.url()
+  await page.screenshot({ path: debugArtifactPath(playerName, 'game-navigation-failure.png'), fullPage: true })
+  throw new Error(`Player ${playerName} did not reach /game. Current URL: ${currentUrl}`)
+}
+
 async function main() {
-  const host = await launchPlayer(hostName)
-  const player2 = await launchPlayer(player2Name)
-  const player3 = await launchPlayer(player3Name)
+  const browser = await chromium.launch({
+    channel: 'msedge',
+    headless: false,
+  })
+
+  const host = await launchPlayer(browser, hostName)
+  const player2 = await launchPlayer(browser, player2Name)
+  const player3 = await launchPlayer(browser, player3Name)
 
   const players = [host, player2, player3]
 
@@ -193,27 +202,29 @@ async function main() {
     for (const player of players) {
       await gotoHome(player.page)
       await clickGuest(player.page)
-      await waitForAuthHydration(player.page)
-      await forceTabsHome(player.page)
       await waitForRoomHome(player.page, player.name)
     }
 
     const code = await createRoom(host.page, host.name)
     await joinRoom(player2.page, player2.name, code)
     await joinRoom(player3.page, player3.name, code)
+    await markReady(player2.page)
+    await markReady(player3.page)
 
-    const startButton = buttonByText(host.page, /Empezar partida|Start game/i)
+    const startButton = host.page.getByTestId('lobby-start-game-button')
     await startButton.waitFor({ state: 'visible', timeout: 30000 })
     await waitForEnabled(host.page, startButton, 30000)
     await clickLocator(startButton)
 
-    await Promise.all(
-      players.map((player) =>
-        player.page.waitForURL(new RegExp(`/room/${code}/game`), { timeout: 30000 }),
-      ),
-    )
+    await Promise.all(players.map((player) => waitForGame(player.page, code, player.name)))
 
     console.log(`3 players opened and game started: ${code}`)
+    if (exitOnSuccess) {
+      await Promise.all(players.map((player) => player.context.close().catch(() => undefined)))
+      await browser.close().catch(() => undefined)
+      return
+    }
+
     console.log('Keep the windows open. Stop with Ctrl+C.')
 
     process.on('SIGINT', async () => {
@@ -226,6 +237,7 @@ async function main() {
     console.error('Failed to open 3-player room flow')
     console.error(error)
     await Promise.all(players.map((player) => player.context.close().catch(() => undefined)))
+    await browser.close().catch(() => undefined)
     process.exit(1)
   }
 }

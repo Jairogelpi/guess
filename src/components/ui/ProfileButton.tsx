@@ -28,7 +28,7 @@ export function ProfileButton({
         <ProfileAvatar avatarUrl={avatarUrl ?? undefined} fallback={avatarFallback ?? ''} size={32} />
       ) : (
         <View style={styles.profileIconShell}>
-          <MaterialCommunityIcons name="account-circle-outline" size={22} color={colors.goldLight} />
+          <MaterialCommunityIcons name="cards-playing-outline" size={24} color={colors.goldLight} />
         </View>
       )}
     </Pressable>

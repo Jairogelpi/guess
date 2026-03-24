@@ -114,7 +114,7 @@ export function createInteractiveCardTiltController({
         return cardTiltMath.getNeutralTiltState()
       }
 
-      if (cardTiltMath.shouldReleaseToScroll({ dx, dy })) {
+      if (!profile.preventScrollRelease && cardTiltMath.shouldReleaseToScroll({ dx, dy })) {
         engaged = false
         releaseRegion(regionKey, ownerId)
         lastState = cardTiltMath.getNeutralTiltState()
@@ -125,6 +125,7 @@ export function createInteractiveCardTiltController({
         profile,
         layout,
         drag: { dx, dy },
+        pointer: { x, y },
       })
 
       lastState = cardTiltMath.blendCardTiltState(lastState, targetState, 0.75)

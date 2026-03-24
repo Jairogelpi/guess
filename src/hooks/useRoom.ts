@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { getVisibleLobbyPlayers } from '@/lib/lobbyState'
 import type { Room, RoomPlayer } from '@/types/game'
@@ -10,16 +9,17 @@ export interface UseRoomResult {
   hydratingPlayers: boolean
   roomNotFound: boolean
   roomLoadFailed: boolean
+  refresh: () => Promise<void>
 }
 
 export function useRoom(code: string | null): UseRoomResult {
-  const router = useRouter()
   const [room, setRoom] = useState<Room | null>(null)
   const [players, setPlayers] = useState<RoomPlayer[]>([])
   const [hydratingPlayers, setHydratingPlayers] = useState(true)
   const [roomNotFound, setRoomNotFound] = useState(false)
   const [roomLoadFailed, setRoomLoadFailed] = useState(false)
   const roomIdRef = useRef<string | null>(null)
+  const refreshRef = useRef<() => Promise<void>>(async () => {})
 
   useEffect(() => {
     roomIdRef.current = room?.id ?? null
@@ -27,6 +27,7 @@ export function useRoom(code: string | null): UseRoomResult {
 
   useEffect(() => {
     let cancelled = false
+    let pollTimer: ReturnType<typeof setInterval> | null = null
 
     setRoom(null)
     setPlayers([])
@@ -45,7 +46,12 @@ export function useRoom(code: string | null): UseRoomResult {
     const loadPlayers = async (roomId: string) => {
       const { data, error } = await supabase
         .from('room_players')
-        .select('*')
+        .select(`
+          *,
+          profiles (
+            avatar_url
+          )
+        `)
         .eq('room_id', roomId)
 
       if (cancelled) return
@@ -97,19 +103,11 @@ export function useRoom(code: string | null): UseRoomResult {
       setRoom(resolved)
       roomIdRef.current = resolved.id
 
-      if (resolved.status === 'playing') {
-        setHydratingPlayers(false)
-        router.replace(`/room/${code}/game`)
-        return
-      }
-
-      if (resolved.status === 'ended') {
-        setHydratingPlayers(false)
-        router.replace(`/room/${code}/ended`)
-        return
-      }
-
       await loadPlayers(resolved.id)
+    }
+
+    refreshRef.current = async () => {
+      await loadRoom()
     }
 
     const roomSub = supabase
@@ -121,12 +119,6 @@ export function useRoom(code: string | null): UseRoomResult {
           const updated = payload.new as Room
           setRoom(updated)
           roomIdRef.current = updated.id
-
-          if (updated.status === 'playing') {
-            router.replace(`/room/${code}/game`)
-          } else if (updated.status === 'ended') {
-            router.replace(`/room/${code}/ended`)
-          }
         },
       )
       .on(
@@ -139,12 +131,23 @@ export function useRoom(code: string | null): UseRoomResult {
       .subscribe()
 
     void loadRoom()
+    pollTimer = setInterval(() => {
+      void refreshRef.current()
+    }, 2000)
 
     return () => {
       cancelled = true
+      if (pollTimer) clearInterval(pollTimer)
       supabase.removeChannel(roomSub)
     }
-  }, [code, router])
+  }, [code])
 
-  return { room, players, hydratingPlayers, roomNotFound, roomLoadFailed }
+  return {
+    room,
+    players,
+    hydratingPlayers,
+    roomNotFound,
+    roomLoadFailed,
+    refresh: () => refreshRef.current(),
+  }
 }

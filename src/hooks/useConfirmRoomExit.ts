@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Alert, Platform } from 'react-native'
 import { useNavigation } from 'expo-router'
 import { buildLeaveRoomConfirmCopy } from '@/lib/leaveRoomConfirm'
@@ -15,6 +15,10 @@ export function useConfirmRoomExit({
   onConfirmExit,
 }: UseConfirmRoomExitOptions) {
   const navigation = useNavigation()
+  const bypassNextRef = useRef(false)
+  const allowNextNavigation = useCallback(() => {
+    bypassNextRef.current = true
+  }, [])
 
   useEffect(() => {
     if (!enabled) return
@@ -28,6 +32,7 @@ export function useConfirmRoomExit({
           text: copy.confirmLabel,
           style: 'destructive',
           onPress: () => {
+            bypassNextRef.current = true
             void Promise.resolve(onConfirmExit())
           },
         },
@@ -35,6 +40,10 @@ export function useConfirmRoomExit({
     }
 
     const unsubscribeBeforeRemove = navigation.addListener('beforeRemove', (event) => {
+      if (bypassNextRef.current) {
+        bypassNextRef.current = false
+        return
+      }
       event.preventDefault()
       showConfirm()
     })
@@ -56,4 +65,6 @@ export function useConfirmRoomExit({
       unsubscribeWeb()
     }
   }, [enabled, navigation, onConfirmExit, t])
+
+  return { allowNextNavigation }
 }

@@ -5,6 +5,7 @@ export const MIN_PLAYERS_TO_START = 3
 export type LobbyStartState =
   | 'host_preparation'
   | 'host_waiting_for_more_players'
+  | 'host_waiting_for_ready_players'
   | 'host_ready'
   | 'guest_waiting'
 
@@ -19,6 +20,7 @@ interface GetLobbyStartStateOptions {
   isHost: boolean
   activeCount: number
   hydratingPlayers: boolean
+  allGuestsReady: boolean
 }
 
 interface GetLobbyHydrationPhaseOptions {
@@ -44,10 +46,23 @@ export function getVisibleLobbyPlayers(players: RoomPlayer[]): RoomPlayer[] {
     })
 }
 
+export function getBlockingLobbyPlayers(players: RoomPlayer[]): RoomPlayer[] {
+  return getVisibleLobbyPlayers(players).filter((player) => !player.is_host && !player.is_ready)
+}
+
+export function getReadyGuestCount(players: RoomPlayer[]): number {
+  return getVisibleLobbyPlayers(players).filter((player) => !player.is_host && player.is_ready).length
+}
+
+export function areAllGuestsReady(players: RoomPlayer[]): boolean {
+  return getBlockingLobbyPlayers(players).length === 0
+}
+
 export function getLobbyStartState({
   isHost,
   activeCount,
   hydratingPlayers,
+  allGuestsReady,
 }: GetLobbyStartStateOptions): LobbyStartState {
   if (!isHost) {
     return 'guest_waiting'
@@ -59,6 +74,10 @@ export function getLobbyStartState({
 
   if (getPlayersNeededToStart(activeCount) > 0) {
     return 'host_waiting_for_more_players'
+  }
+
+  if (!allGuestsReady) {
+    return 'host_waiting_for_ready_players'
   }
 
   return 'host_ready'

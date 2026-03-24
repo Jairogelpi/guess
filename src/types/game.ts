@@ -160,11 +160,13 @@ export type Database = {
           intuition_tokens: number
           is_active: boolean
           is_host: boolean
+          is_ready: boolean
           joined_at: string
           player_id: string
           room_id: string
           score: number
           wildcards_remaining: number
+          generation_tokens: number
         }
         Insert: {
           challenge_leader_used?: boolean
@@ -173,11 +175,13 @@ export type Database = {
           intuition_tokens?: number
           is_active?: boolean
           is_host?: boolean
+          is_ready?: boolean
           joined_at?: string
           player_id: string
           room_id: string
           score?: number
           wildcards_remaining?: number
+          generation_tokens?: number
         }
         Update: {
           challenge_leader_used?: boolean
@@ -186,11 +190,13 @@ export type Database = {
           intuition_tokens?: number
           is_active?: boolean
           is_host?: boolean
+          is_ready?: boolean
           joined_at?: string
           player_id?: string
           room_id?: string
           score?: number
           wildcards_remaining?: number
+          generation_tokens?: number
         }
         Relationships: [
           {
@@ -213,32 +219,41 @@ export type Database = {
         Row: {
           code: string
           created_at: string
+          ended_by: string | null
+          ended_reason: string | null
           ended_at: string | null
           host_id: string
           id: string
           max_rounds: number
           narrator_order: string[]
           status: string
+          phase_duration_seconds: number
         }
         Insert: {
           code: string
           created_at?: string
+          ended_by?: string | null
+          ended_reason?: string | null
           ended_at?: string | null
           host_id: string
           id?: string
           max_rounds?: number
           narrator_order?: string[]
           status?: string
+          phase_duration_seconds?: number
         }
         Update: {
           code?: string
           created_at?: string
+          ended_by?: string | null
+          ended_reason?: string | null
           ended_at?: string | null
           host_id?: string
           id?: string
           max_rounds?: number
           narrator_order?: string[]
           status?: string
+          phase_duration_seconds?: number
         }
         Relationships: [
           {
@@ -325,6 +340,7 @@ export type Database = {
           room_id: string
           round_number: number
           status: string
+          phase_started_at: string
         }
         Insert: {
           clue?: string | null
@@ -335,6 +351,7 @@ export type Database = {
           room_id: string
           round_number: number
           status?: string
+          phase_started_at?: string
         }
         Update: {
           clue?: string | null
@@ -345,6 +362,7 @@ export type Database = {
           room_id?: string
           round_number?: number
           status?: string
+          phase_started_at?: string
         }
         Relationships: [
           {
@@ -485,7 +503,7 @@ export type Database = {
 // Convenience row types
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type Room = Database['public']['Tables']['rooms']['Row']
-export type RoomPlayer = Database['public']['Tables']['room_players']['Row']
+export type RoomPlayer = Database['public']['Tables']['room_players']['Row'] & { profiles?: { avatar_url: string | null } | null }
 export type Round = Database['public']['Tables']['rounds']['Row']
 export type Card = Database['public']['Tables']['cards']['Row']
 export type Vote = Database['public']['Tables']['votes']['Row']

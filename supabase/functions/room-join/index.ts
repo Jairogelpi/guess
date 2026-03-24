@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     // Rejoin
     await supabase
       .from('room_players')
-      .update({ is_active: true, display_name: body.data.displayName })
+      .update({ is_active: true, display_name: body.data.displayName, is_ready: false })
       .eq('id', existing.id)
     return okResponse({ ok: true })
   }
@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
     player_id: user.id,
     display_name: body.data.displayName,
     is_host: false,
+    is_ready: false,
   })
   if (insertError) return errorResponse('DB_ERROR', insertError.message, 500)
 

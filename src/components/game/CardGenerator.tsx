@@ -19,6 +19,7 @@ interface CardGeneratorProps {
   onSelect: (imageUrl: string, prompt: string) => void
   wildcardsRemaining?: number
   onSelectGalleryCard?: (card: GalleryCard) => void
+  initialPrompt?: string
 }
 
 export function CardGenerator({
@@ -28,9 +29,10 @@ export function CardGenerator({
   onSelect,
   wildcardsRemaining,
   onSelectGalleryCard,
+  initialPrompt,
 }: CardGeneratorProps) {
   const { t } = useTranslation()
-  const [prompt, setPrompt] = useState('')
+  const [prompt, setPrompt] = useState(initialPrompt || '')
   const [showGalleryPicker, setShowGalleryPicker] = useState(false)
   const { loading, imageUrl, brief, error, generate, reset } = useImageGen()
   const { loading: suggesting, suggest } = usePromptSuggest()
@@ -46,8 +48,8 @@ export function CardGenerator({
     })
   }
 
-  async function handleSuggest() {
-    const suggested = await suggest()
+  async function handleSuggest(basePrompt?: string) {
+    const suggested = await suggest(basePrompt)
     if (suggested) setPrompt(suggested)
   }
 
@@ -91,17 +93,33 @@ export function CardGenerator({
 
           <Text style={styles.promptHint}>{t('game.promptHint')}</Text>
 
-          <TouchableOpacity
-            onPress={handleSuggest}
-            disabled={suggesting}
-            style={styles.suggestBtn}
-            activeOpacity={0.75}
-          >
-            <Text style={styles.suggestIcon}>✦</Text>
-            <Text style={styles.suggestText}>
-              {suggesting ? t('game.generatingIdea') : t('game.suggestIdea')}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.suggestRow}>
+            <TouchableOpacity
+              onPress={() => handleSuggest()}
+              disabled={suggesting}
+              style={styles.suggestBtn}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.suggestIcon}>✦</Text>
+              <Text style={styles.suggestText}>
+                {suggesting && !prompt.trim() ? t('game.generatingIdea', 'Generando...') : t('game.suggestIdea')}
+              </Text>
+            </TouchableOpacity>
+
+            {prompt.trim().length > 0 && (
+              <TouchableOpacity
+                onPress={() => handleSuggest(prompt)}
+                disabled={suggesting}
+                style={[styles.suggestBtn, styles.enhanceBtn]}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.suggestIcon}>✨</Text>
+                <Text style={styles.suggestText}>
+                  {suggesting && prompt.trim() ? t('game.enhancingIdea', 'Mejorando...') : t('game.enhanceIdea', 'Mejorar a Dixit')}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {error && <Text style={styles.errorText}>{t(error)}</Text>}
 
@@ -192,6 +210,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: -4,
   },
+  suggestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    alignSelf: 'flex-start',
+    flexWrap: 'wrap',
+  },
   suggestBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -213,6 +238,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: fonts.title,
     letterSpacing: 0.5,
+  },
+  enhanceBtn: {
+    backgroundColor: 'rgba(230, 184, 0, 0.15)',
+    borderColor: 'rgba(230, 184, 0, 0.5)',
   },
   errorText: {
     color: '#f87171',

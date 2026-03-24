@@ -9,16 +9,20 @@ import { Background } from '@/components/layout/Background'
 import { ScoreBoard } from '@/components/game/ScoreBoard'
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import { colors } from '@/constants/theme'
 import { buildLeaveRoomConfirmCopy } from '@/lib/leaveRoomConfirm'
+import { buildRoomEndedCopy } from '@/lib/roomEndReason'
 import { useConfirmRoomExit } from '@/hooks/useConfirmRoomExit'
-import type { RoomPlayer } from '@/types/game'
+import type { Room, RoomPlayer } from '@/types/game'
 
 export default function EndedScreen() {
   const { code } = useLocalSearchParams<{ code: string }>()
   const { t } = useTranslation()
   const router = useRouter()
+  const { userId } = useAuth()
   const [players, setPlayers] = useState<RoomPlayer[]>([])
+  const [room, setRoom] = useState<Room | null>(null)
   const [winner, setWinner] = useState<string | null>(null)
 
   useConfirmRoomExit({
@@ -31,21 +35,29 @@ export default function EndedScreen() {
 
   useEffect(() => {
     if (!code) return
+
     supabase
       .from('rooms')
-      .select('id')
+      .select('*')
       .eq('code', code)
       .single()
-      .then(async ({ data: room }) => {
-        if (!room) return
-        const { data } = await supabase
+      .then(async ({ data: roomData }) => {
+        if (!roomData) return
+        const resolvedRoom = roomData as Room
+        setRoom(resolvedRoom)
+
+        const { data: roomPlayers } = await supabase
           .from('room_players')
           .select('*')
-          .eq('room_id', room.id)
+          .eq('room_id', resolvedRoom.id)
           .order('score', { ascending: false })
-        if (data) {
-          setPlayers(data as RoomPlayer[])
-          setWinner((data as RoomPlayer[])[0]?.display_name ?? null)
+
+        if (!roomPlayers) return
+
+        const nextPlayers = roomPlayers as RoomPlayer[]
+        setPlayers(nextPlayers)
+        if (resolvedRoom.ended_reason === 'room_finished') {
+          setWinner(nextPlayers[0]?.display_name ?? null)
         }
       })
   }, [code])
@@ -63,27 +75,32 @@ export default function EndedScreen() {
     ])
   }
 
+  const endedCopy = buildRoomEndedCopy(t, room?.ended_reason, room?.ended_by === userId)
+  const showWinner = room?.ended_reason === 'room_finished'
+  const scoreLabel = showWinner ? t('ended.finalScore') : t('ended.playerSnapshot')
+
   return (
     <Background>
       <SafeAreaView style={styles.safe}>
         <AppHeader title={t('ended.title')} />
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.hero}>
-            <Text style={styles.trophy}>🏆</Text>
+            {showWinner && <Text style={styles.trophy}>🏆</Text>}
             <DecorativeTitle variant="eyebrow" tone="gold" style={styles.eyebrow}>
-              {t('ended.gameOver')}
+              {endedCopy.title}
             </DecorativeTitle>
-            {winner && (
+            {showWinner && winner && (
               <DecorativeTitle variant="screen" tone="plain" style={styles.winner}>
                 {winner}
               </DecorativeTitle>
             )}
+            <Text style={styles.reasonBody}>{endedCopy.body}</Text>
             <View style={styles.divider} />
           </View>
 
           <View style={styles.scoreCard}>
             <DecorativeTitle variant="eyebrow" tone="muted" align="left" style={styles.scoreLabel}>
-              {t('ended.finalScore')}
+              {scoreLabel}
             </DecorativeTitle>
             <ScoreBoard players={players} />
           </View>
@@ -118,6 +135,13 @@ const styles = StyleSheet.create({
     fontSize: 36,
     lineHeight: 42,
     textAlign: 'center',
+  },
+  reasonBody: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    maxWidth: 320,
   },
   divider: {
     width: 60,

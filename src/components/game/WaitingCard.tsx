@@ -1,17 +1,18 @@
 import { View, Text, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { colors, fonts, radii } from '@/constants/theme'
+import { Avatar } from '@/components/ui/Avatar'
 
 interface Props {
   narratorName: string
   narratorAvatar?: string
-  clue?: string               // undefined = narrator hasn't submitted yet
+  clue?: string
   submittedCount: number
-  expectedCount: number       // always excludes narrator
+  expectedCount: number
   isCurrentUserNarrator: boolean
   currentUserId: string
   submittedPlayerIds: string[]
-  contextMessage: string      // already-translated message
+  contextMessage: string
 }
 
 export function WaitingCard({
@@ -34,18 +35,14 @@ export function WaitingCard({
 
   return (
     <View style={styles.card}>
-      {/* Narrator row */}
       <View style={styles.narratorRow}>
-        <View style={styles.avatarPlaceholder}>
-          <Text style={styles.avatarInitial}>{narratorName[0]?.toUpperCase() ?? '?'}</Text>
-        </View>
+        <Avatar uri={narratorAvatar} name={narratorName} size={48} />
         <View style={styles.narratorInfo}>
           <Text style={styles.narratorName}>{narratorName}</Text>
           <Text style={styles.narratorRole}>{t('game.narrator')}</Text>
         </View>
       </View>
 
-      {/* Clue (if available) */}
       {clue !== undefined && (
         <View style={styles.clueRow}>
           <Text style={styles.clueLabel}>{t('game.narratorClue')}</Text>
@@ -53,7 +50,8 @@ export function WaitingCard({
         </View>
       )}
 
-      {/* Progress dots */}
+      <View style={styles.divider} />
+
       <View style={styles.dotsRow}>
         {Array.from({ length: expectedCount }).map((_, i) => {
           const playerId = submittedPlayerIds[i]
@@ -67,113 +65,150 @@ export function WaitingCard({
                 isSubmitted && styles.dotDone,
                 isMe && styles.dotMe,
               ]}
-            />
+            >
+              <View style={styles.dotInner} />
+            </View>
           )
         })}
-        <Text style={styles.dotsLabel}>
-          {submittedCount}/{expectedCount}
-        </Text>
+        <View style={styles.countPill}>
+          <Text style={styles.dotsLabel}>
+            {submittedCount}/{expectedCount}
+          </Text>
+        </View>
       </View>
 
       <Text style={styles.contextMsg}>{contextMessage}</Text>
-      <Text style={styles.waitingText}>{waitingText}</Text>
+      <View style={styles.statusFooter}>
+        <Text style={styles.waitingText}>{waitingText}</Text>
+      </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(25, 13, 10, 0.7)',
-    borderWidth: 1,
-    borderColor: 'rgba(244, 192, 119, 0.18)',
-    borderRadius: radii.md,
-    padding: 14,
-    gap: 10,
+    backgroundColor: 'rgba(20, 12, 5, 0.9)',
+    borderWidth: 2,
+    borderColor: 'rgba(230, 184, 0, 0.25)',
+    borderRadius: radii.xl,
+    padding: 24,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 8,
   },
   narratorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 14,
   },
-  avatarPlaceholder: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(244, 192, 119, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitial: {
-    color: colors.gold,
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: fonts.title,
-  },
-  narratorInfo: { flex: 1 },
+  narratorInfo: { flex: 1, gap: 2 },
   narratorName: {
-    color: '#fff7ea',
-    fontSize: 13,
-    fontWeight: '700',
-    fontFamily: fonts.title,
+    color: colors.textPrimary,
+    fontSize: 18,
+    fontFamily: fonts.titleHeavy,
   },
   narratorRole: {
-    color: 'rgba(255, 241, 222, 0.4)',
-    fontSize: 10,
-    fontFamily: fonts.title,
-  },
-  clueRow: { gap: 3 },
-  clueLabel: {
     color: colors.gold,
-    fontSize: 8,
-    fontFamily: fonts.title,
+    fontSize: 11,
+    fontFamily: fonts.titleHeavy,
     letterSpacing: 2,
     textTransform: 'uppercase',
+    opacity: 0.7,
+  },
+  clueRow: {
+    gap: 6,
+    backgroundColor: 'rgba(25, 13, 10, 0.5)',
+    padding: 16,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 184, 0, 0.15)',
+  },
+  clueLabel: {
+    color: colors.gold,
+    fontSize: 10,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    opacity: 0.6,
   },
   clueText: {
-    color: '#fff7ea',
-    fontSize: 13,
-    fontStyle: 'italic',
-    fontFamily: fonts.title,
+    color: colors.goldLight,
+    fontSize: 16,
+    fontFamily: fonts.titleHeavy,
+    lineHeight: 22,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(230, 184, 0, 0.15)',
+    marginVertical: 4,
   },
   dotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 8,
     flexWrap: 'wrap',
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: 'rgba(244, 192, 119, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(244, 192, 119, 0.2)',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(230, 184, 0, 0.05)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 3,
+  },
+  dotInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 99,
   },
   dotDone: {
-    backgroundColor: colors.gold,
     borderColor: colors.gold,
+    backgroundColor: 'rgba(230, 184, 0, 0.15)',
   },
   dotMe: {
-    backgroundColor: '#f97316',
-    borderColor: '#f97316',
+    borderColor: colors.orange,
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+  },
+  countPill: {
+    backgroundColor: 'rgba(230, 184, 0, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 184, 0, 0.2)',
+    marginLeft: 'auto',
   },
   dotsLabel: {
-    color: 'rgba(255, 241, 222, 0.3)',
-    fontSize: 10,
-    fontFamily: fonts.title,
-    marginLeft: 4,
+    color: colors.gold,
+    fontSize: 11,
+    fontFamily: fonts.titleHeavy,
   },
   contextMsg: {
-    color: 'rgba(255, 241, 222, 0.5)',
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: fonts.title,
-  },
-  waitingText: {
-    color: 'rgba(255, 241, 222, 0.35)',
-    fontSize: 11,
+    color: 'rgba(255, 241, 222, 0.7)',
+    fontSize: 13,
+    lineHeight: 20,
     fontFamily: fonts.title,
     textAlign: 'center',
-    fontStyle: 'italic',
+  },
+  statusFooter: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(230, 184, 0, 0.1)',
+    paddingTop: 12,
+    marginTop: 4,
+  },
+  waitingText: {
+    color: colors.gold,
+    fontSize: 12,
+    fontFamily: fonts.titleHeavy,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    opacity: 0.8,
   },
 })

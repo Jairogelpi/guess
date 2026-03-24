@@ -160,7 +160,7 @@ export default function ProfileScreen() {
               <Text style={styles.anonTitle}>{t('profile.upgradeAccount')}</Text>
               <Text style={styles.anonSub}>{t('profile.upgradeExplain')}</Text>
               <Button
-                variant="secondary"
+                variant="primary"
                 onPress={() => router.push('/(auth)/login?mode=register')}
                 style={styles.anonCta}
               >
@@ -307,7 +307,8 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   anonCta: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
+    marginTop: 4,
   },
   tabBar: {
     flexDirection: 'row',

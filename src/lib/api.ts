@@ -50,6 +50,6 @@ export const api = {
       expiresAt: string
     }>('image-generate', payload),
 
-  promptSuggest: () =>
-    callFunction<{ prompt: string }>('prompt-suggest', {}),
+  promptSuggest: (payload?: { basePrompt?: string }) =>
+    callFunction<{ prompt: string }>('prompt-suggest', payload ?? {}),
 }

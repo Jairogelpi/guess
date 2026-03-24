@@ -2,20 +2,13 @@ import { useCallback, useState } from 'react'
 import { Alert } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { useTranslation } from 'react-i18next'
+import { decode } from 'base64-arraybuffer'
 import { supabase } from '@/lib/supabase'
 import { useProfile } from '@/hooks/useProfile'
 import { useUIStore } from '@/stores/useUIStore'
 import { hasGalleryCapacity } from '@/lib/galleryRules'
 import type { GalleryCard } from '@/types/game'
 
-/**
- * Manages all gallery state and operations for the GalleryScreen.
- *
- * Owns: card list, modal visibility, pending card (generate→save flow),
- * selected card (detail/edit flow), and all async operations.
- *
- * Calls `useFocusEffect` internally to refresh cards on screen focus.
- */
 export function useGallery() {
   const { t } = useTranslation()
   const showToast = useUIStore((s) => s.showToast)
@@ -26,6 +19,7 @@ export function useGallery() {
   const [showModal, setShowModal] = useState(false)
   const [pendingCard, setPendingCard] = useState<{ imageUrl: string; prompt: string } | null>(null)
   const [selectedCard, setSelectedCard] = useState<GalleryCard | null>(null)
+  const [editingCardId, setEditingCardId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [saving, setSaving] = useState(false)
   const [avatarSaving, setAvatarSaving] = useState(false)
@@ -66,43 +60,83 @@ export function useGallery() {
     if (!pendingCard || !userId) return
     setSaving(true)
     try {
-      const { count, error: countError } = await supabase
-        .from('gallery_cards')
-        .select('id', { count: 'exact', head: true })
-        .eq('player_id', userId)
+      if (!editingCardId) {
+        const { count, error: countError } = await supabase
+          .from('gallery_cards')
+          .select('id', { count: 'exact', head: true })
+          .eq('player_id', userId)
 
-      if (countError) throw countError
+        if (countError) throw countError
 
-      if (!hasGalleryCapacity(count ?? 0)) {
-        showToast(t('errors.GALLERY_LIMIT_REACHED'), 'error')
-        setSaving(false)
-        return
+        if (!hasGalleryCapacity(count ?? 0)) {
+          showToast(t('errors.GALLERY_LIMIT_REACHED'), 'error')
+          setSaving(false)
+          return
+        }
       }
 
+      // Download as Blob
       const response = await fetch(pendingCard.imageUrl)
       const blob = await response.blob()
+
+      // Convert Blob to Base64 using FileReader
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const res = reader.result as string
+          resolve(res.split(',')[1] || res) // Strip data URI prefix if present
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+
       const fileName = `${userId}/${Date.now()}.jpg`
 
+      // Upload base64 decoded to ArrayBuffer natively
       const { data: uploaded, error: uploadError } = await supabase.storage
         .from('gallery')
-        .upload(fileName, blob, { contentType: 'image/jpeg' })
+        .upload(fileName, decode(base64), { contentType: 'image/jpeg' })
+
       if (uploadError) throw uploadError
 
       const { data: { publicUrl } } = supabase.storage.from('gallery').getPublicUrl(uploaded.path)
 
-      const { error: insertError } = await supabase.from('gallery_cards').insert({
-        player_id: userId,
-        image_url: publicUrl,
-        prompt: pendingCard.prompt,
-        title: title.trim() || pendingCard.prompt.slice(0, 40),
-      })
-      if (insertError) {
-        await supabase.storage.from('gallery').remove([uploaded.path])
-        throw insertError
+      if (editingCardId) {
+        // Find old card if we want to delete later
+        const oldCard = cards.find(c => c.id === editingCardId)
+
+        const { error: updateError } = await supabase.from('gallery_cards').update({
+          image_url: publicUrl,
+          prompt: pendingCard.prompt,
+          title: title.trim() || pendingCard.prompt.slice(0, 40),
+        }).eq('id', editingCardId)
+
+        if (updateError) {
+          await supabase.storage.from('gallery').remove([uploaded.path])
+          throw updateError
+        }
+
+        // Clean up old image if possible (fire and forget)
+        if (oldCard && oldCard.image_url.includes('gallery/')) {
+          const oldPath = oldCard.image_url.split('gallery/')[1]
+          if (oldPath) supabase.storage.from('gallery').remove([oldPath]).catch(console.error)
+        }
+      } else {
+        const { error: insertError } = await supabase.from('gallery_cards').insert({
+          player_id: userId,
+          image_url: publicUrl,
+          prompt: pendingCard.prompt,
+          title: title.trim() || pendingCard.prompt.slice(0, 40),
+        })
+        if (insertError) {
+          await supabase.storage.from('gallery').remove([uploaded.path])
+          throw insertError
+        }
       }
 
       setShowModal(false)
       setPendingCard(null)
+      setEditingCardId(null)
       showToast(t('gallery.savedSuccess'), 'success')
       void fetchCards()
     } catch (error) {
@@ -119,20 +153,32 @@ export function useGallery() {
     }
   }
 
-  async function setAsAvatar() {
+  async function setAsAvatar(offsetY?: number) {
     if (!selectedCard || !userId) return
     setAvatarSaving(true)
+
+    let finalUrl = selectedCard.image_url
+    if (offsetY !== undefined) {
+      try {
+        const urlObj = new URL(finalUrl)
+        urlObj.searchParams.set('offsetY', offsetY.toString())
+        finalUrl = urlObj.toString()
+      } catch (e) {
+        console.warn('Failed to append offsetY to avatar URL:', e)
+      }
+    }
+
     const { error } = await supabase
       .from('profiles')
       .upsert({
         id: userId,
         display_name: displayName || 'Player',
-        avatar_url: selectedCard.image_url,
+        avatar_url: finalUrl,
         updated_at: new Date().toISOString(),
       })
 
     if (!error) {
-      setProfile({ displayName, avatarUrl: selectedCard.image_url })
+      setProfile({ displayName, avatarUrl: finalUrl })
       showToast(t('gallery.avatarSaved'), 'success')
       setSelectedCard(null)
     } else {
@@ -199,6 +245,7 @@ export function useGallery() {
     handleSelect,
     // card detail modal
     selectedCard, setSelectedCard,
+    editingCardId, setEditingCardId,
     editingTitle, setEditingTitle,
     titleSaving,
     avatarSaving,

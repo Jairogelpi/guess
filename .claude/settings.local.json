@@ -33,7 +33,14 @@
       "mcp__claude_ai_Supabase__apply_migration",
       "mcp__claude_ai_Supabase__deploy_edge_function",
       "mcp__claude_ai_Supabase__execute_sql",
-      "mcp__claude_ai_Supabase__get_logs"
+      "mcp__claude_ai_Supabase__get_logs",
+      "Bash(grep -v \"//\\\\|i18n\\\\|t\\(''''\\\\|t\\(\\\\`\\\\|\\\\.json\")",
+      "Bash(grep -v \"//\\\\|t\\(''''\\\\|t\\(\\\\`\")",
+      "Bash(node -e \":*)",
+      "Bash(xargs wc:*)",
+      "Bash(grep -r \"from ''''@/i18n''''\" src/ --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(grep -r \"from ''''react-i18next''''\" src/ --include=\"*.ts\" --include=\"*.tsx\")",
+      "Bash(grep -A 20 '\"\"paths\"\"' tsconfig.json)"
     ]
   }
 }

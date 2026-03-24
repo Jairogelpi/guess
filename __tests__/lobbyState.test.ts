@@ -1,7 +1,9 @@
 import type { RoomPlayer } from '../src/types/game'
 import {
+  getBlockingLobbyPlayers,
   getLobbyHydrationPhase,
   getLobbyStartState,
+  getReadyGuestCount,
   getPlayersNeededToStart,
   getVisibleLobbyPlayers,
 } from '../src/lib/lobbyState'
@@ -14,6 +16,7 @@ function createPlayer(overrides: Partial<RoomPlayer> = {}): RoomPlayer {
     intuition_tokens: 0,
     is_active: true,
     is_host: false,
+    is_ready: false,
     joined_at: '2026-03-19T10:00:00.000Z',
     player_id: 'player-1',
     room_id: 'room-1',
@@ -95,26 +98,102 @@ describe('getPlayersNeededToStart', () => {
 describe('getLobbyStartState', () => {
   test('returns host preparation while the host player list is still hydrating', () => {
     expect(
-      getLobbyStartState({ isHost: true, activeCount: 1, hydratingPlayers: true }),
+      getLobbyStartState({
+        isHost: true,
+        activeCount: 1,
+        hydratingPlayers: true,
+        allGuestsReady: false,
+      }),
     ).toBe('host_preparation')
   })
 
   test('returns host waiting for more players when the lobby is hydrated but not ready', () => {
     expect(
-      getLobbyStartState({ isHost: true, activeCount: 2, hydratingPlayers: false }),
+      getLobbyStartState({
+        isHost: true,
+        activeCount: 2,
+        hydratingPlayers: false,
+        allGuestsReady: false,
+      }),
     ).toBe('host_waiting_for_more_players')
   })
 
   test('returns host ready once the minimum active player count is reached', () => {
     expect(
-      getLobbyStartState({ isHost: true, activeCount: 3, hydratingPlayers: false }),
+      getLobbyStartState({
+        isHost: true,
+        activeCount: 3,
+        hydratingPlayers: false,
+        allGuestsReady: true,
+      }),
     ).toBe('host_ready')
+  })
+
+  test('returns host waiting for ready players when guests are still not ready', () => {
+    expect(
+      getLobbyStartState({
+        isHost: true,
+        activeCount: 3,
+        hydratingPlayers: false,
+        allGuestsReady: false,
+      }),
+    ).toBe('host_waiting_for_ready_players')
   })
 
   test('returns guest waiting for guests regardless of readiness', () => {
     expect(
-      getLobbyStartState({ isHost: false, activeCount: 4, hydratingPlayers: false }),
+      getLobbyStartState({
+        isHost: false,
+        activeCount: 4,
+        hydratingPlayers: false,
+        allGuestsReady: false,
+      }),
     ).toBe('guest_waiting')
+  })
+})
+
+describe('readiness helpers', () => {
+  test('counts only active ready guests', () => {
+    const players = [
+      createPlayer({ id: 'host', player_id: 'host', is_host: true, is_ready: false }),
+      createPlayer({ id: 'ready-guest', player_id: 'ready-guest', is_ready: true }),
+      createPlayer({ id: 'waiting-guest', player_id: 'waiting-guest', is_ready: false }),
+      createPlayer({
+        id: 'inactive-ready',
+        player_id: 'inactive-ready',
+        is_ready: true,
+        is_active: false,
+      }),
+    ]
+
+    expect(getReadyGuestCount(players)).toBe(1)
+  })
+
+  test('returns active non-host players that still block the start condition', () => {
+    const players = [
+      createPlayer({ id: 'host', player_id: 'host', display_name: 'Host', is_host: true }),
+      createPlayer({
+        id: 'guest-1',
+        player_id: 'guest-1',
+        display_name: 'Jairo 2',
+        is_ready: false,
+      }),
+      createPlayer({
+        id: 'guest-2',
+        player_id: 'guest-2',
+        display_name: 'Jairo 3',
+        is_ready: true,
+      }),
+      createPlayer({
+        id: 'inactive-guest',
+        player_id: 'inactive-guest',
+        display_name: 'Offline',
+        is_active: false,
+        is_ready: false,
+      }),
+    ]
+
+    expect(getBlockingLobbyPlayers(players).map((player) => player.display_name)).toEqual(['Jairo 2'])
   })
 })
 

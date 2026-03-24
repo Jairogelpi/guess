@@ -4,7 +4,7 @@ import {
   normalizeRoundPlayers,
   subtleBetSucceeded,
   trapCardSucceeded,
-} from './tacticalRules'
+} from './tacticalRules.ts'
 
 interface Vote {
   voter_id: string
@@ -67,10 +67,10 @@ export function calculateScores({
 
   const entries: ScoreEntry[] = []
 
-  // Narrator
+  // Narrator: -2 if failed (Competitive Rule)
   entries.push({
     player_id: narratorId,
-    points: narratorFails ? 0 : 3,
+    points: narratorFails ? -2 : 3,
     reason: narratorFails ? 'narrator_fail' : 'narrator_success',
   })
 
@@ -83,7 +83,7 @@ export function calculateScores({
     }
   }
 
-  // Received votes (non-narrator cards only, cannot vote for your own card)
+  // Received votes: +2 points for non-narrator cards (Competitive Rule)
   const cardToPlayer = new Map(
     roundPlayedCards
       .filter((c) => c.player_id !== narratorId)
@@ -92,7 +92,7 @@ export function calculateScores({
   for (const vote of roundVotes) {
     const owner = cardToPlayer.get(vote.card_id)
     if (owner && owner !== vote.voter_id) {
-      entries.push({ player_id: owner, points: 1, reason: 'received_vote' })
+      entries.push({ player_id: owner, points: 2, reason: 'received_vote' })
     }
   }
 

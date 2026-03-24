@@ -1,11 +1,11 @@
 {
   "welcome": {
     "title": "Guess The Prompt",
-    "subtitle": "Pon a prueba tu imaginacion",
+    "subtitle": "Desafía tu imaginación creando cartas únicas.",
     "enterAsGuest": "Entrar como invitado",
     "signIn": "Iniciar sesion",
-    "guestHint": "Empieza en segundos. No hace falta cuenta.",
-    "accountHint": "Usa una cuenta solo si quieres guardar tu progreso."
+    "guestHint": "¡Entra y juega en segundos! Sin necesidad de registrarte.",
+    "accountHint": "Crea una cuenta gratis para guardar tus mejores cartas en la galería."
   },
   "common": {
     "cancel": "Cancelar",
@@ -51,10 +51,15 @@
     "preparation": "Preparando sala...",
     "hostWaiting_one": "Falta {{count}} jugador para empezar",
     "hostWaiting_other": "Faltan {{count}} jugadores para empezar",
+    "hostWaitingReady": "Falta que se preparen: {{names}}",
     "hostReady": "Ya podeis empezar.",
     "guestWaiting": "Esperando a que el anfitrion inicie la partida.",
+    "readyUp": "Estoy listo",
+    "undoReady": "Quitar listo",
+    "readySubmitted": "Listo. Esperando al anfitrion.",
+    "guestReadyHint": "Marca que estas listo para que el anfitrion pueda empezar.",
     "shareHint": "Comparte este codigo con tus amigos para que puedan entrar.",
-    "hostHint": "Cuando haya al menos 3 jugadores, el anfitrion puede empezar la partida.",
+    "hostHint": "Cuando todos los invitados esten listos, el anfitrion puede empezar la partida.",
     "guestHint": "Espera aqui hasta que el anfitrion empiece la partida.",
     "playerCount_one": "{{count}} jugador",
     "playerCount_other": "{{count}} jugadores",
@@ -201,7 +206,28 @@
     "title": "Fin del juego",
     "gameOver": "Fin del juego",
     "finalScore": "Puntuacion final",
-    "goHome": "Volver al inicio"
+    "playerSnapshot": "Jugadores en la sala",
+    "goHome": "Volver al inicio",
+    "reason": {
+      "hostCancelledSelfTitle": "Has cerrado la sala",
+      "hostCancelledSelfBody": "La partida no llego a empezar porque cancelaste la sala desde el lobby.",
+      "hostCancelledOtherTitle": "El anfitrion cerro la sala",
+      "hostCancelledOtherBody": "La sala se ha cerrado antes de empezar la partida.",
+      "allPlayersLeftSelfTitle": "La sala se ha cerrado",
+      "allPlayersLeftSelfBody": "Has salido y ya no quedaba nadie mas dentro de la sala.",
+      "allPlayersLeftTitle": "La sala se ha cerrado",
+      "allPlayersLeftBody": "Todos los jugadores abandonaron la sala.",
+      "tooFewPlayersSelfTitle": "La partida se ha cerrado",
+      "tooFewPlayersSelfBody": "Al salir, ya no quedaron suficientes jugadores para continuar.",
+      "tooFewPlayersTitle": "La partida se ha cerrado",
+      "tooFewPlayersBody": "Ya no quedaban suficientes jugadores para continuar la partida.",
+      "roomFinishedTitle": "Fin del juego",
+      "roomFinishedBody": "La partida ha terminado con normalidad. Aqui tienes el resultado final.",
+      "invalidTitle": "Sala cerrada",
+      "invalidBody": "La sala ya no estaba disponible o entro en un estado invalido.",
+      "defaultTitle": "Sala cerrada",
+      "defaultBody": "La sala se ha cerrado y ya no esta disponible."
+    }
   },
   "errors": {
     "phaseCrashTitle": "Algo salió mal",
@@ -223,6 +249,7 @@
     "INVALID_STATE": "Estado de juego invalido",
     "ROOM_NOT_FOUND": "Sala no encontrada",
     "MIN_PLAYERS_REQUIRED": "Se necesitan al menos 3 jugadores",
+    "PLAYERS_NOT_READY": "Todos los invitados activos deben estar listos",
     "INVALID_CARD": "Carta invalida",
     "generic": "Algo salio mal. Intentalo de nuevo."
   }

@@ -76,12 +76,17 @@ function computeDragFollowTranslation({
   profile: CardTiltProfile
   drag: CardTiltDrag
 }) {
+  const multX = profile.dragMultiplierX ?? 0.45;
+  const multY = profile.dragMultiplierY ?? 0.28;
+  const maxX = profile.maxDragX ?? (profile.maxParallax * 5);
+  const maxY = profile.maxDragY ?? (profile.maxParallax * 4.5);
+
   return {
     translateX: normalizeZero(
-      clamp(drag.dx * 0.45, -profile.maxParallax * 5, profile.maxParallax * 5),
+      clamp(drag.dx * multX, -maxX, maxX),
     ),
     translateY: normalizeZero(
-      clamp(drag.dy * 0.28, -profile.maxParallax * 4.5, profile.maxParallax * 4.5),
+      clamp(drag.dy * multY, -maxY, maxY),
     ),
   }
 }
@@ -113,22 +118,18 @@ export function computeCardTiltStateFromDrag({
   profile,
   layout,
   drag,
+  pointer,
 }: {
   profile: CardTiltProfile
   layout?: CardTiltLayout
   drag?: CardTiltDrag
+  pointer?: CardTiltPointer
 }): CardTiltState {
-  if (!layout || !drag || layout.width <= 0 || layout.height <= 0) {
+  if (!layout || !drag || !pointer || layout.width <= 0 || layout.height <= 0) {
     return getNeutralTiltState()
   }
 
-  const normalizedX = clamp(drag.dx / (layout.width / 2), -1, 1)
-  const normalizedY = clamp(drag.dy / (layout.height / 2), -1, 1)
-  const tiltState = computeTiltStateFromNormalizedInput({
-    profile,
-    normalizedX,
-    normalizedY,
-  })
+  const tiltState = computeCardTiltState({ profile, layout, pointer })
   const dragFollow = computeDragFollowTranslation({ profile, drag })
 
   return {
@@ -148,12 +149,8 @@ export function blendCardTiltState(
   return {
     rotateX: normalizeZero(current.rotateX + (target.rotateX - current.rotateX) * clampedAlpha),
     rotateY: normalizeZero(current.rotateY + (target.rotateY - current.rotateY) * clampedAlpha),
-    translateX: normalizeZero(
-      current.translateX + (target.translateX - current.translateX) * clampedAlpha,
-    ),
-    translateY: normalizeZero(
-      current.translateY + (target.translateY - current.translateY) * clampedAlpha,
-    ),
+    translateX: target.translateX,
+    translateY: target.translateY,
     scale: target.scale,
   }
 }

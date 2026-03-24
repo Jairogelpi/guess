@@ -13,6 +13,7 @@ interface ButtonProps {
   variant?: Variant
   loading?: boolean
   disabled?: boolean
+  testID?: string
   style?: StyleProp<ViewStyle>
   contentStyle?: StyleProp<ViewStyle>
   textStyle?: StyleProp<TextStyle>
@@ -24,21 +25,22 @@ export function Button({
   variant = 'primary',
   loading,
   disabled,
+  testID,
   style,
   contentStyle,
   textStyle,
 }: ButtonProps) {
   const isDisabled = !!disabled || !!loading
-  const primaryGradient: [string, string] | [string, string, string] = isDisabled
-    ? ['rgba(180,130,0,0.4)', 'rgba(140,100,0,0.4)']
-    : [...brandButtons.primary.gradient]
+  const primaryGradient: [string, string] | [string, string, string] = [...brandButtons.primary.gradient]
 
   if (variant === 'primary') {
     return (
       <TouchableOpacity
         onPress={onPress}
         disabled={isDisabled}
+        accessibilityRole="button"
         activeOpacity={0.82}
+        testID={testID}
         style={[styles.base, isDisabled && styles.disabled, style]}
       >
         <LinearGradient colors={primaryGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradient}>
@@ -60,7 +62,9 @@ export function Button({
       <TouchableOpacity
         onPress={onPress}
         disabled={isDisabled}
+        accessibilityRole="button"
         activeOpacity={0.82}
+        testID={testID}
         style={[styles.base, styles.secondary, isDisabled && styles.disabled, style]}
       >
         <View style={[styles.inner, contentStyle]}>
@@ -80,7 +84,9 @@ export function Button({
       <TouchableOpacity
         onPress={onPress}
         disabled={isDisabled}
+        accessibilityRole="button"
         activeOpacity={0.75}
+        testID={testID}
         style={[styles.base, styles.ghost, isDisabled && styles.disabled, style]}
       >
         <View style={[styles.inner, contentStyle]}>
@@ -100,7 +106,9 @@ export function Button({
     <TouchableOpacity
       onPress={onPress}
       disabled={isDisabled}
+      accessibilityRole="button"
       activeOpacity={0.82}
+      testID={testID}
       style={[styles.base, styles.danger, isDisabled && styles.disabled, style]}
     >
       <View style={[styles.inner, contentStyle]}>
@@ -141,11 +149,16 @@ const styles = StyleSheet.create({
   },
   secondary: {
     backgroundColor: brandButtons.secondary.backgroundColor,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: brandButtons.secondary.borderColor,
     borderRadius: radii.full,
     paddingHorizontal: 20,
     paddingVertical: 15,
+    shadowColor: '#ff9500',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   ghost: {
     backgroundColor: brandButtons.ghost.backgroundColor,

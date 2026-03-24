@@ -59,14 +59,14 @@ export const brandTypography = {
 
 export const brandButtons = {
   primary: {
-    gradient: [brandColors.orangeStart, brandColors.orangeMid, brandColors.orangeEnd] as const,
-    borderColor: 'rgba(255, 230, 180, 0.46)',
-    shadowColor: brandColors.orangeEnd,
+    gradient: ['rgba(255, 150, 40, 0.95)', 'rgba(255, 120, 20, 0.85)'] as const,
+    borderColor: 'rgba(255, 150, 40, 0.95)',
+    shadowColor: 'rgba(255, 120, 20, 1)',
   },
   secondary: {
-    backgroundColor: 'rgba(15, 9, 6, 0.5)',
-    borderColor: 'rgba(244, 192, 119, 0.34)',
-    textColor: '#ffd680',
+    backgroundColor: 'rgba(140, 50, 10, 0.45)',
+    borderColor: 'rgba(255, 210, 100, 0.85)',
+    textColor: '#fff7ea',
   },
   ghost: {
     backgroundColor: 'transparent',

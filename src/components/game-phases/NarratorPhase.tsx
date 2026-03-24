@@ -9,15 +9,19 @@ import { useCardSelection } from '@/hooks/useCardSelection'
 import { HandGrid } from '@/components/game/HandGrid'
 import { DixitCard } from '@/components/ui/DixitCard'
 import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
+import { PhaseGuidance } from '@/components/game/PhaseGuidance'
 import { colors, fonts, radii } from '@/constants/theme'
+import type { GalleryCard } from '@/types/game'
 
 interface Props {
   roomCode: string
   roundNumber: number
   maxRounds: number
+  wildcardsLeft: number
+  generationTokens: number
 }
 
-export function NarratorPhase({ roomCode }: Props) {
+export function NarratorPhase({ roomCode, wildcardsLeft, generationTokens }: Props) {
   const { t } = useTranslation()
   const { userId } = useAuth()
   const round = useGameStore((s) => s.round)
@@ -33,6 +37,7 @@ export function NarratorPhase({ roomCode }: Props) {
     isGenerating,
     handleGenerate,
     handleSuggest,
+    handleUseWildcard,
     handleSelect,
   } = useCardSelection({ roomCode, round, userId })
 
@@ -52,7 +57,13 @@ export function NarratorPhase({ roomCode }: Props) {
   async function handleSubmit() {
     if (!selectedCardId || !clue.trim()) return
     setSubmitting(true)
-    await gameAction(roomCode, 'submit_clue', { clue: clue.trim(), card_id: selectedCardId })
+    const payload: any = { clue: clue.trim() }
+    if (selectedSlot?.galleryCardId) {
+      payload.gallery_card_id = selectedSlot.galleryCardId
+    } else {
+      payload.card_id = selectedCardId
+    }
+    await gameAction(roomCode, 'submit_clue', payload)
     setSubmitting(false)
   }
 
@@ -103,6 +114,10 @@ export function NarratorPhase({ roomCode }: Props) {
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <PhaseGuidance 
+        title={t('game.narratorPhaseTitle', 'FASE DE NARRADOR')}
+        instruction={t('game.narratorInstruction', 'Crea hasta 3 cartas. Elige una para jugar y ponle una pista.')}
+      />
       <HandGrid
         slots={slots}
         activeSlotIndex={activeSlotIndex}
@@ -110,6 +125,9 @@ export function NarratorPhase({ roomCode }: Props) {
         onSelect={handleSelect}
         onGenerate={handleGenerate}
         onSuggestPrompt={handleSuggest}
+        onUseWildcard={handleUseWildcard}
+        wildcardsLeft={wildcardsLeft}
+        generationTokens={generationTokens}
         generating={isGenerating}
       />
       <Pressable
@@ -127,77 +145,109 @@ export function NarratorPhase({ roomCode }: Props) {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { padding: 14, gap: 16 },
+  content: { padding: 18, gap: 20 },
   cardPreview: {
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: colors.goldBorderSubtle,
-    borderRadius: radii.md,
-    padding: 14,
+    gap: 12,
+    backgroundColor: 'rgba(20, 12, 5, 0.9)',
+    borderWidth: 2,
+    borderColor: 'rgba(230, 184, 0, 0.25)',
+    borderRadius: radii.xl,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 8,
   },
   cardPreviewLabel: {
-    color: 'rgba(255, 241, 222, 0.3)',
-    fontSize: 8,
-    fontFamily: fonts.title,
-    letterSpacing: 2,
+    color: colors.gold,
+    fontSize: 12,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 4,
     textTransform: 'uppercase',
+    opacity: 0.6,
   },
-  cardPreviewWrap: { width: '45%' },
+  cardPreviewWrap: {
+    width: '55%',
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
   cardPreviewTilt: { zIndex: 2 },
   clueInputCard: {
-    gap: 10,
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: colors.goldBorderMid,
-    borderRadius: radii.md,
-    padding: 14,
+    gap: 14,
+    backgroundColor: 'rgba(20, 12, 5, 0.9)',
+    borderWidth: 2,
+    borderColor: 'rgba(230, 184, 0, 0.25)',
+    borderRadius: radii.xl,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
   },
   clueInputLabel: {
     color: colors.gold,
-    fontSize: 8,
-    fontFamily: fonts.title,
-    letterSpacing: 2,
+    fontSize: 13,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 3,
     textTransform: 'uppercase',
   },
   clueInput: {
-    backgroundColor: colors.surfaceInput,
-    borderWidth: 1,
-    borderColor: colors.goldBorderSubtle,
+    backgroundColor: 'rgba(10, 6, 2, 0.6)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(230, 184, 0, 0.2)',
     borderRadius: radii.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: '#fff7ea',
-    fontSize: 13,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: colors.textPrimary,
+    fontSize: 15,
     fontFamily: fonts.title,
   },
   clueHint: {
-    color: 'rgba(255, 241, 222, 0.3)',
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  actions: { gap: 10 },
-  actionBtn: {
-    backgroundColor: colors.orange,
-    borderRadius: radii.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  actionBtnDisabled: { opacity: 0.45 },
-  actionBtnText: {
-    color: '#fff7ea',
-    fontSize: 14,
-    fontWeight: '700',
+    color: 'rgba(255, 241, 222, 0.4)',
+    fontSize: 12,
+    lineHeight: 18,
     fontFamily: fonts.title,
+    textAlign: 'center',
+  },
+  actions: { gap: 12 },
+  actionBtn: {
+    backgroundColor: colors.gold,
+    borderRadius: radii.xl,
+    paddingVertical: 18,
+    alignItems: 'center',
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  actionBtnDisabled: {
+    backgroundColor: 'rgba(230, 184, 0, 0.1)',
+    borderColor: 'rgba(230, 184, 0, 0.2)',
+    borderWidth: 1.5,
+  },
+  actionBtnText: {
+    color: '#0a0602',
+    fontSize: 16,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   ghostBtn: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   ghostBtnText: {
-    color: 'rgba(255, 241, 222, 0.35)',
-    fontSize: 12,
-    fontFamily: fonts.title,
+    color: 'rgba(255, 241, 222, 0.5)',
+    fontSize: 14,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 })

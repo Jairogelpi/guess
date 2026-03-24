@@ -7,6 +7,11 @@ export interface CardTiltProfile {
   scale: number
   damping: number
   stiffness: number
+  dragMultiplierX?: number
+  dragMultiplierY?: number
+  maxDragX?: number
+  maxDragY?: number
+  preventScrollRelease?: boolean
 }
 
 export const CARD_TILT_PROFILES: Record<CardTiltProfileName, CardTiltProfile> = {
@@ -17,6 +22,11 @@ export const CARD_TILT_PROFILES: Record<CardTiltProfileName, CardTiltProfile> = 
     scale: 1.02,
     damping: 18,
     stiffness: 180,
+    dragMultiplierX: 1.0,
+    dragMultiplierY: 1.0,
+    maxDragX: 3000,
+    maxDragY: 3000,
+    preventScrollRelease: true,
   },
   standard: {
     maxRotateX: 5,

@@ -1,5 +1,5 @@
 import React from 'react'
-import { TouchableOpacity, Image, View, Text, StyleSheet, ActivityIndicator } from 'react-native'
+import { TouchableOpacity, Image, View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native'
 import { colors, radii, shadows } from '@/constants/theme'
 
 interface DixitCardProps {
@@ -39,12 +39,21 @@ export function DixitCard({
         resizeMode: 'cover',
       })
 
+  const isWeb = Platform.OS === 'web'
+
   const content = React.createElement(
     React.Fragment,
     null,
     React.createElement(
       View,
-      { style: [styles.card, selected && styles.cardSelected, { aspectRatio }] },
+      {
+        style: [
+          styles.card,
+          selected && styles.cardSelected,
+          { aspectRatio },
+          isWeb && { width: '100%', minHeight: 1 }, // Ensure web handles aspectRatio correctly
+        ],
+      },
       imageNode,
       selected ? React.createElement(View, { style: styles.selectedOverlay }) : null,
     ),
@@ -82,6 +91,7 @@ export function DixitCard({
 const styles = StyleSheet.create({
   wrapper: {
     borderRadius: radii.md,
+    ...shadows.card,
   },
   wrapperSelected: {
     transform: [{ scale: 1.03 }],
@@ -92,7 +102,7 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: colors.cardBorder,
     backgroundColor: colors.surfaceDeep,
-    ...shadows.card,
+    flex: 1, // Fill the wrapper
   },
   cardSelected: {
     borderColor: colors.goldLight,
