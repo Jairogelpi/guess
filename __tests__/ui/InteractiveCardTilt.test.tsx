@@ -738,6 +738,57 @@ describe('InteractiveCardTilt controller', () => {
     rendered.unmount()
   })
 
+  test('polish clip frame inherits radius from a nested gallery card surface', () => {
+    const styles = StyleSheet.create({
+      wrapper: {
+        width: '47%',
+        gap: 8,
+      },
+      stack: {
+        width: '100%',
+      },
+      cardSurface: {
+        borderRadius: 22,
+        overflow: 'hidden',
+        backgroundColor: '#111111',
+      },
+      label: {
+        color: '#dddddd',
+      },
+    })
+    const rendered = mount(
+      React.createElement(
+        InteractiveCardTilt as unknown as React.ComponentType<Record<string, unknown>>,
+        {
+          style: styles.wrapper,
+          testID: 'nested-clip-surface',
+        },
+        React.createElement(
+          MockView,
+          { style: styles.stack },
+          React.createElement(MockView, {
+            style: styles.cardSurface,
+            testID: 'nested-card-surface',
+          }),
+          React.createElement(MockText, { style: styles.label }, 'Gallery card'),
+        ),
+      ),
+    )
+    const clipFrame = findNode(
+      rendered.container,
+      (node) =>
+        node.nodeName === 'view' &&
+        node.style.position === 'absolute' &&
+        node.style.overflow === 'hidden' &&
+        parseFloat(node.style.borderRadius ?? '0') === 22,
+    )
+
+    expect(queryByAttribute(rendered.container, 'testid', 'nested-card-surface')).not.toBeNull()
+    expect(clipFrame).not.toBeNull()
+
+    rendered.unmount()
+  })
+
   test('real mount and unmount release active region ownership through cleanup', () => {
     let mountedController: ReturnType<typeof createInteractiveCardTiltController> | undefined
     __setInteractiveCardTiltControllerObserver((controller: ReturnType<typeof createInteractiveCardTiltController> | undefined) => {

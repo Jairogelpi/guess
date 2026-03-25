@@ -79,6 +79,30 @@ function insetClipShape(shape: ClipShapeStyle, inset: number) {
   }, {})
 }
 
+function hasClipShape(shape: ClipShapeStyle) {
+  return CLIP_RADIUS_KEYS.some((key) => shape[key] !== undefined)
+}
+
+function findNestedClipShape(node: React.ReactNode): ClipShapeStyle | undefined {
+  if (!React.isValidElement<{ style?: StyleProp<ViewStyle>; children?: React.ReactNode }>(node)) {
+    return undefined
+  }
+
+  const ownShape = extractClipShape(StyleSheet.flatten(node.props.style) ?? undefined)
+  if (hasClipShape(ownShape)) {
+    return ownShape
+  }
+
+  for (const child of React.Children.toArray(node.props.children)) {
+    const nestedShape = findNestedClipShape(child)
+    if (nestedShape) {
+      return nestedShape
+    }
+  }
+
+  return undefined
+}
+
 function resolveClipShape({
   wrapperStyle,
   children,
@@ -86,16 +110,14 @@ function resolveClipShape({
   wrapperStyle?: StyleProp<ViewStyle>
   children: React.ReactNode
 }) {
-  const childStyle = React.isValidElement<{ style?: StyleProp<ViewStyle> }>(children)
-    ? children.props.style
-    : undefined
-  const mergedStyle = {
-    ...(StyleSheet.flatten(wrapperStyle) ?? {}),
-    ...(StyleSheet.flatten(childStyle) ?? {}),
+  const wrapperShape = extractClipShape(StyleSheet.flatten(wrapperStyle) ?? undefined)
+  const nestedShape = findNestedClipShape(children)
+  const clipShape = {
+    ...wrapperShape,
+    ...nestedShape,
   }
-  const clipShape = extractClipShape(mergedStyle)
 
-  if (CLIP_RADIUS_KEYS.every((key) => clipShape[key] === undefined)) {
+  if (!hasClipShape(clipShape)) {
     return {
       borderRadius: DEFAULT_OVERLAY_RADIUS,
     }
