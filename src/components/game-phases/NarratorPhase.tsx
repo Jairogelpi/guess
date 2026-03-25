@@ -1,253 +1,206 @@
-// src/components/game-phases/NarratorPhase.tsx
 import { useState } from 'react'
-import { View, Text, ScrollView, StyleSheet, TextInput, Pressable } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { useGameStore } from '@/stores/useGameStore'
 import { useGameActions } from '@/hooks/useGameActions'
-import { useCardSelection } from '@/hooks/useCardSelection'
-import { HandGrid } from '@/components/game/HandGrid'
+import { CardGenerator } from '@/components/game/CardGenerator'
 import { DixitCard } from '@/components/ui/DixitCard'
-import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
-import { PhaseGuidance } from '@/components/game/PhaseGuidance'
-import { colors, fonts, radii } from '@/constants/theme'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { HandActionDock } from '@/components/game/HandActionDock'
+import { deriveHandActionDockState } from '@/components/game/handActionState'
+import type { HydratedHandSlot } from '@/components/game/handActionState'
+import { colors, fonts, radii, shadows } from '@/constants/theme'
 import type { GalleryCard } from '@/types/game'
 
 interface Props {
   roomCode: string
-  roundNumber: number
-  maxRounds: number
-  wildcardsLeft: number
-  generationTokens: number
+  wildcardsRemaining: number
 }
 
-export function NarratorPhase({ roomCode, wildcardsLeft, generationTokens }: Props) {
+type SelectedNarratorCard =
+  | { kind: 'generated'; imageUrl: string; prompt: string; cardId: string }
+  | { kind: 'gallery'; imageUrl: string; prompt: string; galleryCardId: string }
+
+export function NarratorPhase({ roomCode, wildcardsRemaining }: Props) {
   const { t } = useTranslation()
   const { userId } = useAuth()
   const round = useGameStore((s) => s.round)
-  const setNarratorStep = useGameStore((s) => s.setNarratorStep)
-  const { gameAction } = useGameActions()
+  const { gameAction, gameActionResult, insertCard } = useGameActions()
 
-  const {
-    slots,
-    activeSlotIndex,
-    setActiveSlotIndex,
-    selectedSlot,
-    hasSelection,
-    isGenerating,
-    handleGenerate,
-    handleSuggest,
-    handleUseWildcard,
-    handleSelect,
-  } = useCardSelection({ roomCode, round, userId })
-
-  const [step, setStep] = useState<1 | 2>(1)
+  const [selectedCard, setSelectedCard] = useState<SelectedNarratorCard | null>(null)
   const [clue, setClue] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // Derived from the selected slot — no separate state needed
-  const selectedCardId = selectedSlot?.id ?? null
-  const selectedImageUri = selectedSlot?.imageUri ?? null
-
-  function goToStep(s: 1 | 2) {
-    setStep(s)
-    setNarratorStep(s)
-  }
-
-  async function handleSubmit() {
-    if (!selectedCardId || !clue.trim()) return
-    setSubmitting(true)
-    const payload: any = { clue: clue.trim() }
-    if (selectedSlot?.galleryCardId) {
-      payload.gallery_card_id = selectedSlot.galleryCardId
-    } else {
-      payload.card_id = selectedCardId
+  async function handleSelectCard(imageUrl: string, prompt: string) {
+    if (!round || !userId) return
+    const cardId = await insertCard(round.id, userId, imageUrl, prompt)
+    if (cardId) {
+      setSelectedCard({ kind: 'generated', imageUrl, prompt, cardId })
     }
-    await gameAction(roomCode, 'submit_clue', payload)
-    setSubmitting(false)
   }
 
-  if (step === 2 && selectedImageUri) {
-    return (
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={styles.cardPreview}>
-          <Text style={styles.cardPreviewLabel}>{t('game.chosenCard')}</Text>
-          <View style={styles.cardPreviewWrap}>
-            <InteractiveCardTilt profileName="hero" regionKey="narrator-preview" style={styles.cardPreviewTilt}>
-              <DixitCard uri={selectedImageUri} />
-            </InteractiveCardTilt>
-          </View>
-        </View>
+  function handleSelectGalleryCard(card: GalleryCard) {
+    setSelectedCard({
+      kind: 'gallery',
+      imageUrl: card.image_url,
+      prompt: card.prompt,
+      galleryCardId: card.id,
+    })
+  }
 
-        <View style={styles.clueInputCard}>
-          <Text style={styles.clueInputLabel}>{t('game.writeYourClue')}</Text>
-          <TextInput
-            style={styles.clueInput}
-            value={clue}
-            onChangeText={setClue}
-            placeholder={t('game.cluePlaceholder')}
-            placeholderTextColor="rgba(255,241,222,0.25)"
-            maxLength={100}
-          />
-          <Text style={styles.clueHint}>{t('game.clueHint')}</Text>
-        </View>
+  async function handleSubmitClue() {
+    if (!clue.trim() || !selectedCard) return
+    setSubmitting(true)
 
-        <View style={styles.actions}>
-          <Pressable
-            style={[styles.actionBtn, (!clue.trim() || submitting) && styles.actionBtnDisabled]}
-            disabled={!clue.trim() || submitting}
-            onPress={handleSubmit}
-          >
-            <Text style={styles.actionBtnText}>
-              {submitting ? '...' : t('game.sendClueAndCard')}
-            </Text>
-          </Pressable>
-          <Pressable style={styles.ghostBtn} onPress={() => goToStep(1)}>
-            <Text style={styles.ghostBtnText}>
-              {t('game.changeCard')}
-            </Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    )
+    if (selectedCard.kind === 'generated') {
+      await gameAction(roomCode, 'submit_clue', { clue: clue.trim(), card_id: selectedCard.cardId })
+    } else {
+      await gameActionResult(roomCode, 'submit_clue', {
+        clue: clue.trim(),
+        gallery_card_id: selectedCard.galleryCardId,
+      })
+    }
+
+    setSubmitting(false)
   }
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <PhaseGuidance 
-        title={t('game.narratorPhaseTitle', 'FASE DE NARRADOR')}
-        instruction={t('game.narratorInstruction', 'Crea hasta 3 cartas. Elige una para jugar y ponle una pista.')}
-      />
-      <HandGrid
-        slots={slots}
-        activeSlotIndex={activeSlotIndex}
-        onSlotPress={setActiveSlotIndex}
-        onSelect={handleSelect}
-        onGenerate={handleGenerate}
-        onSuggestPrompt={handleSuggest}
-        onUseWildcard={handleUseWildcard}
-        wildcardsLeft={wildcardsLeft}
-        generationTokens={generationTokens}
-        generating={isGenerating}
-      />
-      <Pressable
-        style={[styles.actionBtn, !hasSelection && styles.actionBtnDisabled]}
-        disabled={!hasSelection}
-        onPress={() => { if (hasSelection) goToStep(2) }}
-      >
-        <Text style={styles.actionBtnText}>
-          {t('game.nextWriteClue')}
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>{t('game.yourTurn')} - {t('game.narrator')}</Text>
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>{t('game.narratorIntro')}</Text>
+        <Text style={styles.infoBody}>
+          {!selectedCard ? t('game.narratorSelectHint') : t('game.narratorClueHint')}
         </Text>
-      </Pressable>
+      </View>
+
+      {!selectedCard ? (
+        <CardGenerator
+          scope="round"
+          roomCode={roomCode}
+          roundId={round?.id}
+          wildcardsRemaining={wildcardsRemaining}
+          onSelect={handleSelectCard}
+          onSelectGalleryCard={handleSelectGalleryCard}
+        />
+      ) : (
+        <View style={styles.clueBlock}>
+          <View style={styles.selectedCardWrap}>
+            <DixitCard uri={selectedCard.imageUrl} />
+          </View>
+
+          <Text style={styles.selectedHint}>{t('game.narratorClueHelp')}</Text>
+          {selectedCard.kind === 'gallery' && (
+            <Text style={styles.wildcardHint}>{t('game.wildcardSpendHint')}</Text>
+          )}
+
+          <Input
+            label={t('game.writeClue')}
+            value={clue}
+            onChangeText={setClue}
+            placeholder={t('game.cluePlaceholder')}
+            maxLength={100}
+          />
+
+          <HandActionDock
+            state={deriveHandActionDockState({
+              phase: 'narrator_turn',
+              focusedSlot: {
+                slotIndex: 0,
+                kind: 'filled',
+                cardId: selectedCard.kind === 'generated' ? selectedCard.cardId : null,
+                imageUri: selectedCard.imageUrl,
+                galleryCardId: selectedCard.kind === 'gallery' ? selectedCard.galleryCardId : null,
+              } satisfies HydratedHandSlot,
+              hasFreeGeneration: false,
+              generationTokens: 0,
+              generating: submitting,
+            })}
+            promptValue={clue}
+            onPromptChange={setClue}
+            onSuggestPrompt={() => {}}
+            onUseWildcard={() => {}}
+            onPrimaryAction={handleSubmitClue}
+            onGenerate={() => {}}
+            wildcardsLeft={wildcardsRemaining}
+            generationTokens={0}
+            generating={submitting}
+            eyebrow={t('game.writeClue')}
+          />
+          <View style={styles.actions}>
+            <Button onPress={() => setSelectedCard(null)} variant="ghost">
+              {t('game.changeCard')}
+            </Button>
+          </View>
+        </View>
+      )}
     </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { padding: 18, gap: 20 },
-  cardPreview: {
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(20, 12, 5, 0.9)',
-    borderWidth: 2,
-    borderColor: 'rgba(230, 184, 0, 0.25)',
-    borderRadius: radii.xl,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    elevation: 8,
+  content: { gap: 20, padding: 16 },
+  badge: {
+    backgroundColor: colors.surfaceMid,
+    borderWidth: 1,
+    borderColor: colors.goldBorder,
+    borderRadius: 99,
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    alignSelf: 'center',
   },
-  cardPreviewLabel: {
-    color: colors.gold,
-    fontSize: 12,
-    fontFamily: fonts.titleHeavy,
-    letterSpacing: 4,
-    textTransform: 'uppercase',
-    opacity: 0.6,
-  },
-  cardPreviewWrap: {
-    width: '55%',
-    shadowColor: colors.gold,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  cardPreviewTilt: { zIndex: 2 },
-  clueInputCard: {
-    gap: 14,
-    backgroundColor: 'rgba(20, 12, 5, 0.9)',
-    borderWidth: 2,
-    borderColor: 'rgba(230, 184, 0, 0.25)',
-    borderRadius: radii.xl,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  clueInputLabel: {
+  badgeText: {
     color: colors.gold,
     fontSize: 13,
-    fontFamily: fonts.titleHeavy,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
+    fontFamily: fonts.title,
+    letterSpacing: 0.5,
   },
-  clueInput: {
-    backgroundColor: 'rgba(10, 6, 2, 0.6)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(230, 184, 0, 0.2)',
+  infoCard: {
     borderRadius: radii.md,
+    borderWidth: 1.5,
+    borderColor: colors.goldBorder,
+    backgroundColor: 'rgba(18, 10, 6, 0.72)',
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    color: colors.textPrimary,
+    paddingVertical: 15,
+    gap: 8,
+    ...shadows.surface,
+  },
+  infoTitle: {
+    color: colors.goldLight,
     fontSize: 15,
     fontFamily: fonts.title,
-  },
-  clueHint: {
-    color: 'rgba(255, 241, 222, 0.4)',
-    fontSize: 12,
-    lineHeight: 18,
-    fontFamily: fonts.title,
+    letterSpacing: 1,
     textAlign: 'center',
   },
-  actions: { gap: 12 },
-  actionBtn: {
-    backgroundColor: colors.gold,
-    borderRadius: radii.xl,
-    paddingVertical: 18,
-    alignItems: 'center',
-    shadowColor: colors.gold,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  actionBtnDisabled: {
-    backgroundColor: 'rgba(230, 184, 0, 0.1)',
-    borderColor: 'rgba(230, 184, 0, 0.2)',
-    borderWidth: 1.5,
-  },
-  actionBtnText: {
-    color: '#0a0602',
-    fontSize: 16,
-    fontFamily: fonts.titleHeavy,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  ghostBtn: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  ghostBtnText: {
-    color: 'rgba(255, 241, 222, 0.5)',
+  infoBody: {
+    color: colors.textSecondary,
     fontSize: 14,
-    fontFamily: fonts.titleHeavy,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  clueBlock: { gap: 16 },
+  selectedCardWrap: {
+    width: '55%',
+    alignSelf: 'center',
+  },
+  selectedHint: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  wildcardHint: {
+    color: colors.goldLight,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  actions: {
+    gap: 12,
   },
 })

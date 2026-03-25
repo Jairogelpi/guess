@@ -38,6 +38,7 @@ const SCROLL_RELEASE_DY = 18
 const VELOCITY_REFERENCE = 1200
 
 export function getNeutralTiltState(): CardTiltState {
+  'worklet'
   return {
     rotateX: 0,
     rotateY: 0,
@@ -54,14 +55,17 @@ export function getNeutralTiltState(): CardTiltState {
 }
 
 function clamp(value: number, min: number, max: number) {
+  'worklet'
   return Math.min(Math.max(value, min), max)
 }
 
 function lerp(start: number, end: number, alpha: number) {
+  'worklet'
   return start + (end - start) * alpha
 }
 
 function normalizeZero(value: number) {
+  'worklet'
   return Object.is(value, -0) ? 0 : value
 }
 
@@ -72,6 +76,7 @@ function getNormalizedPointer({
   layout: CardTiltLayout
   pointer: CardTiltPointer
 }) {
+  'worklet'
   return {
     normalizedX: clamp((pointer.x - layout.width / 2) / (layout.width / 2), -1, 1),
     normalizedY: clamp((pointer.y - layout.height / 2) / (layout.height / 2), -1, 1),
@@ -91,6 +96,7 @@ function computePressChannels({
   drag?: CardTiltDrag
   velocity?: CardTiltVelocity
 }) {
+  'worklet'
   const pointerEnergy = Math.max(Math.abs(normalizedX), Math.abs(normalizedY))
   const dragEnergy = drag
     ? clamp(
@@ -140,6 +146,7 @@ function computeTiltTransformFromNormalizedInput({
   normalizedX: number
   normalizedY: number
 }) {
+  'worklet'
   return {
     rotateX: normalizeZero(
       clamp(-normalizedY * profile.maxRotateX, -profile.maxRotateX, profile.maxRotateX),
@@ -163,6 +170,7 @@ function computeDragFollowTranslation({
   profile: CardTiltProfile
   drag: CardTiltDrag
 }) {
+  'worklet'
   const multX = profile.dragMultiplierX ?? 0.45
   const multY = profile.dragMultiplierY ?? 0.28
   const maxX = profile.maxDragX ?? profile.maxParallax * 5
@@ -185,6 +193,7 @@ function computeVelocityBoost({
   profile: CardTiltProfile
   velocity?: CardTiltVelocity
 }) {
+  'worklet'
   if (!velocity) {
     return {
       rotateX: 0,
@@ -235,6 +244,7 @@ function retainAxisEnergy({
   previousValue?: number
   centerWeight: number
 }) {
+  'worklet'
   if (previousValue === undefined || previousValue === 0 || centerWeight <= 0) {
     return nextValue
   }
@@ -264,6 +274,7 @@ function retainCompression({
   previousValue?: number
   centerWeight: number
 }) {
+  'worklet'
   if (previousValue === undefined || centerWeight <= 0 || nextValue <= previousValue) {
     return nextValue
   }
@@ -280,6 +291,7 @@ function retainOpacity({
   previousValue?: number
   centerWeight: number
 }) {
+  'worklet'
   if (previousValue === undefined || centerWeight <= 0 || nextValue >= previousValue) {
     return nextValue
   }
@@ -350,6 +362,7 @@ export function computeCardTiltStateFromDrag({
   velocity?: CardTiltVelocity
   previousState?: CardTiltState
 }): CardTiltState {
+  'worklet'
   if (!layout || !drag || !pointer || layout.width <= 0 || layout.height <= 0) {
     return getNeutralTiltState()
   }
@@ -490,6 +503,7 @@ export function blendCardTiltState(
   target: CardTiltState,
   alpha: number,
 ): CardTiltState {
+  'worklet'
   const clampedAlpha = clamp(alpha, 0, 1)
 
   return {
@@ -516,5 +530,6 @@ export function shouldReleaseToScroll({
   dx: number
   dy: number
 }) {
+  'worklet'
   return Math.abs(dy) > SCROLL_RELEASE_DY && Math.abs(dy) > Math.abs(dx)
 }

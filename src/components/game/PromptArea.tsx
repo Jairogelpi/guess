@@ -8,9 +8,14 @@ import { colors, fonts, radii, shadows } from '@/constants/theme'
 import type { GalleryCard } from '@/types/game'
 
 interface Props {
-  onGenerate: (prompt: string) => Promise<void>
-  onSuggestPrompt: () => Promise<string>
-  onUseWildcard: (card: GalleryCard) => Promise<void>
+  /** Controlled prompt value — owned by the parent (HandActionDock) */
+  promptValue: string
+  onPromptChange: (v: string) => void
+  onSuggestPrompt: () => void
+  onUseWildcard: (card: GalleryCard) => void
+  /** Optional: standalone generate button. When used inside HandActionDock,
+   *  leave undefined — the dock CTA owns the primary generate action. */
+  onGenerate?: () => void
   wildcardsLeft: number
   generationTokens: number
   generating: boolean
@@ -18,16 +23,17 @@ interface Props {
 }
 
 export function PromptArea({
-  onGenerate,
+  promptValue,
+  onPromptChange,
   onSuggestPrompt,
   onUseWildcard,
+  onGenerate,
   wildcardsLeft,
   generationTokens,
   generating,
   clue,
 }: Props) {
   const { t } = useTranslation()
-  const [prompt, setPrompt] = useState('')
   const [suggesting, setSuggesting] = useState(false)
   const [showWildcardPicker, setShowWildcardPicker] = useState(false)
 
@@ -35,16 +41,10 @@ export function PromptArea({
     if (generationTokens < 1) return
     setSuggesting(true)
     try {
-      const suggested = await onSuggestPrompt()
-      if (suggested) setPrompt(suggested)
+      await onSuggestPrompt()
     } finally {
       setSuggesting(false)
     }
-  }
-
-  async function handleGenerate() {
-    if (!prompt.trim() || generating || generationTokens < 1) return
-    await onGenerate(prompt.trim())
   }
 
   async function handlePickWildcard(card: GalleryCard) {
@@ -66,8 +66,8 @@ export function PromptArea({
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
-          value={prompt}
-          onChangeText={setPrompt}
+          value={promptValue}
+          onChangeText={onPromptChange}
           placeholder={t('game.describeCard')}
           placeholderTextColor="rgba(255, 241, 222, 0.25)"
           multiline={false}
@@ -98,27 +98,41 @@ export function PromptArea({
           {suggesting ? (
             <ActivityIndicator size="small" color={colors.goldLight} />
           ) : (
-            <MaterialCommunityIcons name="auto-fix" size={20} color={colors.gold} />
+            <>
+              <MaterialCommunityIcons name="auto-fix" size={18} color={colors.gold} />
+              <Text style={styles.suggestLabel}>{t('game.suggest', 'IA')}</Text>
+            </>
           )}
         </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={[styles.genBtn, (!prompt.trim() || generating || !canGenerate) && styles.btnDisabled]}
-        onPress={handleGenerate}
-        disabled={!prompt.trim() || generating || !canGenerate}
-      >
-        {generating ? (
-          <ActivityIndicator size="small" color="#fff7ea" />
-        ) : (
-          <View style={styles.row}>
-            <Text style={styles.genBtnText}>{t('game.generate')}</Text>
-            <View style={styles.btnCostBadge}>
-              <Text style={styles.btnCostBadgeText}>1</Text>
-              <MaterialCommunityIcons name="database" size={10} color="#fff" />
+      {!canGenerate && (
+        <View style={styles.noTokensRow}>
+          <MaterialCommunityIcons name="database-off-outline" size={14} color="rgba(255,100,100,0.7)" />
+          <Text style={styles.noTokensText}>{t('game.noGenerationTokens', 'Sin fichas de generación')}</Text>
+        </View>
+      )}
+
+      {/* Standalone generate CTA — only shown when onGenerate is provided.
+          Inside HandActionDock, the dock's own CTA button handles generation. */}
+      {onGenerate && (
+        <TouchableOpacity
+          style={[styles.genBtn, (!promptValue.trim() || generating || !canGenerate) && styles.btnDisabled]}
+          onPress={onGenerate}
+          disabled={!promptValue.trim() || generating || !canGenerate}
+        >
+          {generating ? (
+            <ActivityIndicator size="small" color="#fff7ea" />
+          ) : (
+            <View style={styles.row}>
+              <Text style={styles.genBtnText}>{t('game.generate')}</Text>
+              <View style={styles.btnCostBadge}>
+                <Text style={styles.btnCostBadgeText}>1</Text>
+                <MaterialCommunityIcons name="database" size={10} color="#fff" />
+              </View>
             </View>
-          </View>
-        )}
-      </TouchableOpacity>
+          )}
+        </TouchableOpacity>
+      )}
 
       <Modal
         visible={showWildcardPicker}
@@ -169,12 +183,30 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(230, 184, 0, 0.12)',
     borderWidth: 1.5,
     borderColor: 'rgba(230, 184, 0, 0.3)',
-    borderRadius: radii.full,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: radii.md,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     minWidth: 50,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
+  },
+  suggestLabel: {
+    color: colors.gold,
+    fontSize: 8,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 1,
+  },
+  noTokensRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
+  },
+  noTokensText: {
+    color: 'rgba(255, 100, 100, 0.75)',
+    fontSize: 11,
+    fontFamily: fonts.title,
   },
   genBtn: {
     backgroundColor: colors.orange,

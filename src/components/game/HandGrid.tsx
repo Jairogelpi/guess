@@ -1,11 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
-import { PromptArea } from '@/components/game/PromptArea'
+// PromptArea is now rendered by HandActionDock, not by HandGrid directly.
 import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 import { DixitCard } from '@/components/ui/DixitCard'
 import { colors, fonts, radii } from '@/constants/theme'
-import type { GalleryCard } from '@/types/game'
 
 export interface HandSlot {
   id: string
@@ -18,13 +17,9 @@ interface Props {
   activeSlotIndex: number | null
   onSlotPress: (index: number) => void
   onSelect: (index: number) => void
-  onGenerate: (index: number, prompt: string) => Promise<void>
-  onSuggestPrompt: (index: number) => Promise<string>
-  onUseWildcard: (index: number, card: GalleryCard) => Promise<void>
   wildcardsLeft: number
   generationTokens: number
   generating: boolean
-  clue?: string
 }
 
 export function HandGrid({
@@ -32,13 +27,9 @@ export function HandGrid({
   activeSlotIndex,
   onSlotPress,
   onSelect,
-  onGenerate,
-  onSuggestPrompt,
-  onUseWildcard,
   wildcardsLeft,
   generationTokens,
   generating,
-  clue,
 }: Props) {
   const { t } = useTranslation()
   const usedSlots = slots.filter(s => !!s.imageUri).length
@@ -110,17 +101,7 @@ export function HandGrid({
         </View>
       </View>
 
-      {activeSlotIndex !== null && !slots[activeSlotIndex]?.imageUri && (
-        <PromptArea
-          onGenerate={(prompt) => onGenerate(activeSlotIndex, prompt)}
-          onSuggestPrompt={() => onSuggestPrompt(activeSlotIndex)}
-          onUseWildcard={(card) => onUseWildcard(activeSlotIndex, card)}
-          wildcardsLeft={wildcardsLeft}
-          generationTokens={generationTokens}
-          generating={generating}
-          clue={clue}
-        />
-      )}
+      {/* PromptArea is now rendered by HandActionDock — not here. */}
     </View>
   )
 }
