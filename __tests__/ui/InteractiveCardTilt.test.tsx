@@ -420,6 +420,48 @@ describe('InteractiveCardTilt controller', () => {
     expect(state.lift).toBeLessThan(0)
   })
 
+  test('non-zero gesture velocity contributes directional tilt before finalize', () => {
+    const controller = createInteractiveCardTiltController({
+      profileName: 'hero',
+      regionKey: 'gallery',
+    })
+
+    expect(controller.beginGesture()).toBe(true)
+
+    const zeroVelocityState = controller.updateGesture({
+      dx: 0,
+      dy: 0,
+      vx: 0,
+      vy: 0,
+      x: 100,
+      y: 150,
+      layout: { width: 200, height: 300 },
+    })
+
+    controller.finalizeGesture()
+
+    expect(controller.beginGesture()).toBe(true)
+
+    const flingState = controller.updateGesture({
+      dx: 0,
+      dy: 0,
+      vx: 900,
+      vy: -700,
+      x: 100,
+      y: 150,
+      layout: { width: 200, height: 300 },
+    })
+
+    expect(zeroVelocityState.rotateX).toBe(0)
+    expect(zeroVelocityState.rotateY).toBe(0)
+    expect(zeroVelocityState.translateX).toBe(0)
+    expect(zeroVelocityState.translateY).toBe(0)
+    expect(flingState.rotateX).toBeGreaterThan(0)
+    expect(flingState.rotateY).toBeGreaterThan(0)
+    expect(flingState.translateX).toBeGreaterThan(0)
+    expect(flingState.translateY).toBeLessThan(0)
+  })
+
   test('uses shouldReleaseToScroll to cancel local tilt when vertical scroll takes over', () => {
     const releaseSpy = jest.spyOn(cardTiltMath, 'shouldReleaseToScroll')
     const controller = createInteractiveCardTiltController({
