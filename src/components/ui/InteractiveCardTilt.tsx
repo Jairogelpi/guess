@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react'
-import { Pressable, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native'
+import { Pressable, View, Platform, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
+import { radii } from '@/constants/theme'
 import { getCardTiltProfile } from './cardTiltRegistry'
 import * as cardTiltMath from './cardTiltMath'
 import type { CardTiltProfileName } from './cardTiltProfiles'
@@ -26,15 +27,49 @@ interface ControllerLayout {
 interface GestureUpdateInput {
   dx: number
   dy: number
+  vx: number
+  vy: number
   x: number
   y: number
   layout?: ControllerLayout
 }
 
 const activeRegionOwners = new Map<string, symbol>()
+const MOTION_BLEND_ALPHA = 0.62
+const DEFAULT_OVERLAY_RADIUS = radii.md + 2
 let controllerObserver:
   | ((controller: ReturnType<typeof createInteractiveCardTiltController> | undefined) => void)
   | undefined
+
+function findBorderRadius(style: StyleProp<ViewStyle>): number | undefined {
+  if (!style || typeof style === 'number' || typeof style === 'boolean') {
+    return undefined
+  }
+
+  if (Array.isArray(style)) {
+    for (let index = style.length - 1; index >= 0; index -= 1) {
+      const radius = findBorderRadius(style[index] as StyleProp<ViewStyle>)
+      if (radius !== undefined) {
+        return radius
+      }
+    }
+
+    return undefined
+  }
+
+  if (typeof style.borderRadius === 'number') {
+    return style.borderRadius
+  }
+
+  const cornerRadius = [
+    style.borderTopLeftRadius,
+    style.borderTopRightRadius,
+    style.borderBottomRightRadius,
+    style.borderBottomLeftRadius,
+  ].find((value): value is number => typeof value === 'number')
+
+  return cornerRadius
+}
 
 function acquireRegion(regionKey: string, ownerId: symbol) {
   const currentOwner = activeRegionOwners.get(regionKey)
@@ -79,6 +114,10 @@ export function createInteractiveCardTiltController({
   let lastState = cardTiltMath.getNeutralTiltState()
 
   const isTiltEnabled = () => !disabled && !reducedMotion
+  const resetToNeutral = () => {
+    lastState = cardTiltMath.getNeutralTiltState()
+    return lastState
+  }
 
   return {
     profile,
@@ -100,25 +139,26 @@ export function createInteractiveCardTiltController({
       }
     },
     beginGesture() {
+      resetToNeutral()
       if (!isTiltEnabled()) {
         return false
       }
 
       engaged = acquireRegion(regionKey, ownerId)
-      lastState = cardTiltMath.getNeutralTiltState()
+      if (!engaged) {
+        resetToNeutral()
+      }
       return engaged
     },
-    updateGesture({ dx, dy, x, y, layout }: GestureUpdateInput) {
+    updateGesture({ dx, dy, vx, vy, x, y, layout }: GestureUpdateInput) {
       if (!engaged || !layout) {
-        lastState = cardTiltMath.getNeutralTiltState()
-        return cardTiltMath.getNeutralTiltState()
+        return resetToNeutral()
       }
 
       if (!profile.preventScrollRelease && cardTiltMath.shouldReleaseToScroll({ dx, dy })) {
         engaged = false
         releaseRegion(regionKey, ownerId)
-        lastState = cardTiltMath.getNeutralTiltState()
-        return cardTiltMath.getNeutralTiltState()
+        return resetToNeutral()
       }
 
       const targetState = cardTiltMath.computeCardTiltStateFromDrag({
@@ -126,22 +166,23 @@ export function createInteractiveCardTiltController({
         layout,
         drag: { dx, dy },
         pointer: { x, y },
+        velocity: { vx, vy },
+        previousState: lastState,
       })
 
-      lastState = cardTiltMath.blendCardTiltState(lastState, targetState, 0.75)
+      lastState = cardTiltMath.blendCardTiltState(lastState, targetState, MOTION_BLEND_ALPHA)
       return lastState
     },
     finalizeGesture() {
       engaged = false
-      lastState = cardTiltMath.getNeutralTiltState()
       releaseRegion(regionKey, ownerId)
-      return cardTiltMath.getNeutralTiltState()
+      return resetToNeutral()
     },
     dispose() {
       engaged = false
       suppressNextPress = false
-      lastState = cardTiltMath.getNeutralTiltState()
       releaseRegion(regionKey, ownerId)
+      return resetToNeutral()
     },
   }
 }
@@ -175,6 +216,13 @@ export function InteractiveCardTilt({
   const translateX = useSharedValue(0)
   const translateY = useSharedValue(0)
   const scale = useSharedValue(1)
+  const pressScale = useSharedValue(1)
+  const lift = useSharedValue(0)
+  const shadowShiftX = useSharedValue(0)
+  const shadowShiftY = useSharedValue(0)
+  const shadowOpacity = useSharedValue(0)
+  const highlightOpacity = useSharedValue(0)
+  const overlayRadius = findBorderRadius(style) ?? DEFAULT_OVERLAY_RADIUS
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'test') {
@@ -195,6 +243,12 @@ export function InteractiveCardTilt({
     translateX.value = state.translateX
     translateY.value = state.translateY
     scale.value = state.scale
+    pressScale.value = state.pressScale
+    lift.value = state.lift
+    shadowShiftX.value = state.shadowShiftX
+    shadowShiftY.value = state.shadowShiftY
+    shadowOpacity.value = state.shadowOpacity
+    highlightOpacity.value = state.highlightOpacity
   }
 
   const springToRest = () => {
@@ -209,6 +263,12 @@ export function InteractiveCardTilt({
     translateX.value = withSpring(rest.translateX, springConfig)
     translateY.value = withSpring(rest.translateY, springConfig)
     scale.value = withSpring(rest.scale, springConfig)
+    pressScale.value = withSpring(rest.pressScale, springConfig)
+    lift.value = withSpring(rest.lift, springConfig)
+    shadowShiftX.value = withSpring(rest.shadowShiftX, springConfig)
+    shadowShiftY.value = withSpring(rest.shadowShiftY, springConfig)
+    shadowOpacity.value = withSpring(rest.shadowOpacity, springConfig)
+    highlightOpacity.value = withSpring(rest.highlightOpacity, springConfig)
   }
 
   const onLayout = (event: LayoutChangeEvent) => {
@@ -222,11 +282,122 @@ export function InteractiveCardTilt({
       { rotateY: `${rotateY.value}deg` },
       { translateX: translateX.value },
       { translateY: translateY.value },
+      { translateY: lift.value },
       { scale: scale.value },
+      { scale: pressScale.value },
+    ],
+    // CRITICAL: Force non-zero dimensions on web to prevent layout collapse
+    ...(Platform.OS === 'web' ? { width: '100%', height: '100%' } : {}),
+  }))
+
+  const shadowWashStyle = useAnimatedStyle(() => ({
+    opacity: shadowOpacity.value * 0.45,
+    transform: [
+      { translateX: shadowShiftX.value * 0.35 },
+      { translateY: shadowShiftY.value * 0.35 },
     ],
   }))
 
-  const animatedChild = React.createElement(Animated.View, { style: [animatedStyle, style] }, children)
+  const shadowBloomStyle = useAnimatedStyle(() => ({
+    opacity: shadowOpacity.value,
+    transform: [
+      { translateX: shadowShiftX.value },
+      { translateY: shadowShiftY.value },
+      { scaleX: 1.08 },
+      { scaleY: 1.02 },
+    ],
+  }))
+
+  const highlightBloomStyle = useAnimatedStyle(() => ({
+    opacity: highlightOpacity.value,
+    transform: [
+      { translateX: shadowShiftX.value * -0.55 },
+      { translateY: shadowShiftY.value * -0.45 },
+      { rotate: `${rotateY.value * 0.65}deg` },
+    ],
+  }))
+
+  const highlightEdgeStyle = useAnimatedStyle(() => ({
+    opacity: highlightOpacity.value * 0.7,
+    transform: [
+      { translateX: shadowShiftX.value * -0.18 },
+      { translateY: shadowShiftY.value * -0.18 },
+    ],
+  }))
+
+  const polishLayers = React.createElement(
+    View,
+    {
+      pointerEvents: 'none',
+      style: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        overflow: 'hidden',
+        borderRadius: overlayRadius,
+      },
+    },
+    React.createElement(Animated.View, {
+      style: [
+        {
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          backgroundColor: 'rgba(10, 6, 2, 0.28)',
+        },
+        shadowWashStyle,
+      ],
+    }),
+    React.createElement(Animated.View, {
+      style: [
+        {
+          position: 'absolute',
+          left: '-18%',
+          bottom: '-26%',
+          width: '140%',
+          height: '82%',
+          borderRadius: 999,
+          backgroundColor: 'rgba(8, 5, 2, 0.82)',
+        },
+        shadowBloomStyle,
+      ],
+    }),
+    React.createElement(Animated.View, {
+      style: [
+        {
+          position: 'absolute',
+          left: '-10%',
+          top: '-14%',
+          width: '88%',
+          height: '54%',
+          borderRadius: 999,
+          backgroundColor: 'rgba(255, 246, 228, 0.96)',
+        },
+        highlightBloomStyle,
+      ],
+    }),
+    React.createElement(Animated.View, {
+      style: [
+        {
+          position: 'absolute',
+          top: 1,
+          right: 1,
+          bottom: 1,
+          left: 1,
+          borderRadius: Math.max(overlayRadius - 1, 0),
+          borderWidth: 1,
+          borderColor: 'rgba(255, 248, 234, 0.42)',
+        },
+        highlightEdgeStyle,
+      ],
+    }),
+  )
+
+  const animatedChild = React.createElement(Animated.View, { style: [animatedStyle, style] }, children, polishLayers)
   const surface =
     onPress || onLongPress
       ? React.createElement(
@@ -237,6 +408,7 @@ export function InteractiveCardTilt({
             onLongPress: () => controller.longPress(),
             onPress: () => controller.press(),
             testID,
+            style: Platform.OS === 'web' ? style : undefined, // Force dimensions on web wrapper
           },
           animatedChild,
         )
@@ -245,6 +417,7 @@ export function InteractiveCardTilt({
           {
             onLayout,
             testID,
+            style: Platform.OS === 'web' ? style : undefined, // Force dimensions on web wrapper
           },
           animatedChild,
         )
@@ -264,6 +437,8 @@ export function InteractiveCardTilt({
         controller.updateGesture({
           dx: 0,
           dy: 0,
+          vx: 0,
+          vy: 0,
           x: event.x,
           y: event.y,
           layout: layoutRef.current,
@@ -275,6 +450,8 @@ export function InteractiveCardTilt({
         controller.updateGesture({
           dx: event.translationX,
           dy: event.translationY,
+          vx: event.velocityX,
+          vy: event.velocityY,
           x: event.x,
           y: event.y,
           layout: layoutRef.current,
@@ -284,6 +461,18 @@ export function InteractiveCardTilt({
     .onFinalize(() => {
       springToRest()
     })
+
+  // ON WEB: Wrap in a View with the provided style to ensure visibility 
+  // without blocking the internal gestures or clicks.
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[style, { position: 'relative' }]}>
+        <GestureDetector gesture={panGesture}>
+          {surface}
+        </GestureDetector>
+      </View>
+    )
+  }
 
   return React.createElement(GestureDetector, { gesture: panGesture }, surface)
 }
