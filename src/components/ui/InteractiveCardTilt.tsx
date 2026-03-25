@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react'
-import { Pressable, View, Platform, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native'
+import { Pressable, View, Platform, StyleSheet, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { radii } from '@/constants/theme'
@@ -37,38 +37,71 @@ interface GestureUpdateInput {
 const activeRegionOwners = new Map<string, symbol>()
 const MOTION_BLEND_ALPHA = 0.62
 const DEFAULT_OVERLAY_RADIUS = radii.md + 2
+const CLIP_RADIUS_KEYS = [
+  'borderRadius',
+  'borderTopLeftRadius',
+  'borderTopRightRadius',
+  'borderBottomRightRadius',
+  'borderBottomLeftRadius',
+] as const
 let controllerObserver:
   | ((controller: ReturnType<typeof createInteractiveCardTiltController> | undefined) => void)
   | undefined
 
-function findBorderRadius(style: StyleProp<ViewStyle>): number | undefined {
-  if (!style || typeof style === 'number' || typeof style === 'boolean') {
-    return undefined
+type ClipShapeStyle = Pick<
+  ViewStyle,
+  'borderRadius' | 'borderTopLeftRadius' | 'borderTopRightRadius' | 'borderBottomRightRadius' | 'borderBottomLeftRadius'
+>
+
+function extractClipShape(style: ViewStyle | undefined): ClipShapeStyle {
+  if (!style) {
+    return {}
   }
 
-  if (Array.isArray(style)) {
-    for (let index = style.length - 1; index >= 0; index -= 1) {
-      const radius = findBorderRadius(style[index] as StyleProp<ViewStyle>)
-      if (radius !== undefined) {
-        return radius
-      }
+  return CLIP_RADIUS_KEYS.reduce<ClipShapeStyle>((shape, key) => {
+    const value = style[key]
+    if (typeof value === 'number') {
+      shape[key] = value
     }
 
-    return undefined
+    return shape
+  }, {})
+}
+
+function insetClipShape(shape: ClipShapeStyle, inset: number) {
+  return CLIP_RADIUS_KEYS.reduce<ClipShapeStyle>((insetShape, key) => {
+    const value = shape[key]
+    if (typeof value === 'number') {
+      insetShape[key] = Math.max(value - inset, 0)
+    }
+
+    return insetShape
+  }, {})
+}
+
+function resolveClipShape({
+  wrapperStyle,
+  children,
+}: {
+  wrapperStyle?: StyleProp<ViewStyle>
+  children: React.ReactNode
+}) {
+  const childStyle = React.isValidElement<{ style?: StyleProp<ViewStyle> }>(children)
+    ? children.props.style
+    : undefined
+  const mergedStyle = {
+    ...(StyleSheet.flatten(wrapperStyle) ?? {}),
+    ...(StyleSheet.flatten(childStyle) ?? {}),
+  }
+  const clipShape = extractClipShape(mergedStyle)
+
+  if (CLIP_RADIUS_KEYS.every((key) => clipShape[key] === undefined)) {
+    return {
+      borderRadius: DEFAULT_OVERLAY_RADIUS,
+    }
   }
 
-  if (typeof style.borderRadius === 'number') {
-    return style.borderRadius
-  }
-
-  const cornerRadius = [
-    style.borderTopLeftRadius,
-    style.borderTopRightRadius,
-    style.borderBottomRightRadius,
-    style.borderBottomLeftRadius,
-  ].find((value): value is number => typeof value === 'number')
-
-  return cornerRadius
+  return clipShape
 }
 
 function acquireRegion(regionKey: string, ownerId: symbol) {
@@ -222,7 +255,8 @@ export function InteractiveCardTilt({
   const shadowShiftY = useSharedValue(0)
   const shadowOpacity = useSharedValue(0)
   const highlightOpacity = useSharedValue(0)
-  const overlayRadius = findBorderRadius(style) ?? DEFAULT_OVERLAY_RADIUS
+  const clipShape = useMemo(() => resolveClipShape({ wrapperStyle: style, children }), [children, style])
+  const innerClipShape = useMemo(() => insetClipShape(clipShape, 1), [clipShape])
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'test') {
@@ -336,7 +370,7 @@ export function InteractiveCardTilt({
         bottom: 0,
         left: 0,
         overflow: 'hidden',
-        borderRadius: overlayRadius,
+        ...clipShape,
       },
     },
     React.createElement(Animated.View, {
@@ -388,9 +422,9 @@ export function InteractiveCardTilt({
           right: 1,
           bottom: 1,
           left: 1,
-          borderRadius: Math.max(overlayRadius - 1, 0),
           borderWidth: 1,
           borderColor: 'rgba(255, 248, 234, 0.42)',
+          ...innerClipShape,
         },
         highlightEdgeStyle,
       ],

@@ -43,6 +43,26 @@ const MockActivityIndicator = createHostComponent('activityindicator', 'Activity
 const MockAnimatedView = createHostComponent('animatedview', 'AnimatedView')
 const MockGestureDetector = createHostComponent('gesturedetector', 'GestureDetector')
 
+function flattenStyle(style: unknown): Record<string, unknown> | undefined {
+  if (!style || typeof style === 'boolean' || typeof style === 'number') {
+    return undefined
+  }
+
+  if (Array.isArray(style)) {
+    return style.reduce<Record<string, unknown>>((merged, entry) => {
+      const flattenedEntry = flattenStyle(entry)
+
+      return flattenedEntry ? { ...merged, ...flattenedEntry } : merged
+    }, {})
+  }
+
+  if (typeof style === 'object') {
+    return { ...(style as Record<string, unknown>) }
+  }
+
+  return undefined
+}
+
 jest.mock('react-native', () => ({
   Pressable: MockPressable,
   TouchableOpacity: MockTouchableOpacity,
@@ -54,6 +74,7 @@ jest.mock('react-native', () => ({
   StyleSheet: {
     create: <T,>(styles: T) => styles,
     absoluteFillObject: {},
+    flatten: (style: unknown) => flattenStyle(style),
   },
 }))
 
@@ -100,6 +121,7 @@ jest.mock('@/constants/theme', () => ({
   },
 }), { virtual: true })
 
+const { StyleSheet } = require('react-native') as typeof import('react-native')
 const cardTiltMath = require('../../src/components/ui/cardTiltMath') as typeof import('../../src/components/ui/cardTiltMath')
 const {
   __resetInteractiveCardTiltRegistry,
@@ -275,6 +297,21 @@ function queryByNodeName(root: FakeNode, nodeName: string): FakeNode | null {
 
   for (const child of root.childNodes) {
     const match = queryByNodeName(child, nodeName)
+    if (match) {
+      return match
+    }
+  }
+
+  return null
+}
+
+function findNode(root: FakeNode, predicate: (node: FakeNode) => boolean): FakeNode | null {
+  if (predicate(root)) {
+    return root
+  }
+
+  for (const child of root.childNodes) {
+    const match = findNode(child, predicate)
     if (match) {
       return match
     }
@@ -655,6 +692,48 @@ describe('InteractiveCardTilt controller', () => {
     expect(queryByAttribute(rendered.container, 'testid', 'tilt-surface')).not.toBeNull()
     expect(queryByNodeName(rendered.container, 'pressable')).toBeNull()
     expect(queryByNodeName(rendered.container, 'view')).not.toBeNull()
+
+    rendered.unmount()
+  })
+
+  test('polish clip frame inherits radius from the immediate child surface style', () => {
+    const styles = StyleSheet.create({
+      wrapper: {
+        width: '100%',
+        aspectRatio: 2 / 3,
+      },
+      surfaceBase: {
+        backgroundColor: '#111111',
+      },
+      surfaceRounded: {
+        borderRadius: 26,
+        overflow: 'hidden',
+      },
+    })
+    const rendered = mount(
+      React.createElement(
+        InteractiveCardTilt as unknown as React.ComponentType<Record<string, unknown>>,
+        {
+          style: styles.wrapper,
+          testID: 'clip-surface',
+        },
+        React.createElement(MockView, {
+          style: [styles.surfaceBase, styles.surfaceRounded],
+          testID: 'clip-card-surface',
+        }),
+      ),
+    )
+    const clipFrame = findNode(
+      rendered.container,
+      (node) =>
+        node.nodeName === 'view' &&
+        node.style.position === 'absolute' &&
+        node.style.overflow === 'hidden' &&
+        parseFloat(node.style.borderRadius ?? '0') === 26,
+    )
+
+    expect(queryByAttribute(rendered.container, 'testid', 'clip-card-surface')).not.toBeNull()
+    expect(clipFrame).not.toBeNull()
 
     rendered.unmount()
   })
