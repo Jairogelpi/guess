@@ -216,17 +216,21 @@ describe('card tilt math', () => {
       velocity: { vx: -280, vy: 40 },
       previousState: current,
     })
+    const rotateGapWithoutHistory = Math.abs(current.rotateY - crossedWithoutHistory.rotateY)
+    const rotateGapWithHistory = Math.abs(current.rotateY - crossedWithHistory.rotateY)
+    const translateGapWithoutHistory = Math.abs(current.translateX - crossedWithoutHistory.translateX)
+    const translateGapWithHistory = Math.abs(current.translateX - crossedWithHistory.translateX)
 
     expect(current.rotateY).toBeGreaterThan(0)
     expect(current.translateX).toBeGreaterThan(0)
+    expect(crossedWithHistory.rotateY).toBeGreaterThan(0)
+    expect(crossedWithHistory.translateX).toBeGreaterThan(0)
+    expect(crossedWithHistory.rotateY).toBeGreaterThan(current.rotateY * 0.25)
+    expect(crossedWithHistory.translateX).toBeGreaterThan(current.translateX * 0.25)
     expect(crossedWithHistory.rotateY).toBeGreaterThan(crossedWithoutHistory.rotateY)
     expect(crossedWithHistory.translateX).toBeGreaterThan(crossedWithoutHistory.translateX)
-    expect(Math.abs(current.rotateY - crossedWithHistory.rotateY)).toBeLessThan(
-      Math.abs(current.rotateY - crossedWithoutHistory.rotateY),
-    )
-    expect(Math.abs(current.translateX - crossedWithHistory.translateX)).toBeLessThan(
-      Math.abs(current.translateX - crossedWithoutHistory.translateX),
-    )
+    expect(rotateGapWithHistory).toBeLessThan(rotateGapWithoutHistory * 0.6)
+    expect(translateGapWithHistory).toBeLessThan(translateGapWithoutHistory * 0.6)
   })
 
   test('tilt math keeps axis mapping and signs consistent with card orientation', () => {
