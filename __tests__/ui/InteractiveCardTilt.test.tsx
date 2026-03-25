@@ -50,6 +50,7 @@ jest.mock('react-native', () => ({
   Text: MockText,
   Image: MockImage,
   ActivityIndicator: MockActivityIndicator,
+  Platform: { OS: 'web' },
   StyleSheet: {
     create: <T,>(styles: T) => styles,
     absoluteFillObject: {},
@@ -357,6 +358,8 @@ describe('InteractiveCardTilt controller', () => {
     const state = controller.updateGesture({
       dx: 6,
       dy: 6,
+      vx: 0,
+      vy: 0,
       x: 180,
       y: 40,
       layout: { width: 200, height: 300 },
@@ -381,6 +384,8 @@ describe('InteractiveCardTilt controller', () => {
     const state = controller.updateGesture({
       dx: 4,
       dy: 3,
+      vx: 0,
+      vy: 0,
       x: 160,
       y: 50,
       layout: { width: 200, height: 300 },
@@ -391,8 +396,7 @@ describe('InteractiveCardTilt controller', () => {
     expect(state).toEqual(cardTiltMath.getNeutralTiltState())
   })
 
-  test('uses shouldReleaseToScroll to cancel local tilt when vertical scroll takes over', () => {
-    const releaseSpy = jest.spyOn(cardTiltMath, 'shouldReleaseToScroll')
+  test('beginGesture plus zero drag already produces a pressed sink pose', () => {
     const controller = createInteractiveCardTiltController({
       profileName: 'hero',
       regionKey: 'gallery',
@@ -401,8 +405,33 @@ describe('InteractiveCardTilt controller', () => {
     expect(controller.beginGesture()).toBe(true)
 
     const state = controller.updateGesture({
+      dx: 0,
+      dy: 0,
+      vx: 0,
+      vy: 0,
+      x: 100,
+      y: 150,
+      layout: { width: 200, height: 300 },
+    })
+
+    expect(state.pressScale).toBeLessThan(1)
+    expect(state.lift).toBeLessThan(0)
+  })
+
+  test('uses shouldReleaseToScroll to cancel local tilt when vertical scroll takes over', () => {
+    const releaseSpy = jest.spyOn(cardTiltMath, 'shouldReleaseToScroll')
+    const controller = createInteractiveCardTiltController({
+      profileName: 'standard',
+      regionKey: 'gallery',
+    })
+
+    expect(controller.beginGesture()).toBe(true)
+
+    const state = controller.updateGesture({
       dx: 7,
       dy: 19,
+      vx: 0,
+      vy: 0,
       x: 140,
       y: 90,
       layout: { width: 200, height: 300 },
@@ -424,6 +453,8 @@ describe('InteractiveCardTilt controller', () => {
     const draggedRight = controller.updateGesture({
       dx: 60,
       dy: 0,
+      vx: 0,
+      vy: 0,
       x: 170,
       y: 150,
       layout: { width: 200, height: 300 },
@@ -431,6 +462,8 @@ describe('InteractiveCardTilt controller', () => {
     const crossedCenter = controller.updateGesture({
       dx: 20,
       dy: 0,
+      vx: 0,
+      vy: 0,
       x: 90,
       y: 150,
       layout: { width: 200, height: 300 },
@@ -444,7 +477,7 @@ describe('InteractiveCardTilt controller', () => {
     expect(crossedCenter.translateX).toBeLessThan(draggedRight.translateX)
   })
 
-  test('finalize is the point where active drag tilt recenters', () => {
+  test('finalizeGesture restores the full richer neutral pose after active drag', () => {
     const controller = createInteractiveCardTiltController({
       profileName: 'hero',
       regionKey: 'gallery',
@@ -455,6 +488,8 @@ describe('InteractiveCardTilt controller', () => {
     const activeState = controller.updateGesture({
       dx: 48,
       dy: -36,
+      vx: 0,
+      vy: 0,
       x: 148,
       y: 114,
       layout: { width: 200, height: 300 },
@@ -462,7 +497,21 @@ describe('InteractiveCardTilt controller', () => {
     const finalizedState = controller.finalizeGesture()
 
     expect(activeState).not.toEqual(cardTiltMath.getNeutralTiltState())
-    expect(finalizedState).toEqual(cardTiltMath.getNeutralTiltState())
+    expect(activeState.pressScale).toBeLessThan(1)
+    expect(activeState.lift).toBeLessThan(0)
+    expect(finalizedState).toEqual({
+      rotateX: 0,
+      rotateY: 0,
+      translateX: 0,
+      translateY: 0,
+      scale: 1,
+      pressScale: 1,
+      lift: 0,
+      shadowShiftX: 0,
+      shadowShiftY: 0,
+      shadowOpacity: 0,
+      highlightOpacity: 0,
+    })
   })
 
   test('mounted long-press suppression survives finalize until the release press event is consumed', () => {
