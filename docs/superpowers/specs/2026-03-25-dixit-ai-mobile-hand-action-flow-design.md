@@ -141,6 +141,35 @@ Secondary dock copy should reinforce the rule, not compete with it. Examples:
 - `Carta lista para jugar`
 - `Carta elegida. Falta escribir la pista`
 
+### 4.2.1 Dock Focus State Model
+
+The redesigned hand should not leave the player in a persistent "nothing is focused" state during an active turn.
+
+Required state rule:
+
+- exactly one actionable slot/card is front-most while the player can still act
+- if local state would otherwise have no focus, the UI auto-focuses a deterministic fallback
+
+Fallback order:
+
+1. currently selected filled card
+2. most recently generated or inserted filled slot that is still playable
+3. first empty slot in hand order
+
+Required dock transitions:
+
+- phase entry -> resolve focus using the fallback order above so the dock has an immediate state
+- focused empty slot -> dock shows generation state for that exact slot
+- focused empty slot while generation is in progress -> keep the same slot front-most and disable the CTA with loading feedback
+- generation success -> keep the same slot front-most, populate it, and switch the dock to the filled-card CTA state
+- generation failure -> keep the same slot front-most, leave it empty, and keep the dock in retryable generation state with error feedback
+- focused filled card in `players_turn` -> dock shows `Jugar esta carta`
+- focused filled card in narrator step 1 -> dock shows `Siguiente: escribir pista`
+- user taps a different empty slot while a filled card was front-most -> the new empty slot becomes front-most and the dock returns to generation state
+- user has already spent the free generation and has 0 generation tokens -> the focused empty slot still comes to the front, but the primary generation CTA is disabled and the dock explicitly explains that the free generation is already spent
+
+This state model is required so the fixed dock remains the single source of truth for "what happens if I press the main button now."
+
 ### 4.3 Narrator Flow
 
 The narrator keeps the existing two-step structure, but the step 1 interaction becomes hand-first and dock-driven.
@@ -206,6 +235,12 @@ This keeps results readable and removes any pressure to rush through scoring.
 ### 5.3 General Rule
 
 No phase in the game should advance because time expired.
+
+Scope note:
+
+- this redesign explicitly removes the current countdown-driven advancement paths in the round HUD and results flow
+- implementation planning should audit the existing in-round and results countdown paths that currently affect gameplay progression
+- this does not imply inventing a wider cross-app timer-removal project outside the present round experience
 
 Advancement should happen only because:
 
@@ -331,6 +366,8 @@ Required responsibilities:
 Once timers are removed from gameplay UX, client countdown synchronization for results is no longer needed.
 
 `results_started_at` may remain in the schema if it is useful elsewhere, but it is not part of the redesigned player experience.
+
+This requirement is limited to the current round-phase and results-phase countdown behavior already present in the game flow.
 
 ### 8.2 Free Generation Must Be Authoritative
 
