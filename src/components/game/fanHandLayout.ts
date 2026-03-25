@@ -23,11 +23,12 @@ export function getFanCardPose(input: GetFanCardPoseInput): FanCardPose {
   const offset = input.index - mid
   const selected = input.selectedIndex === input.index
   const focused = input.focusedIndex === input.index
+  const spreadMultiplier = focused ? 1.18 : 1
 
   return {
-    translateX: offset * 54,
+    translateX: offset * 54 * spreadMultiplier,
     translateY: offset * offset * 8 - (selected ? 34 : focused ? 24 : 0),
-    angleDeg: offset * 12,
+    angleDeg: offset * 12 * spreadMultiplier,
     scale: selected ? 1.14 : focused ? 1.08 : 1,
   }
 }
