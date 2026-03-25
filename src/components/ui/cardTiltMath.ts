@@ -393,7 +393,7 @@ export function computeCardTiltStateFromDrag({
   const maxDragY = profile.maxDragY ?? profile.maxParallax * 4.5
   const retainedTranslateX = retainAxisEnergy({
     nextValue: clamp(
-      dragFollow.translateX + velocityBoost.translateX,
+      transform.translateX + dragFollow.translateX + velocityBoost.translateX,
       -maxDragX,
       maxDragX,
     ),
@@ -402,7 +402,7 @@ export function computeCardTiltStateFromDrag({
   })
   const retainedTranslateY = retainAxisEnergy({
     nextValue: clamp(
-      dragFollow.translateY + velocityBoost.translateY,
+      transform.translateY + dragFollow.translateY + velocityBoost.translateY,
       -maxDragY,
       maxDragY,
     ),

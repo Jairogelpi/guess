@@ -120,9 +120,22 @@ describe('card tilt math', () => {
 
     expect(state.rotateX).toBe(2.5)
     expect(state.rotateY).toBe(2.5)
-    expect(state.translateX).toBe(27)
-    expect(state.translateY).toBeCloseTo(-25.2, 5)
+    expect(state.translateX).toBe(30)
+    expect(state.translateY).toBe(-27)
     expect(state.scale).toBe(standard.scale)
+  })
+
+  test('drag state preserves pointer parallax even when drag delta is zero', () => {
+    const standard = getCardTiltProfile('standard')
+    const state = computeCardTiltStateFromDrag({
+      profile: standard,
+      layout: { width: 240, height: 360 },
+      drag: { dx: 0, dy: 0 },
+      pointer: { x: 180, y: 90 },
+    })
+
+    expect(state.translateX).toBe(3)
+    expect(state.translateY).toBe(-3)
   })
 
   test('drag-relative tilt stays engaged when the finger crosses the card center', () => {
