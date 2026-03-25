@@ -152,7 +152,46 @@ describe('card tilt math', () => {
     expect(state.translateY).toBeCloseTo(0.84, 5)
   })
 
-  test('drag pose responds to velocity without snapping through center', () => {
+  test('high velocity amplifies the same drag response while staying clamped', () => {
+    const hero = getCardTiltProfile('hero')
+    const calm = computeCardTiltStateFromDrag({
+      profile: hero,
+      layout: { width: 200, height: 300 },
+      drag: { dx: 24, dy: -16 },
+      pointer: { x: 148, y: 108 },
+      velocity: { vx: 0, vy: 0 },
+      previousState: getNeutralTiltState(),
+    })
+    const fast = computeCardTiltStateFromDrag({
+      profile: hero,
+      layout: { width: 200, height: 300 },
+      drag: { dx: 24, dy: -16 },
+      pointer: { x: 148, y: 108 },
+      velocity: { vx: 920, vy: -640 },
+      previousState: getNeutralTiltState(),
+    })
+
+    expect(Math.abs(fast.rotateX)).toBeGreaterThan(Math.abs(calm.rotateX))
+    expect(Math.abs(fast.rotateY)).toBeGreaterThan(Math.abs(calm.rotateY))
+    expect(Math.abs(fast.translateX)).toBeGreaterThan(Math.abs(calm.translateX))
+    expect(Math.abs(fast.translateY)).toBeGreaterThan(Math.abs(calm.translateY))
+    expect(Math.abs(fast.rotateX)).toBeLessThanOrEqual(hero.maxRotateX)
+    expect(Math.abs(fast.rotateY)).toBeLessThanOrEqual(hero.maxRotateY)
+    expect(Math.abs(fast.rotateX) - Math.abs(calm.rotateX)).toBeLessThanOrEqual(
+      hero.velocityRotateBoost,
+    )
+    expect(Math.abs(fast.rotateY) - Math.abs(calm.rotateY)).toBeLessThanOrEqual(
+      hero.velocityRotateBoost,
+    )
+    expect(Math.abs(fast.translateX) - Math.abs(calm.translateX)).toBeLessThanOrEqual(
+      hero.velocityTranslateBoost,
+    )
+    expect(Math.abs(fast.translateY) - Math.abs(calm.translateY)).toBeLessThanOrEqual(
+      hero.velocityTranslateBoost,
+    )
+  })
+
+  test('previousState preserves prior drag energy when crossing back through center', () => {
     const hero = getCardTiltProfile('hero')
     const current = computeCardTiltStateFromDrag({
       profile: hero,
@@ -162,7 +201,14 @@ describe('card tilt math', () => {
       velocity: { vx: 620, vy: -140 },
       previousState: getNeutralTiltState(),
     })
-    const crossed = computeCardTiltStateFromDrag({
+    const crossedWithoutHistory = computeCardTiltStateFromDrag({
+      profile: hero,
+      layout: { width: 200, height: 300 },
+      drag: { dx: 20, dy: -10 },
+      pointer: { x: 92, y: 122 },
+      velocity: { vx: -280, vy: 40 },
+    })
+    const crossedWithHistory = computeCardTiltStateFromDrag({
       profile: hero,
       layout: { width: 200, height: 300 },
       drag: { dx: 20, dy: -10 },
@@ -171,29 +217,16 @@ describe('card tilt math', () => {
       previousState: current,
     })
 
-    expect(current.pressScale).toBeLessThan(1)
-    expect(current.highlightOpacity).toBeGreaterThan(0)
-    expect(crossed.rotateY).toBeGreaterThan(-hero.maxRotateY)
-    expect(crossed.rotateY).toBeLessThan(current.rotateY)
-  })
-
-  test('velocity boost stays clamped inside profile bounds', () => {
-    const hero = getCardTiltProfile('hero')
-    const state = computeCardTiltStateFromDrag({
-      profile: hero,
-      layout: { width: 200, height: 300 },
-      drag: { dx: 180, dy: -120 },
-      pointer: { x: 190, y: 24 },
-      velocity: { vx: 2600, vy: -1900 },
-      previousState: getNeutralTiltState(),
-    })
-
-    expect(Math.abs(state.rotateX)).toBeLessThanOrEqual(hero.maxRotateX)
-    expect(Math.abs(state.rotateY)).toBeLessThanOrEqual(hero.maxRotateY)
-    expect(Math.abs(state.translateX)).toBeGreaterThan(0)
-    expect(Math.abs(state.translateY)).toBeGreaterThan(0)
-    expect(state.pressScale).toBeGreaterThanOrEqual(hero.pressScaleMin)
-    expect(state.lift).toBeGreaterThanOrEqual(-hero.maxLiftDepth)
+    expect(current.rotateY).toBeGreaterThan(0)
+    expect(current.translateX).toBeGreaterThan(0)
+    expect(crossedWithHistory.rotateY).toBeGreaterThan(crossedWithoutHistory.rotateY)
+    expect(crossedWithHistory.translateX).toBeGreaterThan(crossedWithoutHistory.translateX)
+    expect(Math.abs(current.rotateY - crossedWithHistory.rotateY)).toBeLessThan(
+      Math.abs(current.rotateY - crossedWithoutHistory.rotateY),
+    )
+    expect(Math.abs(current.translateX - crossedWithHistory.translateX)).toBeLessThan(
+      Math.abs(current.translateX - crossedWithoutHistory.translateX),
+    )
   })
 
   test('tilt math keeps axis mapping and signs consistent with card orientation', () => {
@@ -259,11 +292,15 @@ describe('card tilt math', () => {
     expect(shouldReleaseToScroll({ dx: 4, dy: 18 })).toBe(false)
   })
 
-  test('blendCardTiltState interpolates the richer visual channels', () => {
+  test('blendCardTiltState interpolates legacy transform channels and richer visual channels', () => {
     const blended = blendCardTiltState(
       {
-        ...getNeutralTiltState(),
-        pressScale: 0.96,
+        rotateX: 4,
+        rotateY: -6,
+        translateX: 10,
+        translateY: -8,
+        scale: 1.02,
+        pressScale: 0.94,
         lift: -4,
         shadowShiftX: 6,
         shadowShiftY: -3,
@@ -274,17 +311,16 @@ describe('card tilt math', () => {
       0.5,
     )
 
-    expect(blended.pressScale).toBeGreaterThan(0.96)
-    expect(blended.pressScale).toBeLessThan(1)
-    expect(blended.lift).toBeGreaterThan(-4)
-    expect(blended.lift).toBeLessThan(0)
-    expect(blended.shadowShiftX).toBeGreaterThan(0)
-    expect(blended.shadowShiftX).toBeLessThan(6)
-    expect(blended.shadowShiftY).toBeLessThan(0)
-    expect(blended.shadowShiftY).toBeGreaterThan(-3)
-    expect(blended.shadowOpacity).toBeGreaterThan(0)
-    expect(blended.shadowOpacity).toBeLessThan(0.22)
-    expect(blended.highlightOpacity).toBeGreaterThan(0)
-    expect(blended.highlightOpacity).toBeLessThan(0.16)
+    expect(blended.rotateX).toBeCloseTo(2, 5)
+    expect(blended.rotateY).toBeCloseTo(-3, 5)
+    expect(blended.translateX).toBeCloseTo(5, 5)
+    expect(blended.translateY).toBeCloseTo(-4, 5)
+    expect(blended.scale).toBeCloseTo(1.01, 5)
+    expect(blended.pressScale).toBeCloseTo(0.97, 5)
+    expect(blended.lift).toBeCloseTo(-2, 5)
+    expect(blended.shadowShiftX).toBeCloseTo(3, 5)
+    expect(blended.shadowShiftY).toBeCloseTo(-1.5, 5)
+    expect(blended.shadowOpacity).toBeCloseTo(0.11, 5)
+    expect(blended.highlightOpacity).toBeCloseTo(0.08, 5)
   })
 })
