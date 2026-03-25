@@ -73,7 +73,7 @@ Hard constraints:
 - no continuous layout measurement during gesture updates
 - no extra global listeners per card
 - no duplicate implementations for different screens
-- reduced motion must continue to disable tilt while preserving press behavior
+- reduced motion must continue to disable tilt while preserving normal tap/long-press behavior, with no press-sink compression or active 3D pose
 - scroll handoff must continue to work in scrollable views
 
 ---
@@ -234,6 +234,7 @@ Changes:
 - velocity from gesture handler events is fed into math when available
 - spring-back animates all relevant shared values, not just rotation/translation/scale
 - the component renders internal visual layers needed for moving highlight/shadow without changing its public API
+- internal highlight/shadow layers must be validated early against wrapper clipping, masking, and web sizing behavior because `InteractiveCardTilt` wraps both `DixitCard` and custom card trees
 
 The wrapper must still support both passive surfaces and pressable surfaces, and still work on web.
 
