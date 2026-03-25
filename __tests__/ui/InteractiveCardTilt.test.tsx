@@ -396,7 +396,7 @@ describe('InteractiveCardTilt controller', () => {
     expect(state).toEqual(cardTiltMath.getNeutralTiltState())
   })
 
-  test('beginGesture plus zero drag already produces a pressed sink pose', () => {
+  test('beginGesture plus zero drag already produces an off-center pressed sink pose', () => {
     const controller = createInteractiveCardTiltController({
       profileName: 'hero',
       regionKey: 'gallery',
@@ -409,11 +409,13 @@ describe('InteractiveCardTilt controller', () => {
       dy: 0,
       vx: 0,
       vy: 0,
-      x: 100,
-      y: 150,
+      x: 160,
+      y: 60,
       layout: { width: 200, height: 300 },
     })
 
+    expect(state.rotateX).toBeGreaterThan(0)
+    expect(state.rotateY).toBeGreaterThan(0)
     expect(state.pressScale).toBeLessThan(1)
     expect(state.lift).toBeLessThan(0)
   })
