@@ -1,4 +1,5 @@
-import { TouchableOpacity, Image, View, Text, StyleSheet, ActivityIndicator } from 'react-native'
+import React from 'react'
+import { TouchableOpacity, Image, View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native'
 import { colors, radii, shadows } from '@/constants/theme'
 
 interface DixitCardProps {
@@ -7,8 +8,15 @@ interface DixitCardProps {
   selected?: boolean
   label?: string
   onPress?: () => void
+  onLongPress?: () => void
   disabled?: boolean
   aspectRatio?: number
+  interactive?: boolean
+  /** Compact size for vote field (slightly thinner frame) */
+  compact?: boolean
+  /** Animated gold outer glow for selected state */
+  glowing?: boolean
+  testID?: string
 }
 
 export function DixitCard({
@@ -17,60 +25,133 @@ export function DixitCard({
   selected,
   label,
   onPress,
+  onLongPress,
   disabled,
   aspectRatio = 2 / 3,
+  interactive = false,
+  compact = false,
+  glowing = false,
+  testID,
 }: DixitCardProps) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled ?? !onPress}
-      activeOpacity={0.88}
-      style={[styles.wrapper, selected && styles.wrapperSelected]}
-    >
-      <View style={[styles.card, selected && styles.cardSelected, { aspectRatio }]}>
-        {loading ? (
-          <View style={styles.placeholder}>
-            <ActivityIndicator size="large" color={colors.gold} />
-          </View>
-        ) : uri ? (
-          <Image source={{ uri }} style={styles.image} resizeMode="cover" />
-        ) : (
-          <View style={styles.placeholder}>
-            <Text style={styles.placeholderText}>?</Text>
-          </View>
-        )}
+  const imageNode = loading
+    ? React.createElement(
+        View,
+        { style: styles.placeholder },
+        React.createElement(ActivityIndicator, { size: 'large', color: colors.gold }),
+      )
+    : React.createElement(Image, {
+        source: uri ? { uri } : require('../../../assets/carta.png'),
+        style: styles.image,
+        resizeMode: 'cover',
+      })
 
-        {/* Gold border overlay (selected highlight) */}
-        {selected && <View style={styles.selectedOverlay} />}
-      </View>
+  const isWeb = Platform.OS === 'web'
 
-      {label && (
-        <Text style={styles.label} numberOfLines={1}>
-          {label}
-        </Text>
-      )}
-    </TouchableOpacity>
+  // On web, aspectRatio inside flex containers is unreliable.
+  // Use paddingBottom hack to enforce aspect ratio instead.
+  const cardStyles = [
+    styles.card,
+    selected && styles.cardSelected,
+    compact && styles.cardCompact,
+    (glowing || selected) && styles.cardGlowing,
+    isWeb
+      ? ({ width: '100%', paddingBottom: `${(1 / aspectRatio) * 100}%` } as any)
+      : { aspectRatio, flex: 1 },
+  ]
+
+  const content = React.createElement(
+    React.Fragment,
+    null,
+    React.createElement(
+      View,
+      { style: cardStyles },
+      /* On web, image is absolute-fill inside the padding-based container */
+      React.createElement(
+        View,
+        { style: isWeb ? styles.webImageFill : styles.nativeImageFill },
+        imageNode,
+      ),
+      /* TCG inner frame overlay — purely decorative */
+      React.createElement(View, { style: styles.innerFrameOverlay }),
+      /* Corner ornaments */
+      React.createElement(View, { style: styles.cornerOrnamentTL }),
+      React.createElement(View, { style: styles.cornerOrnamentBR }),
+      /* Selected overlay */
+      selected ? React.createElement(View, { style: styles.selectedOverlay }) : null,
+    ),
+    label
+      ? React.createElement(
+          Text,
+          { style: styles.label, numberOfLines: 1 },
+          label,
+        )
+      : null,
+  )
+
+  if (!interactive) {
+    return React.createElement(
+      View,
+      { style: [styles.wrapper, selected && styles.wrapperSelected], testID },
+      content,
+    )
+  }
+
+  return React.createElement(
+    TouchableOpacity,
+    {
+      onLongPress,
+      onPress,
+      disabled: disabled ?? (!onPress && !onLongPress),
+      activeOpacity: 0.88,
+      style: [styles.wrapper, selected && styles.wrapperSelected],
+      testID,
+    },
+    content,
   )
 }
 
 const styles = StyleSheet.create({
   wrapper: {
-    borderRadius: radii.md,
+    borderRadius: radii.md + 2,
+    ...shadows.card,
   },
   wrapperSelected: {
     transform: [{ scale: 1.03 }],
   },
   card: {
-    borderRadius: radii.md,
+    borderRadius: radii.md + 2,
     overflow: 'hidden',
-    borderWidth: 2.5,
-    borderColor: colors.cardBorder,
+    borderWidth: 3,
+    borderColor: '#b8860b',
     backgroundColor: colors.surfaceDeep,
-    ...shadows.card,
+    position: 'relative',
   },
   cardSelected: {
     borderColor: colors.goldLight,
-    borderWidth: 3,
+    borderWidth: 3.5,
+  },
+  cardCompact: {
+    borderWidth: 2,
+    borderRadius: radii.md,
+  },
+  cardGlowing: {
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 14,
+  },
+  /* Native: image fills parent via flex */
+  nativeImageFill: {
+    flex: 1,
+  },
+  /* Web: image fills padding-based container via absolute positioning */
+  webImageFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   image: {
     width: '100%',
@@ -82,14 +163,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.surfaceMid,
   },
-  placeholderText: {
-    color: colors.gold,
-    fontSize: 36,
-    fontWeight: '200',
+  /* TCG decorative inner border */
+  innerFrameOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    margin: 3,
+    borderRadius: radii.md - 3,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 192, 119, 0.25)',
+    pointerEvents: 'none',
+  },
+  cornerOrnamentTL: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    width: 12,
+    height: 12,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: 'rgba(244, 192, 119, 0.35)',
+    borderTopLeftRadius: 3,
+    pointerEvents: 'none',
+  },
+  cornerOrnamentBR: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    width: 12,
+    height: 12,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderColor: 'rgba(244, 192, 119, 0.35)',
+    borderBottomRightRadius: 3,
+    pointerEvents: 'none',
   },
   selectedOverlay: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: radii.md - 2,
+    borderRadius: radii.md,
     borderWidth: 2,
     borderColor: 'rgba(251,176,36,0.4)',
   },

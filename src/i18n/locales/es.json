@@ -100,7 +100,14 @@
     "phaseNarrator": "Narrador",
     "phaseChoose": "Elige carta",
     "phaseVote": "Vota",
-    "phaseResults": "Resultados"
+    "phaseResults": "Resultados",
+    "generateCardFree": "Generar carta gratis",
+    "generateCardPaid": "Generar carta (-1)",
+    "playSelectedCard": "Jugar esta carta",
+    "nextWriteClue": "Siguiente: escribir pista",
+    "firstGenerationFree": "Tu primera generacion de esta ronda es gratis",
+    "generationCostsOne": "Esta generacion consumira 1 ficha",
+    "generationUnavailableNoTokens": "Ya gastaste la gratis y no te quedan fichas de generacion"
   },
   "gallery": {
     "title": "Mi galeria",

@@ -8,6 +8,9 @@ import { CardGenerator } from '@/components/game/CardGenerator'
 import { DixitCard } from '@/components/ui/DixitCard'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { HandActionDock } from '@/components/game/HandActionDock'
+import { deriveHandActionDockState } from '@/components/game/handActionState'
+import type { HydratedHandSlot } from '@/components/game/handActionState'
 import { colors, fonts, radii, shadows } from '@/constants/theme'
 import type { GalleryCard } from '@/types/game'
 
@@ -104,14 +107,32 @@ export function NarratorPhase({ roomCode, wildcardsRemaining }: Props) {
             maxLength={100}
           />
 
+          <HandActionDock
+            state={deriveHandActionDockState({
+              phase: 'narrator_turn',
+              focusedSlot: {
+                slotIndex: 0,
+                kind: 'filled',
+                cardId: selectedCard.kind === 'generated' ? selectedCard.cardId : null,
+                imageUri: selectedCard.imageUrl,
+                galleryCardId: selectedCard.kind === 'gallery' ? selectedCard.galleryCardId : null,
+              } satisfies HydratedHandSlot,
+              hasFreeGeneration: false,
+              generationTokens: 0,
+              generating: submitting,
+            })}
+            promptValue={clue}
+            onPromptChange={setClue}
+            onSuggestPrompt={() => {}}
+            onUseWildcard={() => {}}
+            onPrimaryAction={handleSubmitClue}
+            onGenerate={() => {}}
+            wildcardsLeft={wildcardsRemaining}
+            generationTokens={0}
+            generating={submitting}
+            eyebrow={t('game.writeClue')}
+          />
           <View style={styles.actions}>
-            <Button
-              onPress={handleSubmitClue}
-              loading={submitting}
-              disabled={!clue.trim()}
-            >
-              {t('game.submitClue')}
-            </Button>
             <Button onPress={() => setSelectedCard(null)} variant="ghost">
               {t('game.changeCard')}
             </Button>

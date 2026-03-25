@@ -7,6 +7,9 @@ import { useGameActions } from '@/hooks/useGameActions'
 import { CardGenerator } from '@/components/game/CardGenerator'
 import { DixitCard } from '@/components/ui/DixitCard'
 import { Button } from '@/components/ui/Button'
+import { HandActionDock } from '@/components/game/HandActionDock'
+import { deriveHandActionDockState } from '@/components/game/handActionState'
+import type { HydratedHandSlot } from '@/components/game/handActionState'
 import { colors, fonts, radii, shadows } from '@/constants/theme'
 import type { GalleryCard } from '@/types/game'
 
@@ -128,9 +131,30 @@ export function PlayersPhase({ roomCode, narratorClue, isWaiting, wildcardsRemai
           )}
 
           <View style={styles.actions}>
-            <Button onPress={handleSubmitCard} loading={submitting}>
-              {t('game.submitCard')}
-            </Button>
+            <HandActionDock
+              state={deriveHandActionDockState({
+                phase: 'players_turn',
+                focusedSlot: {
+                  slotIndex: 0,
+                  kind: 'filled',
+                  cardId: selectedCard.kind === 'generated' ? selectedCard.cardId : null,
+                  imageUri: selectedCard.imageUrl,
+                  galleryCardId: selectedCard.kind === 'gallery' ? selectedCard.galleryCardId : null,
+                } satisfies HydratedHandSlot,
+                hasFreeGeneration: false,
+                generationTokens: 0,
+                generating: submitting,
+              })}
+              promptValue=""
+              onPromptChange={() => {}}
+              onSuggestPrompt={() => {}}
+              onUseWildcard={() => {}}
+              onPrimaryAction={handleSubmitCard}
+              onGenerate={() => {}}
+              wildcardsLeft={wildcardsRemaining}
+              generationTokens={0}
+              generating={submitting}
+            />
             <Button onPress={() => setSelectedCard(null)} variant="ghost">
               {t('game.changeCard')}
             </Button>

@@ -100,7 +100,14 @@
     "phaseNarrator": "Narrator",
     "phaseChoose": "Choose card",
     "phaseVote": "Vote",
-    "phaseResults": "Results"
+    "phaseResults": "Results",
+    "generateCardFree": "Generate free card",
+    "generateCardPaid": "Generate card (-1)",
+    "playSelectedCard": "Play this card",
+    "nextWriteClue": "Next: write clue",
+    "firstGenerationFree": "Your first generation this round is free",
+    "generationCostsOne": "This generation will spend 1 token",
+    "generationUnavailableNoTokens": "Free generation spent and no tokens left"
   },
   "gallery": {
     "title": "My gallery",
