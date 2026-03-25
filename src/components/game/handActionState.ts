@@ -9,7 +9,6 @@ export interface HydratedHandSlot {
 export interface BuildHandSlotsInput {
   maxSlots: number
   cards: readonly RoundCardRecord[]
-  selectedCardId?: string | null
 }
 
 export interface RoundCardRecord {
@@ -29,7 +28,6 @@ export interface ResolveFocusedSlotIndexInput {
 
 export interface DeriveHandActionDockStateInput {
   phase: 'narrator_turn' | 'players_turn' | 'voting' | 'results'
-  narratorStep: 1 | 2
   focusedSlot: HydratedHandSlot
   hasFreeGeneration: boolean
   generationTokens: number
@@ -43,9 +41,14 @@ export interface HandActionDockState {
 }
 
 export function buildHandSlotsFromRoundCards(input: BuildHandSlotsInput): HydratedHandSlot[] {
-  const sortedCards = Array.from(input.cards).sort((left, right) =>
-    left.created_at.localeCompare(right.created_at),
-  )
+  const sortedCards = Array.from(input.cards).sort((left, right) => {
+    const createdAtOrder = left.created_at.localeCompare(right.created_at)
+    if (createdAtOrder !== 0) {
+      return createdAtOrder
+    }
+
+    return left.id.localeCompare(right.id)
+  })
 
   return Array.from({ length: input.maxSlots }, (_, slotIndex) => {
     const card = sortedCards[slotIndex] ?? null
@@ -71,7 +74,7 @@ export function buildHandSlotsFromRoundCards(input: BuildHandSlotsInput): Hydrat
   })
 }
 
-export function resolveFocusedSlotIndex(input: ResolveFocusedSlotIndexInput): number {
+export function resolveFocusedSlotIndex(input: ResolveFocusedSlotIndexInput): number | null {
   const selectedIndex = findSlotIndexByCardId(input.slots, input.selectedCardId)
   if (selectedIndex !== null) {
     return selectedIndex
@@ -82,7 +85,7 @@ export function resolveFocusedSlotIndex(input: ResolveFocusedSlotIndexInput): nu
     return insertedIndex
   }
 
-  return input.slots.find((slot) => slot.kind === 'empty')?.slotIndex ?? 0
+  return input.slots.find((slot) => slot.kind === 'empty')?.slotIndex ?? null
 }
 
 export function deriveHandActionDockState(

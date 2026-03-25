@@ -18,6 +18,7 @@ describe('fanHandLayout', () => {
     expect(
       Math.abs(focusedPose.translateX),
     ).toBeGreaterThan(Math.abs(restingPose.translateX))
+    expect(Math.abs(focusedPose.angleDeg)).toBeGreaterThan(Math.abs(restingPose.angleDeg))
     expect(focusedPose.scale).toBeGreaterThan(restingPose.scale)
 
     expect(
