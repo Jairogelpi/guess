@@ -167,7 +167,7 @@ export function TacticalActionPicker({
       </View>
 
       {primaryHelperReasonKey ? (
-        <View style={styles.helperRow}>
+        <View testID="tactical-helper-row" style={styles.helperRow}>
           <MaterialCommunityIcons
             name="information-outline"
             size={14}
@@ -178,7 +178,7 @@ export function TacticalActionPicker({
       ) : null}
 
       {(selectedActionDefinition || selectedChallengeLeader) && (
-        <View style={styles.summary}>
+        <View testID="tactical-selection-summary" style={styles.summary}>
           {selectedActionDefinition && (
             <View style={styles.summaryRow}>
               <MaterialCommunityIcons
