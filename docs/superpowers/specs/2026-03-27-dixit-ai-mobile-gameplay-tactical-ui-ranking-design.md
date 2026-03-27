@@ -36,12 +36,17 @@ Make the in-match screen visually clearer and more competitive by:
 
 Apply the redesign to the active game experience:
 
-- narrator waiting view
-- narrator phase
-- player submission phase
-- voting phase
-- any gameplay surface where `TacticalActionPicker` appears
-- the top gameplay stack around `GameStatusHUD`
+- add a live standings strip to the shared gameplay shell so it is visible in narrator, player, voting, and waiting states
+- redesign the tactical tray anywhere `TacticalActionPicker` is already mounted in gameplay
+- keep the top gameplay stack around `GameStatusHUD` visually consistent across phases
+
+For the current repo state, that means:
+
+- narrator waiting view in `app/room/[code]/game.tsx`
+- voting action bar in `src/components/game-phases/VotingPhase.tsx`
+- shared shell layout in `app/room/[code]/game.tsx`
+
+It does **not** require inventing a brand-new tactical tray inside `NarratorPhase.tsx` or `PlayersPhase.tsx` for this task.
 
 ### Scope excluded
 
@@ -103,19 +108,23 @@ This is the best fit because it solves the actual readability problem without re
 
 ## Information Hierarchy
 
-The gameplay screen should read top to bottom in this order:
+The gameplay shell should always read top to bottom in this order:
 
 1. match state and timer
 2. live standings
 3. economy counters
-4. current tactical actions
-5. board / cards / waiting state
+4. phase content
 
-Rationale:
+Inside phase content, the layout depends on whether the current user can act:
 
-- players need round and timer context first
-- competitive position should be visible before tactical decisions
-- tactical controls should stay close to the interactive phase content, but not compete with the board for attention
+- active tactical surfaces:
+  - tactical tray first
+  - primary interaction surface second
+- waiting surfaces:
+  - waiting context first
+  - disabled tactical tray second, only when that tray already exists in the current flow
+
+This keeps the shell consistent without forcing new tactical mounts into phases that do not currently use them.
 
 ---
 
@@ -128,7 +137,7 @@ Introduce a compact gameplay-only standings component mounted under `GameStatusH
 Each player pill must show:
 
 - position marker such as `#1`, `#2`, `#3`
-- avatar or initial fallback
+- avatar from `profiles.avatar_url`, or an initial fallback if absent
 - shortened display name
 - current total score
 
@@ -137,7 +146,7 @@ Each player pill must show:
 Use the same live score basis already available in the room player list:
 
 - sort by `score` descending
-- use stable original order as the fallback tiebreak for presentation
+- use the incoming `players` array order from the current room payload as the fallback tiebreak for presentation
 - tied players still display sequential visible positions unless an existing shared-rank helper is already present and easy to reuse
 
 The goal is visual clarity, not tournament-grade ranking semantics.
@@ -225,19 +234,56 @@ This strip is informational only for this task. It does not need to become inter
 
 Planning should keep the change isolated with small units.
 
+### Per-phase target layout
+
+- narrator waiting in `game.tsx`
+  - shell shows `HUD -> standings -> economy`
+  - waiting card remains the primary block
+  - disabled tactical tray remains below the waiting card
+
+- narrator active in `NarratorPhase.tsx`
+  - shell shows `HUD -> standings -> economy`
+  - no new tactical tray is added as part of this task
+
+- player submission active in `PlayersPhase.tsx`
+  - shell shows `HUD -> standings -> economy`
+  - no new tactical tray is added as part of this task
+
+- player waiting in `PlayersPhase.tsx`
+  - shell shows `HUD -> standings -> economy`
+  - no tactical tray is introduced here
+
+- voting active in `VotingPhase.tsx`
+  - shell shows `HUD -> standings -> economy`
+  - tactical tray remains in the action bar and appears above the vote confirm button
+
+- voting waiting in `VotingPhase.tsx`
+  - shell shows `HUD -> standings -> economy`
+  - no disabled tactical tray is shown after the user has already voted
+
 ### Expected component changes
 
 - `app/room/[code]/game.tsx`
   - insert the standings strip into the gameplay shell
+  - keep narrator waiting layout as waiting card first, tactical tray second
 
 - `src/components/game/TacticalActionPicker.tsx`
   - redesign layout
   - collapse repeated notes into one helper
   - visually integrate challenge leader with the rest of the action tray
 
+- `src/components/game-phases/VotingPhase.tsx`
+  - preserve the action-bar mount point
+  - place the redesigned tray above the vote CTA
+
 - new gameplay standings component
   - create a focused component for compact in-match ranking
   - do not overload the existing `ScoreBoard` if doing so would make it harder to reason about
+
+### Expected no-change references
+
+- `src/components/game-phases/NarratorPhase.tsx`
+- `src/components/game-phases/PlayersPhase.tsx`
 
 ### Data sources
 
