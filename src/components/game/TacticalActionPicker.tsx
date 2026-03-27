@@ -27,6 +27,7 @@ interface TacticalActionPickerProps {
   corruptedCardsRemaining: number
   selectedAction: TacticalActionId | null
   selectedChallengeLeader: boolean
+  helperTextOverrideKey?: string
   onSelectAction: (action: TacticalActionId | null) => void
   onSelectChallengeLeader: (selected: boolean) => void
 }
@@ -48,6 +49,7 @@ export function TacticalActionPicker({
   corruptedCardsRemaining,
   selectedAction,
   selectedChallengeLeader,
+  helperTextOverrideKey,
   onSelectAction,
   onSelectChallengeLeader,
 }: TacticalActionPickerProps) {
@@ -80,6 +82,7 @@ export function TacticalActionPicker({
 
   const selectedActionDefinition = phaseActions.find((action) => action.id === selectedAction) ?? null
   const primaryHelperReasonKey = getPrimaryTacticalHelperReason(phaseActions, challengeLeaderState)
+  const helperReasonKey = helperTextOverrideKey ?? primaryHelperReasonKey
 
   return (
     <View style={styles.card}>
@@ -166,14 +169,14 @@ export function TacticalActionPicker({
         </Pressable>
       </View>
 
-      {primaryHelperReasonKey ? (
+      {helperReasonKey ? (
         <View testID="tactical-helper-row" style={styles.helperRow}>
           <MaterialCommunityIcons
             name="information-outline"
             size={14}
             color="rgba(255, 241, 222, 0.56)"
           />
-          <Text style={styles.helperText}>{t(primaryHelperReasonKey)}</Text>
+          <Text style={styles.helperText}>{t(helperReasonKey)}</Text>
         </View>
       ) : null}
 

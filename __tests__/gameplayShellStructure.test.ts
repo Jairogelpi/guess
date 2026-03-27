@@ -15,3 +15,9 @@ test('gameplay shell mounts live standings between the HUD and economy badges', 
   expect(liveStandingsIndex).toBeGreaterThan(gameStatusHudIndex)
   expect(economyBadgesIndex).toBeGreaterThan(liveStandingsIndex)
 })
+
+test('narrator waiting shell overrides the tactical helper copy to narrator-only guidance', () => {
+  expect(gameScreenSource).toMatch(
+    /status === 'narrator_turn'[\s\S]*?<TacticalActionPicker[\s\S]*?helperTextOverrideKey="game\.tactics\.notes\.onlyNarratorRisk"/,
+  )
+})

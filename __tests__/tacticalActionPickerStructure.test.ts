@@ -31,6 +31,7 @@ jest.mock('react-i18next', () => ({
         'game.tactics.eyebrow': 'Tactics',
         'game.tactics.title': 'Tactical Actions',
         'game.tactics.notes.selectionRequired': 'Selection required',
+        'game.tactics.notes.onlyNarratorRisk': 'Only the narrator can take a risk right now',
         'game.tactics.challengeLeader.name': 'Challenge the Leader',
         'game.tactics.actions.risk_normal.name': 'Balanced risk',
         'game.tactics.actions.risk_sniper.name': 'Sniper risk',
@@ -147,6 +148,24 @@ test('renders exactly one helper line for a blocked state', () => {
 
   expect(helperRows).toHaveLength(1)
   expect(collectText(helperRows[0])).toContain('Selection required')
+})
+
+test('renders an explicit helper override when provided', () => {
+  const tree = renderPicker({
+    phase: 'narrator_turn',
+    selectionActive: false,
+    intuitionTokens: 0,
+    isPhaseOwner: false,
+    ...({
+      helperTextOverrideKey: 'game.tactics.notes.onlyNarratorRisk',
+    } as Partial<React.ComponentProps<typeof TacticalActionPicker>>),
+  })
+
+  const helperRows = findAllByTestId(tree, 'tactical-helper-row')
+
+  expect(helperRows).toHaveLength(1)
+  expect(collectText(helperRows[0])).toContain('Only the narrator can take a risk right now')
+  expect(collectText(helperRows[0])).not.toContain('Selection required')
 })
 
 test('keeps the selected action summary visible when an action is chosen', () => {

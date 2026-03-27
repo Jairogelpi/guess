@@ -125,6 +125,7 @@ export default function GameScreen() {
                 selectionActive={false}
                 intuitionTokens={intuitionTokens}
                 isPhaseOwner={false}
+                helperTextOverrideKey="game.tactics.notes.onlyNarratorRisk"
                 playerId={userId}
                 players={players}
                 challengeLeaderUsed={challengeLeaderUsed}
