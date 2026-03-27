@@ -245,6 +245,10 @@ export function getPrimaryTacticalHelperReason(
   phaseActions: TacticalActionState[],
   challengeLeaderState: ChallengeLeaderState,
 ) {
+  if (phaseActions.some((action) => action.enabled) || challengeLeaderState.enabled) {
+    return null
+  }
+
   const blockedReasons = [
     ...phaseActions.map((action) => action.disabledReasonKey).filter(Boolean),
     challengeLeaderState.disabledReasonKey,
