@@ -9,7 +9,7 @@ jest.mock('react-native', () => ({
 
 jest.mock('@/components/ui/Avatar', () => ({
   Avatar: ({ name }: { name: string }) => React.createElement('Avatar', { name }),
-}))
+}), { virtual: true })
 
 const { LiveStandingsStrip } = require('../src/components/game/LiveStandingsStrip') as typeof import('../src/components/game/LiveStandingsStrip')
 

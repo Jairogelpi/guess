@@ -14,8 +14,11 @@ import { NarratorPhase } from '@/components/game-phases/NarratorPhase'
 import { PlayersPhase } from '@/components/game-phases/PlayersPhase'
 import { VotingPhase } from '@/components/game-phases/VotingPhase'
 import { ResultsPhase } from '@/components/game-phases/ResultsPhase'
+import { TacticalActionPicker } from '@/components/game/TacticalActionPicker'
 import { AppHeader } from '@/components/layout/AppHeader'
 import { GameStatusHUD } from '@/components/game/GameStatusHUD'
+import { LiveStandingsStrip } from '@/components/game/LiveStandingsStrip'
+import { EconomyBadges } from '@/components/game/EconomyBadges'
 import { WaitingCard } from '@/components/game/WaitingCard'
 import { GameLoadingScreen } from '@/components/game/GameLoadingScreen'
 import { GameLayout } from '@/components/layout/GameLayout'
@@ -70,6 +73,9 @@ export default function GameScreen() {
   const currentPlayer = players.find(p => p.player_id === userId)
   const wildcardsLeft = currentPlayer?.wildcards_remaining ?? 0
   const generationTokens = currentPlayer?.generation_tokens ?? 0
+  const intuitionTokens = currentPlayer?.intuition_tokens ?? 0
+  const challengeLeaderUsed = currentPlayer?.challenge_leader_used ?? false
+  const corruptedCardsRemaining = currentPlayer?.corrupted_cards_remaining ?? 0
 
   return (
     <GameLayout>
@@ -82,7 +88,16 @@ export default function GameScreen() {
         stepCurrent={stepCurrent}
         stepTotal={stepTotal}
         phaseStartedAt={round.phase_started_at}
-        phaseDurationSeconds={room.phase_duration_seconds}
+        phaseDurationSeconds={room.phase_duration_seconds ?? undefined}
+      />
+
+      <LiveStandingsStrip players={players} currentUserId={userId} />
+
+      <EconomyBadges
+        intuitionTokens={intuitionTokens}
+        wildcardsLeft={wildcardsLeft}
+        generationTokens={generationTokens}
+        corruptedCardsRemaining={corruptedCardsRemaining}
       />
 
       {status === 'narrator_turn' && (
@@ -90,10 +105,7 @@ export default function GameScreen() {
           {isNarrator ? (
             <NarratorPhase
               roomCode={code}
-              roundNumber={round.round_number}
-              maxRounds={room.max_rounds}
-              wildcardsLeft={wildcardsLeft}
-              generationTokens={generationTokens}
+              wildcardsRemaining={wildcardsLeft}
             />
           ) : (
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -108,6 +120,20 @@ export default function GameScreen() {
                 submittedPlayerIds={[]}
                 contextMessage={t('game.waitingForNarrator')}
               />
+              <TacticalActionPicker
+                phase="narrator_turn"
+                selectionActive={false}
+                intuitionTokens={intuitionTokens}
+                isPhaseOwner={false}
+                playerId={userId}
+                players={players}
+                challengeLeaderUsed={challengeLeaderUsed}
+                corruptedCardsRemaining={corruptedCardsRemaining}
+                selectedAction={null}
+                selectedChallengeLeader={false}
+                onSelectAction={() => {}}
+                onSelectChallengeLeader={() => {}}
+              />
             </ScrollView>
           )}
         </GameErrorBoundary>
@@ -117,15 +143,9 @@ export default function GameScreen() {
         <GameErrorBoundary phaseName="players_turn">
           <PlayersPhase
             roomCode={code}
-            narratorName={narratorName}
-            narratorAvatar={narratorAvatar}
-            isNarrator={isNarrator}
-            players={nonNarratorPlayers}
-            submittedPlayerIds={submittedPlayerIds}
-            roundNumber={round.round_number}
-            maxRounds={room.max_rounds}
-            wildcardsLeft={wildcardsLeft}
-            generationTokens={generationTokens}
+            narratorClue={round.clue}
+            isWaiting={isNarrator || submittedPlayerIds.includes(userId)}
+            wildcardsRemaining={wildcardsLeft}
           />
         </GameErrorBoundary>
       )}
@@ -139,6 +159,9 @@ export default function GameScreen() {
             narratorAvatar={narratorAvatar}
             players={nonNarratorPlayers}
             votedPlayerIds={[]}
+            intuitionTokens={intuitionTokens}
+            challengeLeaderUsed={challengeLeaderUsed}
+            allPlayers={players}
           />
         </GameErrorBoundary>
       )}
