@@ -3,7 +3,7 @@
  * Manages its own subscription, message state, and send logic.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { colors, fonts } from '@/constants/theme'
@@ -20,11 +20,11 @@ interface Props {
 
 export function ChatPanel({ roomId, roomStatus, currentPlayer, players }: Props) {
   const { t } = useTranslation()
+  const scrollRef = useRef<ScrollView>(null)
   const [messages, setMessages] = useState<LobbyMessage[]>([])
   const [profilesById, setProfilesById] = useState<Record<string, Profile>>({})
   const [chatText, setChatText] = useState('')
   const [sending, setSending] = useState(false)
-  const flatRef = useRef<FlatList>(null)
   const profilesByIdRef = useRef<Record<string, Profile>>({})
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export function ChatPanel({ roomId, roomStatus, currentPlayer, players }: Props)
           const nextMessage = payload.new as LobbyMessage
           setMessages((prev) => [...prev, nextMessage])
           void hydrateProfiles([nextMessage.player_id])
-          setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 50)
+          setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50)
         },
       )
       .subscribe()
@@ -124,6 +124,7 @@ export function ChatPanel({ roomId, roomStatus, currentPlayer, players }: Props)
 
     return (
       <LobbyChatMessage
+        key={item.id}
         message={item}
         isOwn={isOwn}
         avatarUrl={profile?.avatar_url}
@@ -135,14 +136,15 @@ export function ChatPanel({ roomId, roomStatus, currentPlayer, players }: Props)
   return (
     <View style={styles.card}>
       <Text style={styles.sectionLabel}>{t('lobby.chat')}</Text>
-      <FlatList
-        ref={flatRef}
-        data={messages}
-        keyExtractor={(message) => message.id}
+      <ScrollView
+        ref={scrollRef}
         style={styles.list}
         contentContainerStyle={styles.listContent}
-        renderItem={renderItem}
-      />
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled={true}
+      >
+        {messages.map((item) => renderItem({ item }))}
+      </ScrollView>
       {roomStatus === 'lobby' && (
         <View style={styles.inputRow}>
           <TextInput

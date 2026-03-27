@@ -2,15 +2,19 @@ import { useCallback, useRef, useState } from 'react'
 import {
   View,
   Text,
-  FlatList,
   Image,
   ActivityIndicator,
   StyleSheet,
   useWindowDimensions,
   TouchableOpacity,
-  ScrollView,
   Platform,
+  Dimensions,
+  KeyboardAvoidingView,
 } from 'react-native'
+import {
+  ScrollView,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -30,7 +34,7 @@ import type { GalleryCard } from '@/types/game'
 export default function GalleryScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { width: screenWidth } = useWindowDimensions()
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions()
   const {
     userId, isAnon, avatarUrl,
     cards, loading,
@@ -64,15 +68,22 @@ export default function GalleryScreen() {
     const isCurrentAvatar = avatarUrl === item.image_url
     const isActive = selectedCard?.id === item.id
 
+    // Size based on reactive screen dimensions
+    const displayWidth = screenWidth > 0 ? screenWidth : 400
+    const displayHeight = screenHeight > 0 ? screenHeight : 800
+    const cardWidth = Math.min(displayWidth * 0.90, displayHeight * 0.45)
+    const cardHeight = cardWidth * 1.5
+
     return (
-      <View style={[styles.slide, { width: screenWidth }]}>
+      <View style={[styles.slide, { width: displayWidth, minHeight: cardHeight + 40 }]}>
         <View style={styles.cardContainer}>
           <InteractiveCardTilt
             profileName="hero"
             regionKey={`gallery-card-${item.id}`}
             disabled={!isActive}
+            style={Platform.OS === 'web' ? { width: cardWidth, height: cardHeight } : undefined}
           >
-            <View style={styles.cardWrapper}>
+            <View style={[styles.cardWrapper, Platform.OS === 'web' && { height: '100%', width: '100%' }]}>
               <View style={styles.card}>
                 <Image source={{ uri: item.image_url }} style={styles.cardImage} resizeMode="cover" />
 
@@ -90,7 +101,7 @@ export default function GalleryScreen() {
                   <Text style={styles.cinematicTitle} numberOfLines={2}>
                     {item.title || t('gallery.untitled', 'Carta sin título')}
                   </Text>
-                  
+
                   <View style={styles.cinematicIconGroup}>
                     <TouchableOpacity
                       style={styles.cinematicIconBtn}
@@ -102,7 +113,7 @@ export default function GalleryScreen() {
                     >
                       <MaterialCommunityIcons name="pencil" size={22} color={colors.goldLight} />
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity
                       style={styles.cinematicIconBtn}
                       onPress={() => {
@@ -112,10 +123,10 @@ export default function GalleryScreen() {
                       }}
                       disabled={!isActive || isCurrentAvatar || avatarSaving}
                     >
-                      <MaterialCommunityIcons 
-                        name={isCurrentAvatar ? "account-check" : "account-circle-outline"} 
-                        size={22} 
-                        color={isCurrentAvatar ? colors.gold : colors.textPrimary} 
+                      <MaterialCommunityIcons
+                        name={isCurrentAvatar ? "account-check" : "account-circle-outline"}
+                        size={22}
+                        color={isCurrentAvatar ? colors.gold : colors.textPrimary}
                       />
                     </TouchableOpacity>
 
@@ -137,17 +148,37 @@ export default function GalleryScreen() {
   }, [avatarUrl, t, deleteCard, setSelectedCard, setEditingTitle, selectedCard, screenWidth, avatarSaving])
 
   const renderFooterSlide = useCallback(() => {
+    // Sizing for footer
+    const displayWidth = screenWidth > 0 ? screenWidth : 400
+
     return (
-      <View style={[styles.slide, { width: screenWidth }]}>
+      <View style={[styles.slide, { width: displayWidth }]}>
         <View style={styles.footerSlideContent}>
-          <Text style={styles.capacityText}>
-            {t('gallery.slotsRemaining', { count: remainingGallerySlots(cards.length), max: MAX_GALLERY_CARDS })}
-          </Text>
-          <MaterialCommunityIcons name="cards-playing-outline" size={64} color={colors.goldDim} style={styles.footerIcon} />
+          <View style={styles.footerIconContainer}>
+            <MaterialCommunityIcons
+              name="cards-playing-outline"
+              size={80}
+              color={colors.gold}
+              style={{ opacity: 0.6 }}
+            />
+          </View>
+
+          <View style={styles.footerTextContainer}>
+            <Text style={styles.slotsLabel}>{t('gallery.slotsLabel', { defaultValue: 'CAPACIDAD DE GALERÍA' })}</Text>
+            <Text style={styles.slotsCount}>
+              {cards.length} / {MAX_GALLERY_CARDS}
+            </Text>
+            <Text style={styles.capacityText}>
+              {`${t('gallery.slotsRemainingPrefix', { defaultValue: 'Huecos libres' })}: ${remainingGallerySlots(cards.length)} / ${MAX_GALLERY_CARDS}`}
+            </Text>
+          </View>
+
           <Button
             onPress={() => setShowModal(true)}
             disabled={!hasGalleryCapacity(cards.length)}
             style={styles.addCardBtn}
+            contentStyle={{ paddingHorizontal: 20 }}
+            textStyle={Platform.OS === 'web' ? ({ whiteSpace: 'nowrap' } as any) : undefined}
           >
             {t('gallery.generate')}
           </Button>
@@ -171,26 +202,32 @@ export default function GalleryScreen() {
     <>
       <AppHeader title={t('gallery.title')} />
       <SafeAreaView style={styles.safe} edges={['bottom']}>
-        {cards.length === 0 ? (
+        {loading ? (
+          <View style={styles.empty}>
+            <ActivityIndicator size="large" color={colors.gold} />
+          </View>
+        ) : cards.length === 0 ? (
           <View style={styles.empty}>
             <MaterialCommunityIcons name="cards-outline" size={48} color={colors.gold} style={{ opacity: 0.8 }} />
             <Text style={styles.emptyText}>{t('gallery.noCards')}</Text>
-            <Text style={styles.capacityText}>{t('gallery.capacity', { count: MAX_GALLERY_CARDS })}</Text>
+            <Text style={styles.emptyCapacityText}>{t('gallery.capacity', { count: 8 })}</Text>
             <Button onPress={() => setShowModal(true)}>{t('gallery.generate')}</Button>
           </View>
         ) : (
-          <View style={styles.swiperContainer}>
-            <FlatList
-              data={cards}
-              keyExtractor={(c) => c.id}
+          <GestureHandlerRootView style={styles.swiperContainer}>
+            <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listContent}
-              renderItem={renderSlide}
-              onViewableItemsChanged={onViewableItemsChanged}
-              viewabilityConfig={viewabilityConfig}
-              ListFooterComponent={renderFooterSlide}
-            />
-          </View>
+              disallowInterruption={true}
+            >
+              {cards.map((card) => (
+                <View key={card.id}>
+                  {renderSlide({ item: card })}
+                </View>
+              ))}
+              {renderFooterSlide()}
+            </ScrollView>
+          </GestureHandlerRootView>
         )}
 
         {/* Generate & save modal */}
@@ -357,8 +394,18 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     width: '95%',
-    aspectRatio: 2 / 3,
-    ...(Platform.OS === 'web' ? { minHeight: 1 } : {}),
+    ...Platform.select({
+      web: {
+        // En web, flex: 1 dentro de InteractiveCardTilt a veces falla.
+        // Forzamos el tamaño en el prop 'style' del componente de arriba,
+        // pero aquí nos aseguramos de que ocupe todo ese espacio.
+        flex: 1,
+        minHeight: 1,
+      },
+      default: {
+        aspectRatio: 2 / 3,
+      },
+    }),
     ...shadows.card,
   },
   card: {
@@ -421,21 +468,51 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(230, 184, 0, 0.35)',
   },
   footerSlideContent: {
-    flex: 1,
+    paddingVertical: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 20,
-    paddingHorizontal: 32,
+    gap: 32,
     borderWidth: 2,
-    borderColor: 'rgba(230, 184, 0, 0.2)',
+    borderColor: 'rgba(230, 184, 0, 0.15)',
     borderRadius: radii.xl,
     marginHorizontal: 16,
-    marginVertical: 40,
-    backgroundColor: 'rgba(10,6,2,0.5)',
+    marginVertical: 24,
+    backgroundColor: 'rgba(15, 8, 4, 0.4)',
+    minHeight: 400,
+  },
+  footerIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(230, 184, 0, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(230, 184, 0, 0.1)',
+  },
+  footerTextContainer: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  slotsLabel: {
+    color: 'rgba(255, 241, 222, 0.4)',
+    fontSize: 10,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 2,
+  },
+  slotsCount: {
+    color: colors.goldLight,
+    fontSize: 32,
+    fontFamily: fonts.titleHeavy,
+  },
+  capacityText: {
+    color: 'rgba(255, 241, 222, 0.65)',
+    fontSize: 13,
+    fontFamily: fonts.title,
   },
   addCardBtn: {
     width: '100%',
-    maxWidth: 240,
+    maxWidth: 280, // Increased to fit text in one line
   },
   footerIcon: {
     opacity: 0.8,
@@ -454,7 +531,7 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowRadius: 4,
   },
-  capacityText: {
+  emptyCapacityText: {
     color: 'rgba(255, 228, 180, 0.65)',
     fontSize: 12,
     textAlign: 'center',

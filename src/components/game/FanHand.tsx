@@ -146,7 +146,7 @@ function HandCard({
       ]}
     >
       <InteractiveCardTilt
-        profileName="lite"
+        profileName="hero"
         regionKey="fan-hand"
         onPress={onPress}
         style={styles.tiltWrap}

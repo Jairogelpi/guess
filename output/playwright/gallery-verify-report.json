@@ -1,0 +1,26 @@
+{
+  "url": "http://127.0.0.1:8081/gallery",
+  "body": "CREAR SALA\nES\nEN\nP\nEscribe tu nombre y despues crea una sala o entra con un codigo.\nTU NOMBRE\nEste nombre es el que veran los demas jugadores.\nCREAR SALA\nElige esta opcion si vas a organizar la partida.\nCREAR SALA\nO\nUNIRSE\nUsa esta opcion si alguien te ha pasado un codigo de sala.\nUNIRSE\nMI GALERIA\nES\nEN\nP\nDream Lantern\n󰏫\n󰭕\n󰩺\n󰘺\nCAPACIDAD DE GALERÍA\n1 / 8\nHuecos libres: 7 / 8\nGENERAR CARTA\n󰙴\n󰙴\nCREAR SALA\n󰋯\n󰋯\nMI GALERIA\n󰭕\n󰭕\nPERFIL",
+  "tiltRect": {
+    "x": 16,
+    "y": 80,
+    "width": 398,
+    "height": 580.5
+  },
+  "titleRect": {
+    "x": 0,
+    "y": 0,
+    "width": 430,
+    "height": 932
+  },
+  "chain": [
+    {
+      "tag": "HTML",
+      "testid": null,
+      "text": "\n    \n    \n    \n    dixit_ai_mobile\n    \n    \n      /* These styles make the bod",
+      "width": 430,
+      "height": 932,
+      "style": null
+    }
+  ]
+}

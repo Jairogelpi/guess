@@ -1,4 +1,5 @@
-import { View, Text, Image, StyleSheet } from 'react-native'
+import { useEffect, useRef } from 'react'
+import { Animated, View, Text, Image, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { colors, fonts, radii } from '@/constants/theme'
 import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
@@ -10,10 +11,43 @@ interface Props {
 
 export function ResultsReveal({ cardUri, clue }: Props) {
   const { t } = useTranslation()
+
+  // Card flips in from a tiny scale with a gold flash
+  const cardScale = useRef(new Animated.Value(0.7)).current
+  const cardOpacity = useRef(new Animated.Value(0)).current
+  const cardRotateY = useRef(new Animated.Value(-15)).current
+  const glowOpacity = useRef(new Animated.Value(0)).current
+  const labelOpacity = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    // Stage 1: card snaps in
+    Animated.parallel([
+      Animated.timing(cardOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.spring(cardScale, { toValue: 1, damping: 12, stiffness: 140, useNativeDriver: true }),
+      Animated.spring(cardRotateY, { toValue: 0, damping: 14, stiffness: 120, useNativeDriver: true }),
+    ]).start(() => {
+      // Stage 2: gold glow pulses, then label fades in
+      Animated.sequence([
+        Animated.timing(glowOpacity, { toValue: 0.8, duration: 300, useNativeDriver: true }),
+        Animated.timing(glowOpacity, { toValue: 0.2, duration: 400, useNativeDriver: true }),
+        Animated.timing(labelOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start()
+    })
+  }, [cardScale, cardOpacity, cardRotateY, glowOpacity, labelOpacity])
+
   return (
     <View style={styles.container}>
       <Text style={styles.revealLabel}>{t('game.narratorCardReveal')}</Text>
-      <View style={styles.cardWrap}>
+
+      <Animated.View
+        style={[
+          styles.cardWrap,
+          {
+            opacity: cardOpacity,
+            transform: [{ scale: cardScale }],
+          },
+        ]}
+      >
         <InteractiveCardTilt profileName="hero" regionKey="results-reveal" style={styles.cardTilt}>
           <View style={styles.cardFrame}>
             {cardUri ? (
@@ -25,13 +59,23 @@ export function ResultsReveal({ cardUri, clue }: Props) {
                 resizeMode="cover"
               />
             )}
+            {/* Gold flash overlay */}
+            <Animated.View
+              style={[
+                StyleSheet.absoluteFillObject,
+                styles.glowOverlay,
+                { opacity: glowOpacity },
+              ]}
+              pointerEvents="none"
+            />
           </View>
         </InteractiveCardTilt>
-      </View>
-      <View style={styles.clueBlock}>
+      </Animated.View>
+
+      <Animated.View style={[styles.clueBlock, { opacity: labelOpacity }]}>
         <Text style={styles.clueLabel}>{t('game.narratorClue')}</Text>
         <Text style={styles.clueText}>"{clue}"</Text>
-      </View>
+      </Animated.View>
     </View>
   )
 }
@@ -66,8 +110,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: colors.gold,
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 12,
   },
   card: { width: '100%', height: '100%' },
+  glowOverlay: {
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(230, 184, 0, 0.35)',
+  },
   clueBlock: { alignItems: 'center', gap: 4 },
   clueLabel: {
     color: 'rgba(255, 241, 222, 0.3)',

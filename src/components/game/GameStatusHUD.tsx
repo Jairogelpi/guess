@@ -13,74 +13,86 @@ interface Props {
   phaseDurationSeconds?: number
 }
 
-export function GameStatusHUD({ 
-  roundNumber, 
-  maxRounds, 
-  phaseLabel, 
-  stepCurrent, 
+export function GameStatusHUD({
+  roundNumber,
+  maxRounds,
+  phaseLabel,
+  stepCurrent,
   stepTotal,
   phaseStartedAt,
-  phaseDurationSeconds = 60
+  phaseDurationSeconds = 60,
 }: Props) {
   const { t } = useTranslation()
-  const showStep = stepCurrent !== undefined && stepTotal !== undefined
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
+  const isUnlimited = !phaseDurationSeconds
 
   useEffect(() => {
-    if (!phaseStartedAt) {
+    if (!phaseStartedAt || isUnlimited) {
       setSecondsLeft(null)
       return
     }
-
-    const updateTimer = () => {
-      const start = new Date(phaseStartedAt).getTime()
-      const now = new Date().getTime()
-      const elapsed = Math.floor((now - start) / 1000)
-      const remaining = Math.max(0, phaseDurationSeconds - elapsed)
-      setSecondsLeft(remaining)
+    const update = () => {
+      const elapsed = Math.floor((Date.now() - new Date(phaseStartedAt).getTime()) / 1000)
+      setSecondsLeft(Math.max(0, phaseDurationSeconds - elapsed))
     }
-
-    updateTimer()
-    const interval = setInterval(updateTimer, 1000)
-    return () => clearInterval(interval)
-  }, [phaseStartedAt, phaseDurationSeconds])
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [phaseStartedAt, phaseDurationSeconds, isUnlimited])
 
   const isCritical = secondsLeft !== null && secondsLeft < 10
+  const isWarning  = secondsLeft !== null && secondsLeft < 20 && !isCritical
+
+  // Format seconds as M:SS when >= 60, otherwise just "Xs"
+  function formatTime(s: number) {
+    if (s >= 60) {
+      const m = Math.floor(s / 60)
+      const sec = s % 60
+      return `${m}:${sec.toString().padStart(2, '0')}`
+    }
+    return `${s}s`
+  }
+
+  const timerColor = isCritical ? '#ff4444' : isWarning ? '#f97316' : colors.gold
 
   return (
     <View style={styles.container}>
-      <View style={styles.item}>
-        <Text style={styles.label}>{t('game.roundLabel', { defaultValue: 'RONDA' })}</Text>
-        <Text style={styles.value}>{roundNumber} / {maxRounds}</Text>
+      {/* Round pill — left */}
+      <View style={styles.roundPill}>
+        <Text style={styles.roundLabel}>
+          {t('game.roundLabel', { defaultValue: 'R' })}
+        </Text>
+        <Text style={styles.roundValue}>
+          {roundNumber}
+          <Text style={styles.roundMax}>/{maxRounds}</Text>
+        </Text>
       </View>
-      
-      <View style={styles.divider} />
-      
-      <View style={[styles.item, { flex: 1, alignItems: 'center' }]}>
-        <Text style={styles.label}>{t('game.phaseLabel', { defaultValue: 'FASE' })}</Text>
-        <Text style={[styles.value, { color: colors.gold }]} numberOfLines={1}>
+
+      {/* Phase label — center, dominant */}
+      <View style={styles.phaseCenter}>
+        {stepCurrent !== undefined && stepTotal !== undefined && (
+          <Text style={styles.stepLabel}>
+            {t('game.stepLabel', { defaultValue: 'PASO' })} {stepCurrent}/{stepTotal}
+          </Text>
+        )}
+        <Text style={styles.phaseLabel} numberOfLines={1}>
           {phaseLabel}
         </Text>
       </View>
 
-      <View style={styles.divider} />
-
-      <View style={[styles.item, { alignItems: 'flex-end', minWidth: 40 }]}>
-        <Text style={styles.label}>{t('game.timerLabel', { defaultValue: 'TIEMPO' })}</Text>
-        <Text style={[styles.value, isCritical && { color: '#ff4444' }]}>
-          {secondsLeft !== null ? `${secondsLeft}s` : '--'}
+      {/* Timer — right */}
+      <View style={styles.timerPill}>
+        <Text style={styles.timerLabel}>
+          {t('game.timerLabel', { defaultValue: 'T' })}
+        </Text>
+        <Text style={[styles.timerValue, { color: timerColor }, isCritical && styles.timerCritical]}>
+          {isUnlimited
+            ? '∞'
+            : secondsLeft !== null
+              ? formatTime(secondsLeft)
+              : '--'}
         </Text>
       </View>
-
-      {showStep && (
-        <>
-          <View style={styles.divider} />
-          <View style={styles.item}>
-            <Text style={styles.label}>{t('game.stepLabel', { defaultValue: 'PASO' })}</Text>
-            <Text style={styles.value}>{stepCurrent} / {stepTotal}</Text>
-          </View>
-        </>
-      )}
     </View>
   )
 }
@@ -89,36 +101,85 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(20, 12, 5, 0.65)',
-    marginHorizontal: 16,
+    backgroundColor: 'rgba(20, 12, 5, 0.70)',
+    marginHorizontal: 14,
     marginTop: 8,
     marginBottom: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: 'rgba(230, 184, 0, 0.15)',
-    gap: 12,
+    borderColor: 'rgba(230, 184, 0, 0.12)',
+    gap: 8,
   },
-  item: {
-    gap: 2,
+
+  // ── Round: small pill on the left ──
+  roundPill: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 3,
+    minWidth: 42,
   },
-  divider: {
-    width: 1,
-    height: 16,
-    backgroundColor: 'rgba(230, 184, 0, 0.15)',
+  roundLabel: {
+    color: 'rgba(255,241,222,0.35)',
+    fontSize: 9,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
-  label: {
-    color: 'rgba(255, 241, 222, 0.4)',
+  roundValue: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 0.5,
+  },
+  roundMax: {
+    color: 'rgba(255,241,222,0.40)',
+    fontSize: 12,
+  },
+
+  // ── Phase: center, most important ──
+  phaseCenter: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 1,
+  },
+  stepLabel: {
+    color: 'rgba(255,241,222,0.30)',
     fontSize: 8,
     fontFamily: fonts.titleHeavy,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
-  value: {
-    color: '#fff7ea',
-    fontSize: 12,
+  phaseLabel: {
+    color: colors.gold,
+    fontSize: 13,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+
+  // ── Timer: right, changes color when urgent ──
+  timerPill: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 3,
+    minWidth: 42,
+    justifyContent: 'flex-end',
+  },
+  timerLabel: {
+    color: 'rgba(255,241,222,0.35)',
+    fontSize: 9,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  timerValue: {
+    fontSize: 15,
     fontFamily: fonts.titleHeavy,
     letterSpacing: 0.5,
+  },
+  timerCritical: {
+    fontSize: 16,
   },
 })

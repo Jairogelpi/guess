@@ -44,7 +44,7 @@ export function HandGrid({
           return (
             <InteractiveCardTilt
               key={slot.id}
-              profileName="lite"
+              profileName="hero"
               regionKey="hand-grid"
               onPress={() => {
                 if (hasImage) {
@@ -58,6 +58,7 @@ export function HandGrid({
                 slot.isSelected && styles.slotTiltRaised,
                 isActive && !hasImage && styles.slotActive,
               ]}
+              floating={true}
             >
               <DixitCard
                 uri={slot.imageUri}
@@ -97,13 +98,22 @@ export function HandGrid({
            <Text style={styles.slotCounterText}>
              {t('game.tokensLabel', { defaultValue: 'TOKENS' })}
            </Text>
-           <Text style={styles.tokenValue}>{generationTokens}</Text>
+           <Text style={tokenValueStyle(generationTokens)}>{generationTokens}</Text>
         </View>
       </View>
 
       {/* PromptArea is now rendered by HandActionDock — not here. */}
     </View>
   )
+}
+
+function tokenValueStyle(tokens: number) {
+  return {
+    color: tokens > 0 ? colors.gold : colors.textMuted,
+    fontSize: 12,
+    fontFamily: fonts.titleHeavy,
+    marginLeft: 2,
+  }
 }
 
 const styles = StyleSheet.create({
@@ -194,11 +204,5 @@ const styles = StyleSheet.create({
     height: 12,
     backgroundColor: 'rgba(230, 184, 0, 0.15)',
     marginHorizontal: 4,
-  },
-  tokenValue: {
-    color: colors.gold,
-    fontSize: 12,
-    fontFamily: fonts.titleHeavy,
-    marginLeft: 2,
   },
 })

@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, View, Text } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useGameStore } from '@/stores/useGameStore'
 import { useCountdownPhase } from '@/hooks/useCountdownPhase'
+import { GameBoard } from '@/components/game/GameBoard'
 import { ResultsReveal } from '@/components/game/ResultsReveal'
 import { CardGrid } from '@/components/game/CardGrid'
 import { CountdownButton } from '@/components/game/CountdownButton'
@@ -28,7 +29,6 @@ export function ResultsPhase({ roomCode, isHost, isLastRound, players, roundScor
   const { confirmed, secondsRemaining, handleConfirm, handleAdvance } =
     useCountdownPhase({ roomCode, isHost, isLastRound })
 
-  // Memoized — stable references prevent unnecessary child re-renders during the 4x/sec countdown ticks
   const narratorCard = useMemo(
     () => round ? cards.find((c) => c.player_id === round.narrator_id) ?? null : null,
     [cards, round?.narrator_id],
@@ -39,40 +39,44 @@ export function ResultsPhase({ roomCode, isHost, isLastRound, players, roundScor
   )
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      {narratorCard && round?.clue && (
-        <ResultsReveal cardUri={narratorCard.image_url} clue={round.clue} />
-      )}
+    <GameBoard
+      center={
+        <ScrollView contentContainerStyle={styles.content}>
+          {narratorCard && round?.clue && (
+            <ResultsReveal cardUri={narratorCard.image_url} clue={round.clue} />
+          )}
 
-      <CardGrid
-        cards={cards}
-        playerNames={playerNames}
-        narratorPlayerId={round?.narrator_id}
-        readonly
-      />
+          <CardGrid
+            cards={cards}
+            playerNames={playerNames}
+            narratorPlayerId={round?.narrator_id}
+            readonly
+          />
 
-      <View style={styles.scoreSection}>
-        <Text style={styles.scoreLabel}>{t('game.score')}</Text>
-        <ScoreBoard players={players} roundScores={roundScores} />
-      </View>
-
-      <CountdownButton
-        secondsRemaining={secondsRemaining}
-        totalSeconds={COUNTDOWN_SECONDS}
-        isHost={isHost}
-        confirmed={confirmed}
-        confirmedCount={confirmed ? 1 : 0}
-        totalCount={players.length}
-        isLastRound={isLastRound}
-        onConfirm={handleConfirm}
-        onAutoAdvance={isHost ? handleAdvance : () => {}}
-      />
-    </ScrollView>
+          <View style={styles.scoreSection}>
+            <Text style={styles.scoreLabel}>{t('game.score')}</Text>
+            <ScoreBoard players={players} roundScores={roundScores} />
+          </View>
+        </ScrollView>
+      }
+      actionBar={
+        <CountdownButton
+          secondsRemaining={secondsRemaining}
+          totalSeconds={COUNTDOWN_SECONDS}
+          isHost={isHost}
+          confirmed={confirmed}
+          confirmedCount={confirmed ? 1 : 0}
+          totalCount={players.length}
+          isLastRound={isLastRound}
+          onConfirm={handleConfirm}
+          onAutoAdvance={isHost ? handleAdvance : () => {}}
+        />
+      }
+    />
   )
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
   content: { padding: 14, gap: 16 },
   scoreSection: { gap: 8 },
   scoreLabel: {

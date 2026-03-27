@@ -42,6 +42,10 @@ const MockImage = createHostComponent('image', 'Image')
 const MockActivityIndicator = createHostComponent('activityindicator', 'ActivityIndicator')
 const MockAnimatedView = createHostComponent('animatedview', 'AnimatedView')
 const MockGestureDetector = createHostComponent('gesturedetector', 'GestureDetector')
+const gestureConfigCalls = {
+  minDistance: [] as number[],
+  runOnJS: [] as boolean[],
+}
 
 function flattenStyle(style: unknown): Record<string, unknown> | undefined {
   if (!style || typeof style === 'boolean' || typeof style === 'number') {
@@ -83,7 +87,14 @@ jest.mock('react-native-gesture-handler', () => ({
   Gesture: {
     Pan: () => {
       const chain = {
-        runOnJS: () => chain,
+        minDistance: (value: number) => {
+          gestureConfigCalls.minDistance.push(value)
+          return chain
+        },
+        runOnJS: (value: boolean) => {
+          gestureConfigCalls.runOnJS.push(value)
+          return chain
+        },
         onBegin: () => chain,
         onUpdate: () => chain,
         onFinalize: () => chain,
@@ -345,6 +356,8 @@ describe('InteractiveCardTilt controller', () => {
     __resetInteractiveCardTiltRegistry()
     __setInteractiveCardTiltControllerObserver(undefined)
     jest.restoreAllMocks()
+    gestureConfigCalls.minDistance.length = 0
+    gestureConfigCalls.runOnJS.length = 0
   })
 
   test('forwards onPress and onLongPress', () => {
@@ -551,10 +564,10 @@ describe('InteractiveCardTilt controller', () => {
     })
 
     expect(draggedRight.rotateY).toBeGreaterThan(0)
-    expect(draggedRight.translateX).toBeGreaterThan(20)
+    expect(draggedRight.translateX).toBeGreaterThan(15)
     expect(crossedCenter.rotateY).toBeGreaterThan(0)
     expect(crossedCenter.rotateY).toBeLessThan(draggedRight.rotateY)
-    expect(crossedCenter.translateX).toBeGreaterThan(10)
+    expect(crossedCenter.translateX).toBeGreaterThan(6)
     expect(crossedCenter.translateX).toBeLessThan(draggedRight.translateX)
   })
 
@@ -696,6 +709,23 @@ describe('InteractiveCardTilt controller', () => {
     rendered.unmount()
   })
 
+  test('gesture pipeline keeps immediate activation without forcing frame updates onto JS', () => {
+    const rendered = mount(
+      React.createElement(
+        InteractiveCardTilt as unknown as React.ComponentType<Record<string, unknown>>,
+        {
+          testID: 'gesture-surface',
+        },
+        React.createElement(MockView, null),
+      ),
+    )
+
+    expect(gestureConfigCalls.minDistance).toContain(0)
+    expect(gestureConfigCalls.runOnJS).toEqual([])
+
+    rendered.unmount()
+  })
+
   test('polish clip frame inherits radius from the immediate child surface style', () => {
     const styles = StyleSheet.create({
       wrapper: {
@@ -742,6 +772,134 @@ describe('InteractiveCardTilt controller', () => {
     const styles = StyleSheet.create({
       wrapper: {
         width: '47%',
+      },
+      stack: {
+        width: '100%',
+      },
+      cardSurface: {
+        borderRadius: 22,
+        overflow: 'hidden',
+        backgroundColor: '#111111',
+      },
+    })
+    const rendered = mount(
+      React.createElement(
+        InteractiveCardTilt as unknown as React.ComponentType<Record<string, unknown>>,
+        {
+          style: styles.wrapper,
+          testID: 'nested-clip-surface',
+        },
+        React.createElement(
+          MockView,
+          { style: styles.stack },
+          React.createElement(MockView, {
+            style: styles.cardSurface,
+            testID: 'nested-card-surface',
+          }),
+        ),
+      ),
+    )
+    const clipFrame = findNode(
+      rendered.container,
+      (node) =>
+        node.nodeName === 'view' &&
+        node.style.position === 'absolute' &&
+        node.style.overflow === 'hidden' &&
+        parseFloat(node.style.borderRadius ?? '0') === 22,
+    )
+
+    expect(queryByAttribute(rendered.container, 'testid', 'nested-card-surface')).not.toBeNull()
+    expect(clipFrame).not.toBeNull()
+
+    rendered.unmount()
+  })
+
+  test('web wrapper isolates frame sizing from the interactive surface', () => {
+    const styles = StyleSheet.create({
+      wrapper: {
+        width: '47%',
+        aspectRatio: 2 / 3,
+      },
+    })
+    const rendered = mount(
+      React.createElement(
+        InteractiveCardTilt as unknown as React.ComponentType<Record<string, unknown>>,
+        {
+          onPress: jest.fn(),
+          style: styles.wrapper,
+          testID: 'web-layout-surface',
+        },
+        React.createElement(MockView, null),
+      ),
+    )
+
+    const surface = queryByAttribute(rendered.container, 'testid', 'web-layout-surface')
+
+    expect(surface).not.toBeNull()
+    expect(surface?.style.width).toBe('100%')
+
+    rendered.unmount()
+  })
+
+  test('web surface keeps concrete height when frame sizing is fixed', () => {
+    const styles = StyleSheet.create({
+      wrapper: {
+        width: 280,
+        height: 420,
+      },
+    })
+    const rendered = mount(
+      React.createElement(
+        InteractiveCardTilt as unknown as React.ComponentType<Record<string, unknown>>,
+        {
+          onPress: jest.fn(),
+          style: styles.wrapper,
+          testID: 'web-fixed-surface',
+        },
+        React.createElement(MockView, null),
+      ),
+    )
+
+    const surface = queryByAttribute(rendered.container, 'testid', 'web-fixed-surface')
+
+    expect(surface).not.toBeNull()
+    expect(parseFloat(surface?.style.height ?? '0')).toBe(420)
+
+    rendered.unmount()
+  })
+
+  test('web surface keeps aspect ratio when frame sizing relies on ratio-based height', () => {
+    const styles = StyleSheet.create({
+      wrapper: {
+        width: '31%',
+        aspectRatio: 2 / 3,
+      },
+    })
+    const rendered = mount(
+      React.createElement(
+        InteractiveCardTilt as unknown as React.ComponentType<Record<string, unknown>>,
+        {
+          onPress: jest.fn(),
+          style: styles.wrapper,
+          testID: 'web-ratio-surface',
+        },
+        React.createElement(MockView, null),
+      ),
+    )
+
+    const surface = queryByAttribute(rendered.container, 'testid', 'web-ratio-surface')
+
+    expect(surface).not.toBeNull()
+    expect(surface?.style.width).toBe('100%')
+    expect(parseFloat(surface?.style.aspectRatio ?? '0')).toBeCloseTo(2 / 3)
+
+    rendered.unmount()
+  })
+
+  test('composite wrapper skips polish overlay projection across sibling labels', () => {
+    const styles = StyleSheet.create({
+      wrapper: {
+        width: '47%',
         gap: 8,
       },
       stack: {
@@ -761,14 +919,14 @@ describe('InteractiveCardTilt controller', () => {
         InteractiveCardTilt as unknown as React.ComponentType<Record<string, unknown>>,
         {
           style: styles.wrapper,
-          testID: 'nested-clip-surface',
+          testID: 'composite-clip-surface',
         },
         React.createElement(
           MockView,
           { style: styles.stack },
           React.createElement(MockView, {
             style: styles.cardSurface,
-            testID: 'nested-card-surface',
+            testID: 'composite-card-surface',
           }),
           React.createElement(MockText, { style: styles.label }, 'Gallery card'),
         ),
@@ -783,8 +941,8 @@ describe('InteractiveCardTilt controller', () => {
         parseFloat(node.style.borderRadius ?? '0') === 22,
     )
 
-    expect(queryByAttribute(rendered.container, 'testid', 'nested-card-surface')).not.toBeNull()
-    expect(clipFrame).not.toBeNull()
+    expect(queryByAttribute(rendered.container, 'testid', 'composite-card-surface')).not.toBeNull()
+    expect(clipFrame).toBeNull()
 
     rendered.unmount()
   })

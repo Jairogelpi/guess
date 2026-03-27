@@ -110,6 +110,7 @@ This design solves that by replacing the current tactical interpretation with on
 5. **Contextual visibility**
    - tactics appear only in the phase where they matter.
    - within that phase, all relevant tactics are visible, even if blocked.
+   - if a tactic belongs to the current phase but to another role, it should still be shown disabled with an explicit reason.
 
 6. **Backend authority**
    - the backend validates tokens, legality, and scoring.
@@ -326,6 +327,7 @@ The narrator chooses one clue profile when submitting clue + card:
 - `sniper`
 - `narrow`
 - `ambush`
+  - UI meaning: `haz que nadie adivine tu carta`
 
 ### Profiles
 
@@ -344,6 +346,7 @@ The narrator chooses one clue profile when submitting clue + card:
 - `ambush`
   - target: exactly `0` correct guessers
   - cost: `1` token
+  - player-facing explanation: this is the explicit high-risk clue profile for trying to make the whole table miss
 
 ### Resolution
 
@@ -836,6 +839,7 @@ For each phase:
 - show usable tactics as active
 - show unavailable tactics as visible but blocked
 - show exact reasons when blocked
+- if a tactic belongs to another role inside the same phase, show it disabled instead of hiding it
 
 Examples:
 
@@ -843,6 +847,7 @@ Examples:
 - `Ya usaste Carta Corrupta 2 veces`
 - `Requiere seleccionar una carta`
 - `Solo disponible si hay lider unico`
+- `Solo el narrador puede elegir el riesgo de la pista`
 
 Tactics from other phases are not shown.
 
@@ -870,6 +875,16 @@ After selecting clue + card:
   - `Sniper`
   - `Narrow`
   - `Ambush`
+
+Even when the current user is **not** the narrator during `narrator_turn`:
+
+- still show the `Riesgo de Pista` block
+- keep every option disabled
+- show a clear explanation that only the narrator can choose the clue risk
+
+`Ambush` should read in the UI as the direct fantasy:
+
+- `Haz que nadie adivine tu carta`
 
 If available, show `Challenge the Leader` in the same tactical block as a separate modifier chip.
 

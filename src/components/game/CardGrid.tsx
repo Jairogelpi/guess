@@ -34,10 +34,11 @@ export function CardGrid({
         const isNarrator = !!narratorPlayerId && item.player_id === narratorPlayerId
         return (
           <InteractiveCardTilt
-            profileName="lite"
+            profileName="hero"
             regionKey="card-grid"
             onPress={readonly ? undefined : () => onSelect?.(item)}
             style={[styles.cardTilt, (isSelected || isNarrator) && styles.cardTiltRaised]}
+            floating={true}
           >
             <View
               style={[

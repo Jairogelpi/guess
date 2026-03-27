@@ -52,7 +52,7 @@ export function useGamePhaseOrchestration({
   )
   const narratorName = narratorPlayer?.display_name ?? t('game.narrator')
   // RoomPlayer has no avatar_url — pass undefined; WaitingCard/phases show initials fallback
-  const narratorAvatar: string | undefined = undefined
+  const narratorAvatar = narratorPlayer?.profiles?.avatar_url ?? undefined
 
   const nonNarratorPlayers = useMemo(
     () => players.filter((p) => p.player_id !== narratorId),

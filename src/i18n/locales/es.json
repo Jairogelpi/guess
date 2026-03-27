@@ -30,14 +30,31 @@
     "notReady": "No listo",
     "startGame": "Empezar",
     "shareCode": "Compartir codigo",
+    "shareInviteLink": "Compartir enlace",
     "tapToShare": "toca para compartir",
     "copied": "Copiado",
+    "codeCopied": "Codigo copiado",
     "chat": "Chat",
     "messagePlaceholder": "Escribe un mensaje...",
     "leave": "Salir",
+    "preparation": "Preparando sala...",
+    "notFound": "No se encontro la sala",
+    "loadFailed": "No se pudo cargar la sala",
+    "roomCode": "Codigo de sala",
+    "roomRules": "Minimo 3 jugadores",
     "shareHint": "Comparte este codigo con tus amigos para que puedan entrar.",
+    "inviteMessage": "Unete a mi sala de Guess The Prompt con el codigo {{code}}",
     "hostHint": "Cuando haya al menos 3 jugadores, el anfitrion puede empezar la partida.",
+    "hostWaiting_one": "Falta {{count}} jugador para empezar",
+    "hostWaiting_other": "Faltan {{count}} jugadores para empezar",
+    "hostWaitingReady": "Esperando a que se preparen: {{names}}",
+    "hostReady": "Todos estan listos. Ya puedes empezar la partida.",
     "guestHint": "Espera aqui hasta que el anfitrion empiece la partida.",
+    "guestWaiting": "Esperando a que el anfitrion empiece la partida.",
+    "guestReadyHint": "Marca que estas listo para que el anfitrion pueda empezar.",
+    "readySubmitted": "Ya estas listo. Esperando al anfitrion.",
+    "readyUp": "Estoy listo",
+    "undoReady": "Cancelar listo",
     "playerCount_one": "{{count}} jugador",
     "playerCount_other": "{{count}} jugadores"
   },
@@ -82,6 +99,11 @@
     "nextRound": "Siguiente ronda",
     "points": "{{count}} pts",
     "waiting": "Esperando a los demas...",
+    "waitingMore_one": "Falta {{count}} jugador",
+    "waitingMore_other": "Faltan {{count}} jugadores",
+    "waitingForNarrator": "Esperando a que el narrador comparta su pista.",
+    "waitingForVotes": "Esperando a que voten los demas.",
+    "waitingConfirm": "Esperando confirmacion",
     "waitingNarratorTitle": "El narrador esta preparando la ronda",
     "waitingNarratorBody": "En cuanto comparta su pista, podras elegir una carta para responder.",
     "waitingSubmissionTitle": "Esperando a que los demas elijan",
@@ -105,9 +127,96 @@
     "generateCardPaid": "Generar carta (-1)",
     "playSelectedCard": "Jugar esta carta",
     "nextWriteClue": "Siguiente: escribir pista",
+    "endGame": "Terminar partida",
     "firstGenerationFree": "Tu primera generacion de esta ronda es gratis",
     "generationCostsOne": "Esta generacion consumira 1 ficha",
-    "generationUnavailableNoTokens": "Ya gastaste la gratis y no te quedan fichas de generacion"
+    "generationUnavailableNoTokens": "Ya gastaste la gratis y no te quedan fichas de generacion",
+    "tactics": {
+      "eyebrow": "Tacticas",
+      "title": "Opciones tacticas",
+      "intuitionTokens_one": "{{count}} intuicion",
+      "intuitionTokens_other": "{{count}} intuiciones",
+      "selectedAction": "Tactica elegida: {{name}}",
+      "challengeLeaderSelected": "Desafio al lider activado",
+      "clearSelection": "Limpiar seleccion",
+      "sheetTitle": "Detalle tactico",
+      "costIntuition_one": "Cuesta {{count}} intuicion",
+      "costIntuition_other": "Cuesta {{count}} intuiciones",
+      "detailLabel": "Como funciona",
+      "rewardLabel": "Recompensa",
+      "riskLabel": "Riesgo",
+      "activateChallenge": "Activar desafio",
+      "useThisTactic": "Usar esta tactica",
+      "actions": {
+        "risk_normal": {
+          "name": "Riesgo normal",
+          "short": "Pista equilibrada para jugar sin gastar intuicion.",
+          "detail": "Mantienes el perfil clasico de la ronda y juegas una pista con margen razonable de confusion.",
+          "reward": "No gastas recursos y conservas el reparto base de puntos.",
+          "risk": "No obtienes ninguna ventaja extra si la mesa lee tu intencion."
+        },
+        "risk_sniper": {
+          "name": "Riesgo sniper",
+          "short": "Pista muy precisa para intentar que solo una persona acierte.",
+          "detail": "Buscas una conexion muy concreta con un jugador para maximizar el impacto de la ronda.",
+          "reward": "Si casi todos fallan salvo una persona, la recompensa potencial sube.",
+          "risk": "Si te pasas de preciso, nadie seguira la pista y perderas el control de la ronda."
+        },
+        "risk_narrow": {
+          "name": "Riesgo estrecho",
+          "short": "Pista ajustada que reduce el margen de interpretacion.",
+          "detail": "Cierras el abanico de lecturas para forzar una mesa mas dividida y menos caotica.",
+          "reward": "Puedes empujar un resultado muy concreto sin gastar intuicion.",
+          "risk": "Si la pista queda demasiado cerrada, se vuelve obvia o directamente confusa."
+        },
+        "risk_ambush": {
+          "name": "Emboscada",
+          "short": "Gasta intuicion para forzar una linea de riesgo mas agresiva.",
+          "detail": "Activas una jugada ofensiva que busca descolocar la lectura general de la mesa.",
+          "reward": "Te permite aspirar a una ronda con recompensa mayor que la base.",
+          "risk": "Pagas intuicion y puedes quedarte sin retorno si la mesa no cae en la trampa."
+        },
+        "corrupted_card": {
+          "name": "Carta corrupta",
+          "short": "Invierte intuicion para abrir una opcion de sabotaje adicional.",
+          "detail": "Anades una carta corrupta a tu plan para meter ruido y romper patrones evidentes.",
+          "reward": "Genera una linea extra de engano y puede desordenar la votacion.",
+          "risk": "Consumes recursos y una mala eleccion puede delatar tu estrategia."
+        },
+        "bet_1": {
+          "name": "Apuesta x1",
+          "short": "Arriesga 1 intuicion para respaldar tu lectura.",
+          "detail": "Si estas bastante seguro, puedes invertir una intuicion para sacar mas valor de tu voto.",
+          "reward": "Un acierto tiene mejor retorno que un voto normal.",
+          "risk": "Si fallas, pierdes la intuicion gastada."
+        },
+        "bet_2": {
+          "name": "Apuesta x2",
+          "short": "Dobla la apuesta con 2 de intuicion.",
+          "detail": "Es la version mas agresiva de la apuesta: mas coste y mas exposicion.",
+          "reward": "Si aciertas, la recompensa supera a la apuesta simple.",
+          "risk": "Un fallo te deja sin 2 de intuicion de golpe."
+        }
+      },
+      "challengeLeader": {
+        "name": "Desafiar lider",
+        "short": "Reta al lider solitario e intenta recortar distancia.",
+        "detail": "Activas un reto especial contra quien vaya primero en solitario. Solo puede usarse una vez por partida.",
+        "reward": "Si la ronda sale bien, ganas una via extra para presionar la clasificacion.",
+        "risk": "Pagas intuicion y el reto puede salir caro si la mesa no acompana."
+      },
+      "notes": {
+        "onlyNarratorRisk": "Solo el narrador puede elegir perfiles de riesgo en esta fase.",
+        "selectionRequired": "Primero selecciona una carta.",
+        "noCorruptedCardsLeft": "Ya no te quedan cartas corruptas.",
+        "needTwoIntuition": "Necesitas 2 de intuicion.",
+        "needOneIntuition": "Necesitas 1 de intuicion.",
+        "challengeSpent": "Ya usaste desafiar al lider en esta partida.",
+        "challengeNoLeader": "No hay un lider solitario al que desafiar.",
+        "challengeSelfLeader": "No puedes desafiarte a ti mismo si vas primero.",
+        "challengeNeedIntuition": "Necesitas 1 de intuicion para activar el desafio."
+      }
+    }
   },
   "gallery": {
     "title": "Mi galeria",
@@ -173,6 +282,7 @@
     "INVALID_STATE": "Estado de juego invalido",
     "ROOM_NOT_FOUND": "Sala no encontrada",
     "MIN_PLAYERS_REQUIRED": "Se necesitan al menos 3 jugadores",
+    "PLAYERS_NOT_READY": "Todos los invitados deben estar listos",
     "INVALID_CARD": "Carta invalida",
     "generic": "Algo salio mal. Intentalo de nuevo."
   }

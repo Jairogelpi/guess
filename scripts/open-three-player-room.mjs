@@ -26,7 +26,7 @@ async function gotoHome(page) {
 }
 
 async function clickGuest(page) {
-  const guestButton = page.getByTestId('welcome-enter-guest-button')
+  const guestButton = page.getByRole('button', { name: /ENTRAR COMO INVITADO|ENTER AS GUEST/i })
   await guestButton.waitFor({ state: 'visible', timeout: 30000 })
   await clickLocator(guestButton)
 }
@@ -42,9 +42,9 @@ async function clickLocator(locator) {
 }
 
 async function waitForRoomHome(page, playerName) {
-  const nameInput = page.getByTestId('home-display-name-input')
-  const createButton = page.getByTestId('home-create-room-button')
-  const joinButton = page.getByTestId('home-join-room-button')
+  const nameInput = page.getByLabel(/TU NOMBRE|YOUR NAME/i).or(page.getByPlaceholder(/TU NOMBRE|YOUR NAME/i))
+  const createButton = page.getByRole('button', { name: /CREAR SALA|CREATE ROOM/i })
+  const joinButton = page.getByRole('button', { name: /UNIRSE|JOIN ROOM/i })
 
   for (let attempt = 0; attempt < 6; attempt += 1) {
     if (await nameInput.isVisible().catch(() => false)) {
@@ -86,17 +86,17 @@ async function waitForRoomHome(page, playerName) {
 }
 
 async function fillHome(page, displayName, joinCode = null) {
-  const nameInput = page.getByTestId('home-display-name-input')
+  const nameInput = page.getByLabel(/TU NOMBRE|YOUR NAME/i).or(page.getByPlaceholder(/TU NOMBRE|YOUR NAME/i))
   await nameInput.fill(displayName)
   if (joinCode) {
-    const joinCodeInput = page.getByTestId('home-join-code-input')
+    const joinCodeInput = page.getByLabel(/CODIGO|CODE/i).or(page.getByPlaceholder(/CODIGO|CODE/i))
     await joinCodeInput.fill(joinCode)
   }
 }
 
 async function createRoom(page, displayName) {
   await fillHome(page, displayName)
-  const createButton = page.getByTestId('home-create-room-button')
+  const createButton = page.getByRole('button', { name: /CREAR SALA|CREATE ROOM/i })
   await createButton.waitFor({ state: 'attached', timeout: 30000 })
   await createButton.scrollIntoViewIfNeeded()
   await createButton.waitFor({ state: 'visible', timeout: 30000 })
@@ -111,7 +111,7 @@ async function createRoom(page, displayName) {
 
 async function joinRoom(page, displayName, code) {
   await fillHome(page, displayName, code)
-  const joinButton = page.getByTestId('home-join-room-button')
+  const joinButton = page.getByRole('button', { name: /UNIRSE|JOIN ROOM/i })
   await joinButton.waitFor({ state: 'attached', timeout: 30000 })
   await joinButton.scrollIntoViewIfNeeded()
   await joinButton.waitFor({ state: 'visible', timeout: 30000 })
@@ -121,13 +121,15 @@ async function joinRoom(page, displayName, code) {
 }
 
 async function markReady(page) {
-  const readyButton = page.getByTestId('lobby-ready-button')
+  const readyButton = page.getByRole('button', { name: /LISTO|READY/i })
   await readyButton.waitFor({ state: 'visible', timeout: 30000 })
   await readyButton.scrollIntoViewIfNeeded()
   await clickLocator(readyButton)
   await page.waitForFunction(
     () => {
-      const ready = document.querySelector('[data-testid="lobby-unready-button"]')
+      // Keep using data-testid here as a backup or if it's rendered by other components
+      const ready = document.querySelector('[data-testid="lobby-unready-button"]') || 
+                    [...document.querySelectorAll('button')].find(b => /NO LISTO|UNREADY/i.test(b.textContent))
       return !!ready
     },
     { timeout: 30000 },
@@ -200,22 +202,49 @@ async function main() {
 
   try {
     for (const player of players) {
+      console.log(`Launching ${player.name}...`)
       await gotoHome(player.page)
       await clickGuest(player.page)
       await waitForRoomHome(player.page, player.name)
     }
 
+    console.log('Creating room as Host...')
     const code = await createRoom(host.page, host.name)
+    console.log(`Room created: ${code}. Joining players...`)
     await joinRoom(player2.page, player2.name, code)
     await joinRoom(player3.page, player3.name, code)
+    
+    console.log('Marking players 2 and 3 as READY...')
     await markReady(player2.page)
     await markReady(player3.page)
 
-    const startButton = host.page.getByTestId('lobby-start-game-button')
-    await startButton.waitFor({ state: 'visible', timeout: 30000 })
+    const startButton = host.page.getByRole('button', { name: /EMPEZAR PARTIDA|START GAME/i })
+    
+    console.log('Waiting for START GAME button visibility...')
+    // Wait for the start button with reloads if needed
+    let startButtonVisible = false
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        await startButton.waitFor({ state: 'visible', timeout: 5000 })
+        startButtonVisible = true
+        break
+      } catch {
+        console.warn(`Lobby sync attempt ${attempt + 1}: reloading host page...`)
+        await host.page.reload({ waitUntil: 'domcontentloaded' })
+        await ensureLobbyReady(host.page, code)
+      }
+    }
+
+    if (!startButtonVisible) {
+      throw new Error('Host could not see START GAME button after multiple reloads')
+    }
+
+    console.log('START GAME button found. Waiting for it to be enabled...')
     await waitForEnabled(host.page, startButton, 30000)
+    console.log('Clicking START GAME...')
     await clickLocator(startButton)
 
+    console.log('Waiting for all players to reach /game...')
     await Promise.all(players.map((player) => waitForGame(player.page, code, player.name)))
 
     console.log(`3 players opened and game started: ${code}`)
@@ -234,7 +263,7 @@ async function main() {
 
     await new Promise(() => {})
   } catch (error) {
-    console.error('Failed to open 3-player room flow')
+    console.error('FAILED to complete 3-player room flow')
     console.error(error)
     await Promise.all(players.map((player) => player.context.close().catch(() => undefined)))
     await browser.close().catch(() => undefined)

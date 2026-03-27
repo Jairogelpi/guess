@@ -1,0 +1,60 @@
+
+> dixit_ai_mobile@1.0.0 web
+> expo start --web --port 8082
+
+Starting project at C:\Users\jairo\Desktop\PROYECTO GUESSTHEPRONT\dixit_ai_mobile
+Starting Metro Bundler
+
+Waiting on http://localhost:8082
+Logs for your project will appear below.
+Web Bundled 1935ms index.ts (1517 modules)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 256ms src\lib\supabase.ts (1 module)
+Web .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 64ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 8ms src\lib\supabase.ts (1 module)
+Web Bundled 61ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 15ms src\lib\supabase.ts (1 module)
+Web Bundled 54ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 10ms src\lib\supabase.ts (1 module)
+Web .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 67ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 9ms src\lib\supabase.ts (1 module)
+Web .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 78ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 8ms src\lib\supabase.ts (1 module)
+Web .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 76ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 7ms src\lib\supabase.ts (1 module)
+Web Bundled 60ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 8ms src\lib\supabase.ts (1 module)
+Web Bundled 62ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 6ms src\lib\supabase.ts (1 module)
+Web .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 71ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 7ms src\lib\supabase.ts (1 module)
+Web .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 62ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 8ms src\lib\supabase.ts (1 module)
+Web .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 53ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 6ms src\lib\supabase.ts (1 module)
+Web .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 60ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 7ms src\lib\supabase.ts (1 module)
+Web .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 62ms index.ts (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 8ms src\lib\supabase.ts (1 module)

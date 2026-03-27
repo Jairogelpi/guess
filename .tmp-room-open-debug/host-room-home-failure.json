@@ -1,0 +1,22 @@
+{
+  "currentUrl": "http://localhost:8081/",
+  "visibleButtons": [
+    "Crear sala",
+    "Unirse"
+  ],
+  "visibleInputs": [
+    {
+      "type": null,
+      "placeholder": null,
+      "value": "",
+      "ariaLabel": null
+    },
+    {
+      "type": null,
+      "placeholder": "Codigo de sala",
+      "value": "",
+      "ariaLabel": null
+    }
+  ],
+  "bodyText": "CREAR SALA\nES\nEN\nP\nEscribe tu nombre y despues crea una sala o entra con un codigo.\nTU NOMBRE\nEste nombre es el que veran los demas jugadores.\nCREAR SALA\nElige esta opcion si vas a organizar la partida.\nCREAR SALA\nO\nUNIRSE\nUsa esta opcion si alguien te ha pasado un codigo de sala.\nUNIRSE\n󰙴\n󰙴\nCREAR SALA\n󰋯\n󰋯\nMI GALERIA\n󰭕\n󰭕\nPERFIL"
+}

@@ -40,7 +40,16 @@
       "Bash(xargs wc:*)",
       "Bash(grep -r \"from ''''@/i18n''''\" src/ --include=\"*.ts\" --include=\"*.tsx\")",
       "Bash(grep -r \"from ''''react-i18next''''\" src/ --include=\"*.ts\" --include=\"*.tsx\")",
-      "Bash(grep -A 20 '\"\"paths\"\"' tsconfig.json)"
+      "Bash(grep -A 20 '\"\"paths\"\"' tsconfig.json)",
+      "Bash(grep -n '\"\"tapCardToStart\"\"\\\\|\"\"voteInstruction\"\"\\\\|\"\"noGenerationTokens\"\"\\\\|\"\"suggest\"\"' src/i18n/locales/en.json)",
+      "Bash(grep -n '\"\"tapCardToStart\"\"\\\\|\"\"voteInstruction\"\"\\\\|\"\"noGenerationTokens\"\"' src/i18n/locales/en.json src/i18n/locales/es.json)",
+      "Bash(grep -n '\"\"vote\"\":' src/i18n/locales/en.json src/i18n/locales/es.json)",
+      "Bash(grep -n '\"\"vote\"\": \"\"Votar\"\"' src/i18n/locales/es.json)",
+      "Bash(git:*)",
+      "Bash('WORKTREE=/c/Users/jairo/Desktop/PROYECTO GUESSTHEPRONT/dixit_ai_mobile/.claude/worktrees/agent-a5af1a6b' ls $WORKTREE/src/components/game-phases/)",
+      "Bash(echo 'directory missing' ls $WORKTREE/src/components/game/)",
+      "Bash('WORKTREE=/c/Users/jairo/Desktop/PROYECTO GUESSTHEPRONT/dixit_ai_mobile/.claude/worktrees/agent-a5af1a6b' ls $WORKTREE/*.json)",
+      "Bash(npx expo:*)"
     ]
   }
 }

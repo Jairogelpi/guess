@@ -88,6 +88,9 @@ async function main() {
   await call(player2, 'room-join', { code, displayName: player2.displayName })
   await call(player3, 'room-join', { code, displayName: player3.displayName })
 
+  await call(player2, 'game-action', { roomCode: code, action: 'set_ready', payload: { ready: true } })
+  await call(player3, 'game-action', { roomCode: code, action: 'set_ready', payload: { ready: true } })
+
   try {
     await call(host, 'game-action', { roomCode: code, action: 'start_game' })
     console.log(`Room created and started: ${code}`)

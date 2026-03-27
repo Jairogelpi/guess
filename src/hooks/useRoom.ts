@@ -72,7 +72,12 @@ export function useRoom(code: string | null): UseRoomResult {
 
       const { data, error } = await supabase
         .from('room_players')
-        .select('*')
+        .select(`
+          *,
+          profiles (
+            avatar_url
+          )
+        `)
         .eq('room_id', id)
 
       if (cancelled || error || !data) return

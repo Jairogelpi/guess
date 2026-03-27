@@ -18,11 +18,12 @@ import type { Round, Card } from '@/types/game'
  * State is written directly to `useGameStore`; this hook has no return value.
  */
 export function useRound(roomId: string | undefined) {
-  const { setRound, setCards } = useGameStore()
+  const { setRound, setCards, setMyPlayedCardId, setMyVotedCardId } = useGameStore()
 
   useEffect(() => {
     if (!roomId) return
     let cancelled = false
+    let previousRoundId: string | null = null
 
     // Moved inside effect so it has access to `cancelled` and won't
     // update state after the component unmounts or roomId changes.
@@ -48,6 +49,11 @@ export function useRound(roomId: string | undefined) {
       .then(({ data }) => {
         if (cancelled || !data) return
         const round = data as Round
+        if (previousRoundId !== round.id) {
+          setMyPlayedCardId(null)
+          setMyVotedCardId(null)
+          previousRoundId = round.id
+        }
         setRound(round)
         refreshCards(round.id, round.status)
       })
@@ -65,6 +71,11 @@ export function useRound(roomId: string | undefined) {
         (payload) => {
           if (cancelled) return
           const round = payload.new as Round
+          if (previousRoundId !== round.id) {
+            setMyPlayedCardId(null)
+            setMyVotedCardId(null)
+            previousRoundId = round.id
+          }
           setRound(round)
           refreshCards(round.id, round.status)
           // When round transitions to 'results', capture server time offset for synchronized countdown
@@ -96,5 +107,5 @@ export function useRound(roomId: string | undefined) {
       cancelled = true
       supabase.removeChannel(sub)
     }
-  }, [roomId])
+  }, [roomId, setCards, setMyPlayedCardId, setMyVotedCardId, setRound])
 }

@@ -3,6 +3,20 @@ import { handleCors } from '../_shared/cors.ts'
 import { errorResponse, okResponse } from '../_shared/types.ts'
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 import { calculateScores } from './scoring.ts'
+import { buildRoundResolutionSummary } from './roundSummary.ts'
+import {
+  applyChallengeLeaderBonuses,
+  applyIntuitionChanges,
+  getSoloLeaderId,
+} from './competitiveResolution.ts'
+import {
+  TacticalPayloadError,
+  assertChallengeLeaderAvailable,
+  assertSufficientIntuitionTokens,
+  parseSubmitCardPayload,
+  parseSubmitCluePayload,
+  parseSubmitVotePayload,
+} from './tacticalPayloads.ts'
 
 const schema = z.object({
   roomCode: z.string().length(6),
@@ -11,6 +25,112 @@ const schema = z.object({
 })
 
 const POINTS_TO_WIN = 30
+const BASE_INCOME = 2
+const MAX_INTUITION_TOKENS = 10
+
+function getInterest(bank: number) {
+  if (bank >= 8) return 3
+  if (bank >= 6) return 2
+  if (bank >= 4) return 1
+  return 0
+}
+
+function getPositionBonuses(scoresAfter: Record<string, number>, playerIds: string[]) {
+  const sortedPlayerIds = [...playerIds].sort((left, right) => {
+    const scoreDelta = (scoresAfter[right] ?? 0) - (scoresAfter[left] ?? 0)
+    if (scoreDelta !== 0) return scoreDelta
+    return left.localeCompare(right)
+  })
+
+  const maxRankIndex = Math.max(sortedPlayerIds.length - 1, 1)
+  const bonuses: Record<string, number> = {}
+
+  for (let index = 0; index < sortedPlayerIds.length; ) {
+    const groupScore = scoresAfter[sortedPlayerIds[index]!] ?? 0
+    let groupEnd = index + 1
+    while (
+      groupEnd < sortedPlayerIds.length &&
+      (scoresAfter[sortedPlayerIds[groupEnd]!] ?? 0) === groupScore
+    ) {
+      groupEnd += 1
+    }
+
+    const percentile = sortedPlayerIds.length === 1 ? 0 : index / maxRankIndex
+    const bonus = percentile <= 0.2 ? 2 : percentile >= 0.8 ? 0 : 1
+
+    for (let cursor = index; cursor < groupEnd; cursor += 1) {
+      bonuses[sortedPlayerIds[cursor]!] = bonus
+    }
+
+    index = groupEnd
+  }
+
+  return bonuses
+}
+
+function buildTokenSnapshots({
+  playersBefore,
+  scoresAfter,
+  spentByPlayer,
+}: {
+  playersBefore: Array<{ player_id: string; intuition_tokens: number }>
+  scoresAfter: Record<string, number>
+  spentByPlayer: Record<string, number>
+}) {
+  const positionBonuses = getPositionBonuses(
+    scoresAfter,
+    playersBefore.map((player) => player.player_id),
+  )
+
+  const tokenSnapshots = Object.fromEntries(
+    playersBefore.map((player) => {
+      const interest = getInterest(player.intuition_tokens)
+      const position = positionBonuses[player.player_id] ?? 1
+      const totalIncome = BASE_INCOME + position + interest
+      const spent = spentByPlayer[player.player_id] ?? 0
+      return [
+        player.player_id,
+        {
+          spent,
+          base: BASE_INCOME,
+          position,
+          interest,
+          total: totalIncome - spent,
+        },
+      ]
+    }),
+  )
+
+  const nextTokensByPlayer = Object.fromEntries(
+    playersBefore.map((player) => {
+      const snapshot = tokenSnapshots[player.player_id]!
+      return [
+        player.player_id,
+        Math.max(
+          0,
+          Math.min(
+            MAX_INTUITION_TOKENS,
+            player.intuition_tokens + snapshot.base + snapshot.position + snapshot.interest,
+          ),
+        ),
+      ]
+    }),
+  )
+
+  return { tokenSnapshots, nextTokensByPlayer }
+}
+
+function getSubmitSpendCost(input: {
+  risk_clue_profile?: 'normal' | 'sniper' | 'narrow' | 'ambush'
+  is_corrupted?: boolean
+  bet_tokens?: 0 | 1 | 2
+  challenge_leader?: boolean
+}) {
+  return (input.risk_clue_profile === 'ambush' ? 1 : 0) +
+    (input.is_corrupted ? 1 : 0) +
+    (input.bet_tokens ?? 0) +
+    (input.challenge_leader ? 1 : 0)
+}
 
 async function createCardFromGallery(
   sb: SupabaseClient,
@@ -18,6 +138,11 @@ async function createCardFromGallery(
   roundId: string,
   userId: string,
   galleryCardId: string,
+  options: {
+    risk_clue_profile?: 'normal' | 'sniper' | 'narrow' | 'ambush'
+    is_corrupted?: boolean
+    challenge_leader: boolean
+  },
 ) {
   const { data: roomPlayer } = await sb
     .from('room_players')
@@ -57,6 +182,9 @@ async function createCardFromGallery(
       image_url: galleryCard.image_url,
       prompt: galleryCard.prompt,
       is_played: true,
+      risk_clue_profile: options.risk_clue_profile ?? 'normal',
+      is_corrupted: options.is_corrupted === true,
+      challenge_leader: options.challenge_leader,
     })
     .select('id')
     .single()
@@ -80,6 +208,31 @@ async function createCardFromGallery(
   }
 
   return { cardId: insertedCard.id }
+}
+
+function toActionError(error: unknown) {
+  if (error instanceof TacticalPayloadError) {
+    switch (error.code) {
+      case 'INVALID_TACTICAL_ACTION':
+        return errorResponse(error.code, 'Tactical action is not available here')
+      case 'NOT_ENOUGH_INTUITION_TOKENS':
+        return errorResponse(error.code, 'Not enough intuition tokens')
+      case 'CHALLENGE_LEADER_UNAVAILABLE':
+        return errorResponse(error.code, 'Challenge the leader is not available')
+      case 'INTUITION_TOKEN_REQUIRED':
+        return errorResponse(error.code, 'Firm Read requires spending one intuition token')
+      case 'INTUITION_TOKEN_INVALID':
+        return errorResponse(error.code, 'Cannot spend intuition without Firm Read')
+      default:
+        return errorResponse(error.code, 'Invalid tactical payload')
+    }
+  }
+
+  if (error instanceof Error) {
+    return errorResponse('INVALID_PAYLOAD', error.message)
+  }
+
+  return errorResponse('INVALID_PAYLOAD', 'Invalid payload')
 }
 
 async function handleStartGame(sb: SupabaseClient, userId: string, roomCode: string) {
@@ -168,9 +321,11 @@ async function handleSubmitClue(
   roomCode: string,
   payload: unknown,
 ) {
-  const p = payload as { clue: string; card_id?: string; gallery_card_id?: string }
-  if (!p?.clue || (!p?.card_id && !p?.gallery_card_id)) {
-    return errorResponse('INVALID_PAYLOAD', 'Missing clue and card selection')
+  let p
+  try {
+    p = parseSubmitCluePayload(payload)
+  } catch (error) {
+    return toActionError(error)
   }
 
   const { data: room } = await sb.from('rooms').select('id').eq('code', roomCode).single()
@@ -183,6 +338,35 @@ async function handleSubmitClue(
   if (round.narrator_id !== userId) return errorResponse('NOT_YOUR_TURN', 'Not the narrator')
   if (round.status !== 'narrator_turn') return errorResponse('INVALID_STATE', 'Not narrator phase')
 
+  const { data: roomPlayers } = await sb
+    .from('room_players')
+    .select('player_id, score, intuition_tokens, challenge_leader_used')
+    .eq('room_id', room.id)
+    .eq('is_active', true)
+  const currentPlayer = roomPlayers?.find((player) => player.player_id === userId)
+  if (!currentPlayer) return errorResponse('ROOM_NOT_FOUND', 'Active room player not found', 404)
+
+  try {
+    assertSufficientIntuitionTokens(
+      currentPlayer.intuition_tokens,
+      getSubmitSpendCost({
+        risk_clue_profile: p.risk_clue_profile,
+        challenge_leader: p.challenge_leader,
+      }),
+    )
+    assertChallengeLeaderAvailable(
+      p.challenge_leader,
+      getSoloLeaderId((roomPlayers ?? []).map((player) => ({
+        player_id: player.player_id,
+        score: player.score,
+      }))),
+      userId,
+      currentPlayer.challenge_leader_used,
+    )
+  } catch (error) {
+    return toActionError(error)
+  }
+
   // Verify card belongs to this round and this player
   let cardId = p.card_id ?? null
 
@@ -192,11 +376,41 @@ async function handleSubmitClue(
       .eq('round_id', round.id).eq('player_id', userId).single()
     if (!card) return errorResponse('INVALID_CARD', 'Card not found or not yours')
 
-    await sb.from('cards').update({ is_played: true }).eq('id', p.card_id)
+    await sb.from('cards').update({
+      is_played: true,
+      risk_clue_profile: p.risk_clue_profile,
+      challenge_leader: p.challenge_leader,
+    }).eq('id', p.card_id)
   } else if (p.gallery_card_id) {
-    const result = await createCardFromGallery(sb, room.id, round.id, userId, p.gallery_card_id)
+    const result = await createCardFromGallery(
+      sb,
+      room.id,
+      round.id,
+      userId,
+      p.gallery_card_id,
+      {
+        risk_clue_profile: p.risk_clue_profile,
+        challenge_leader: p.challenge_leader,
+      },
+    )
     if (result.error) return result.error
     cardId = result.cardId
+  }
+
+  const spendCost = getSubmitSpendCost({
+    risk_clue_profile: p.risk_clue_profile,
+    challenge_leader: p.challenge_leader,
+  })
+
+  if (spendCost > 0 || p.challenge_leader) {
+    await sb
+      .from('room_players')
+      .update({
+        intuition_tokens: currentPlayer.intuition_tokens - spendCost,
+        challenge_leader_used: p.challenge_leader ? true : currentPlayer.challenge_leader_used,
+      })
+      .eq('room_id', room.id)
+      .eq('player_id', userId)
   }
 
   await sb.from('rounds').update({ 
@@ -214,9 +428,11 @@ async function handleSubmitCard(
   roomCode: string,
   payload: unknown,
 ) {
-  const p = payload as { card_id?: string; gallery_card_id?: string }
-  if (!p?.card_id && !p?.gallery_card_id) {
-    return errorResponse('INVALID_PAYLOAD', 'Missing card selection')
+  let p
+  try {
+    p = parseSubmitCardPayload(payload)
+  } catch (error) {
+    return toActionError(error)
   }
 
   const { data: room } = await sb.from('rooms').select('id').eq('code', roomCode).single()
@@ -229,6 +445,38 @@ async function handleSubmitCard(
   if (round.status !== 'players_turn') return errorResponse('INVALID_STATE', 'Not players phase')
   if (round.narrator_id === userId) return errorResponse('NOT_YOUR_TURN', 'Narrator cannot play a card here')
 
+  const { data: roomPlayers } = await sb
+    .from('room_players')
+    .select('player_id, score, intuition_tokens, challenge_leader_used, corrupted_cards_remaining')
+    .eq('room_id', room.id)
+    .eq('is_active', true)
+  const currentPlayer = roomPlayers?.find((player) => player.player_id === userId)
+  if (!currentPlayer) return errorResponse('ROOM_NOT_FOUND', 'Active room player not found', 404)
+
+  try {
+    if (p.is_corrupted && currentPlayer.corrupted_cards_remaining <= 0) {
+      return errorResponse('NO_CORRUPTED_CARDS_LEFT', 'No corrupted cards remaining')
+    }
+    assertSufficientIntuitionTokens(
+      currentPlayer.intuition_tokens,
+      getSubmitSpendCost({
+        is_corrupted: p.is_corrupted,
+        challenge_leader: p.challenge_leader,
+      }),
+    )
+    assertChallengeLeaderAvailable(
+      p.challenge_leader,
+      getSoloLeaderId((roomPlayers ?? []).map((player) => ({
+        player_id: player.player_id,
+        score: player.score,
+      }))),
+      userId,
+      currentPlayer.challenge_leader_used,
+    )
+  } catch (error) {
+    return toActionError(error)
+  }
+
   let cardId = p.card_id ?? null
 
   if (p.card_id) {
@@ -237,11 +485,44 @@ async function handleSubmitCard(
       .eq('round_id', round.id).eq('player_id', userId).single()
     if (!card) return errorResponse('INVALID_CARD', 'Card not found or not yours')
 
-    await sb.from('cards').update({ is_played: true }).eq('id', p.card_id)
+    await sb.from('cards').update({
+      is_played: true,
+      is_corrupted: p.is_corrupted,
+      challenge_leader: p.challenge_leader,
+    }).eq('id', p.card_id)
   } else if (p.gallery_card_id) {
-    const result = await createCardFromGallery(sb, room.id, round.id, userId, p.gallery_card_id)
+    const result = await createCardFromGallery(
+      sb,
+      room.id,
+      round.id,
+      userId,
+      p.gallery_card_id,
+      {
+        is_corrupted: p.is_corrupted,
+        challenge_leader: p.challenge_leader,
+      },
+    )
     if (result.error) return result.error
     cardId = result.cardId
+  }
+
+  const spendCost = getSubmitSpendCost({
+    is_corrupted: p.is_corrupted,
+    challenge_leader: p.challenge_leader,
+  })
+
+  if (spendCost > 0 || p.challenge_leader) {
+    await sb
+      .from('room_players')
+      .update({
+        intuition_tokens: currentPlayer.intuition_tokens - spendCost,
+        challenge_leader_used: p.challenge_leader ? true : currentPlayer.challenge_leader_used,
+        corrupted_cards_remaining: p.is_corrupted
+          ? currentPlayer.corrupted_cards_remaining - 1
+          : currentPlayer.corrupted_cards_remaining,
+      })
+      .eq('room_id', room.id)
+      .eq('player_id', userId)
   }
 
   // Count active non-narrator players vs played non-narrator cards
@@ -271,8 +552,12 @@ async function handleSubmitVote(
   roomCode: string,
   payload: unknown,
 ) {
-  const p = payload as { card_id: string }
-  if (!p?.card_id) return errorResponse('INVALID_PAYLOAD', 'Missing card_id')
+  let p
+  try {
+    p = parseSubmitVotePayload(payload)
+  } catch (error) {
+    return toActionError(error)
+  }
 
   const { data: room } = await sb.from('rooms').select('id').eq('code', roomCode).single()
   if (!room) return errorResponse('ROOM_NOT_FOUND', 'Room not found', 404)
@@ -283,6 +568,35 @@ async function handleSubmitVote(
   if (!round) return errorResponse('ROUND_NOT_FOUND', 'No active round', 404)
   if (round.status !== 'voting') return errorResponse('INVALID_STATE', 'Not voting phase')
   if (round.narrator_id === userId) return errorResponse('NOT_YOUR_TURN', 'Narrator cannot vote')
+
+  const { data: roomPlayers } = await sb
+    .from('room_players')
+    .select('player_id, score, intuition_tokens, challenge_leader_used')
+    .eq('room_id', room.id)
+    .eq('is_active', true)
+  const currentPlayer = roomPlayers?.find((player) => player.player_id === userId)
+  if (!currentPlayer) return errorResponse('ROOM_NOT_FOUND', 'Active room player not found', 404)
+
+  try {
+    assertSufficientIntuitionTokens(
+      currentPlayer.intuition_tokens,
+      getSubmitSpendCost({
+        bet_tokens: p.bet_tokens,
+        challenge_leader: p.challenge_leader,
+      }),
+    )
+    assertChallengeLeaderAvailable(
+      p.challenge_leader,
+      getSoloLeaderId((roomPlayers ?? []).map((player) => ({
+        player_id: player.player_id,
+        score: player.score,
+      }))),
+      userId,
+      currentPlayer.challenge_leader_used,
+    )
+  } catch (error) {
+    return toActionError(error)
+  }
 
   // Prevent duplicate vote
   const { data: existing } = await sb
@@ -296,7 +610,29 @@ async function handleSubmitVote(
   if (!card) return errorResponse('INVALID_CARD', 'Card not in this round')
   if (card.player_id === userId) return errorResponse('INVALID_CARD', 'Cannot vote for your own card')
 
-  await sb.from('votes').insert({ round_id: round.id, voter_id: userId, card_id: p.card_id })
+  await sb.from('votes').insert({
+    round_id: round.id,
+    voter_id: userId,
+    card_id: p.card_id,
+    bet_tokens: p.bet_tokens,
+    challenge_leader: p.challenge_leader,
+  })
+
+  const spendCost = getSubmitSpendCost({
+    bet_tokens: p.bet_tokens,
+    challenge_leader: p.challenge_leader,
+  })
+
+  if (spendCost > 0 || p.challenge_leader) {
+    await sb
+      .from('room_players')
+      .update({
+        intuition_tokens: currentPlayer.intuition_tokens - spendCost,
+        challenge_leader_used: p.challenge_leader ? true : currentPlayer.challenge_leader_used,
+      })
+      .eq('room_id', room.id)
+      .eq('player_id', userId)
+  }
 
   // Check if all non-narrators voted
   const { count: nonNarratorCount } = await sb
@@ -309,19 +645,38 @@ async function handleSubmitVote(
   if ((voteCount ?? 0) >= (nonNarratorCount ?? 0)) {
     // Tally scores
     const { data: allPlayers } = await sb
-      .from('room_players').select('player_id').eq('room_id', room.id).eq('is_active', true)
+      .from('room_players')
+      .select('player_id, score, intuition_tokens')
+      .eq('room_id', room.id)
+      .eq('is_active', true)
     const { data: allVotes } = await sb
-      .from('votes').select('voter_id, card_id').eq('round_id', round.id)
+      .from('votes')
+      .select('voter_id, card_id, bet_tokens, challenge_leader')
+      .eq('round_id', round.id)
     const { data: playedCards } = await sb
-      .from('cards').select('id, player_id').eq('round_id', round.id).eq('is_played', true)
+      .from('cards')
+      .select('id, player_id, risk_clue_profile, is_corrupted, challenge_leader')
+      .eq('round_id', round.id)
+      .eq('is_played', true)
 
     if (allPlayers && allVotes && playedCards) {
-      const scoreEntries = calculateScores({
+      const baseScoreEntries = calculateScores({
         narratorId: round.narrator_id,
         players: allPlayers.map((p) => p.player_id),
+        activePlayers: allPlayers.map((p) => p.player_id),
         votes: allVotes,
         playedCards,
       })
+      const challengeEntries = applyChallengeLeaderBonuses({
+        scoresBefore: allPlayers.map((player) => ({
+          player_id: player.player_id,
+          score: player.score,
+        })),
+        scoreEntries: baseScoreEntries,
+        playedCards,
+        votes: allVotes,
+      })
+      const scoreEntries = [...baseScoreEntries, ...challengeEntries]
 
       // Insert round_scores
       await sb.from('round_scores').insert(
@@ -329,19 +684,89 @@ async function handleSubmitVote(
       )
 
       // Update cumulative scores in room_players
+      const scoresBefore = Object.fromEntries(
+        allPlayers.map((player) => [player.player_id, player.score]),
+      )
       const scoreByPlayer = new Map<string, number>()
       for (const e of scoreEntries) {
         scoreByPlayer.set(e.player_id, (scoreByPlayer.get(e.player_id) ?? 0) + e.points)
       }
       for (const [playerId, delta] of scoreByPlayer.entries()) {
-        const { data: rp } = await sb
-          .from('room_players').select('score').eq('room_id', room.id)
-          .eq('player_id', playerId).single()
-        if (rp) {
-          await sb.from('room_players')
-            .update({ score: rp.score + delta })
-            .eq('room_id', room.id).eq('player_id', playerId)
+        await sb.from('room_players')
+          .update({ score: (scoresBefore[playerId] ?? 0) + delta })
+          .eq('room_id', room.id).eq('player_id', playerId)
+      }
+
+      const narratorCard = playedCards.find((playedCard) => playedCard.player_id === round.narrator_id)
+      if (narratorCard) {
+        const scoresAfter = Object.fromEntries(
+          allPlayers.map((player) => [
+            player.player_id,
+            (scoresBefore[player.player_id] ?? 0) + (scoreByPlayer.get(player.player_id) ?? 0),
+          ]),
+        )
+        const spentByPlayer = Object.fromEntries(
+          allPlayers.map((player) => [player.player_id, 0]),
+        )
+
+        for (const playedCard of playedCards) {
+          if (playedCard.player_id === round.narrator_id && playedCard.risk_clue_profile === 'ambush') {
+            spentByPlayer[playedCard.player_id] = (spentByPlayer[playedCard.player_id] ?? 0) + 1
+          }
+          if (playedCard.player_id !== round.narrator_id && playedCard.is_corrupted) {
+            spentByPlayer[playedCard.player_id] = (spentByPlayer[playedCard.player_id] ?? 0) + 1
+          }
+          if (playedCard.challenge_leader) {
+            spentByPlayer[playedCard.player_id] = (spentByPlayer[playedCard.player_id] ?? 0) + 1
+          }
         }
+
+        for (const vote of allVotes) {
+          spentByPlayer[vote.voter_id] =
+            (spentByPlayer[vote.voter_id] ?? 0) + Number(vote.bet_tokens ?? 0)
+          if (vote.challenge_leader) {
+            spentByPlayer[vote.voter_id] = (spentByPlayer[vote.voter_id] ?? 0) + 1
+          }
+        }
+
+        const playersBeforeIncome = allPlayers.map((player) => ({
+          player_id: player.player_id,
+          intuition_tokens: player.intuition_tokens,
+        }))
+        const nextTokensByPlayer = applyIntuitionChanges({
+          playersBefore: playersBeforeIncome,
+          scoresAfter,
+        })
+        const { tokenSnapshots } = buildTokenSnapshots({
+          playersBefore: playersBeforeIncome,
+          scoresAfter,
+          spentByPlayer,
+        })
+
+        for (const [playerId, intuitionTokens] of Object.entries(nextTokensByPlayer)) {
+          await sb.from('room_players')
+            .update({ intuition_tokens: intuitionTokens })
+            .eq('room_id', room.id)
+            .eq('player_id', playerId)
+        }
+
+        const summary = buildRoundResolutionSummary({
+          roundId: round.id,
+          narratorId: round.narrator_id,
+          narratorCardId: narratorCard.id,
+          clue: round.clue,
+          votes: allVotes,
+          playedCards,
+          scoreEntries,
+          scoresBefore,
+          scoresAfter,
+          tokenSnapshots,
+        })
+
+        await sb.from('round_resolution_summaries').upsert({
+          round_id: round.id,
+          summary,
+        })
       }
 
       await sb.from('rounds').update({ status: 'results', results_started_at: new Date().toISOString() }).eq('id', round.id)

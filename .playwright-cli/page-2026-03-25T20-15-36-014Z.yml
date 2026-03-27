@@ -1,0 +1,28 @@
+- generic [ref=e15]:
+  - generic [ref=e23]:
+    - radiogroup [ref=e24]:
+      - radio "ES" [ref=e25] [cursor=pointer]:
+        - generic [ref=e26]: ES
+      - radio "EN" [ref=e27] [cursor=pointer]:
+        - generic [ref=e28]: EN
+    - generic "Iniciar sesion" [ref=e29] [cursor=pointer]:
+      - generic [ref=e31]: 󰘺
+  - generic [ref=e41]:
+    - generic [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e44]: GUESS THE
+        - generic [ref=e45]: PROMPT
+      - generic [ref=e47]: Desafía tu imaginación creando cartas únicas.
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - button "ENTRAR COMO INVITADO" [ref=e50] [cursor=pointer]:
+          - generic [ref=e52]: ENTRAR COMO INVITADO
+        - generic [ref=e53]: ¡Entra y juega en segundos! Sin necesidad de registrarte.
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - button "Iniciar sesion" [ref=e56] [cursor=pointer]:
+            - generic [ref=e57]: Iniciar sesion
+          - button "Crear cuenta" [ref=e58] [cursor=pointer]:
+            - generic [ref=e59]: Crear cuenta
+        - generic [ref=e60]: Crea una cuenta gratis para guardar tus mejores cartas en la galería.
+  - generic [ref=e62]: GUESS THE PROMPT 2026

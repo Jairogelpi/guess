@@ -9,9 +9,11 @@ export type Database = {
           created_at: string
           id: string
           image_url: string
+          is_corrupted: boolean
           is_played: boolean
           player_id: string
           prompt: string
+          risk_clue_profile: 'normal' | 'sniper' | 'narrow' | 'ambush' | null
           round_id: string
           tactical_action: string | null
         }
@@ -20,9 +22,11 @@ export type Database = {
           created_at?: string
           id?: string
           image_url: string
+          is_corrupted?: boolean
           is_played?: boolean
           player_id: string
           prompt: string
+          risk_clue_profile?: 'normal' | 'sniper' | 'narrow' | 'ambush' | null
           round_id: string
           tactical_action?: string | null
         }
@@ -31,9 +35,11 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string
+          is_corrupted?: boolean
           is_played?: boolean
           player_id?: string
           prompt?: string
+          risk_clue_profile?: 'normal' | 'sniper' | 'narrow' | 'ambush' | null
           round_id?: string
           tactical_action?: string | null
         }
@@ -155,6 +161,7 @@ export type Database = {
       room_players: {
         Row: {
           challenge_leader_used: boolean
+          corrupted_cards_remaining: number
           display_name: string
           id: string
           intuition_tokens: number
@@ -170,6 +177,7 @@ export type Database = {
         }
         Insert: {
           challenge_leader_used?: boolean
+          corrupted_cards_remaining?: number
           display_name: string
           id?: string
           intuition_tokens?: number
@@ -185,6 +193,7 @@ export type Database = {
         }
         Update: {
           challenge_leader_used?: boolean
+          corrupted_cards_remaining?: number
           display_name?: string
           id?: string
           intuition_tokens?: number
@@ -442,6 +451,7 @@ export type Database = {
       }
       votes: {
         Row: {
+          bet_tokens: number
           card_id: string
           challenge_leader: boolean
           id: string
@@ -451,6 +461,7 @@ export type Database = {
           voter_id: string
         }
         Insert: {
+          bet_tokens?: number
           card_id: string
           challenge_leader?: boolean
           id?: string
@@ -460,6 +471,7 @@ export type Database = {
           voter_id: string
         }
         Update: {
+          bet_tokens?: number
           card_id?: string
           challenge_leader?: boolean
           id?: string
@@ -514,12 +526,134 @@ export type TemporaryGenerationAsset = Database['public']['Tables']['temporary_g
 
 export type RoomStatus = 'lobby' | 'playing' | 'ended'
 export type RoundStatus = 'narrator_turn' | 'players_turn' | 'voting' | 'results'
+export type RiskClueProfile = 'normal' | 'sniper' | 'narrow' | 'ambush'
+export type VoteBetTokens = 0 | 1 | 2
+export interface TacticalDecisionSelection {
+  riskClueProfile?: RiskClueProfile | null
+  isCorrupted?: boolean
+  betTokens?: VoteBetTokens
+  challengeLeader: boolean
+}
+type CardSelectionPayload =
+  | { card_id: string; gallery_card_id?: never }
+  | { gallery_card_id: string; card_id?: never }
+
+export type SubmitClueActionPayload = CardSelectionPayload & {
+  clue: string
+  risk_clue_profile?: RiskClueProfile
+  challenge_leader?: boolean
+}
+export type SubmitCardActionPayload = CardSelectionPayload & {
+  is_corrupted?: boolean
+  challenge_leader?: boolean
+}
+export interface SubmitVoteActionPayload {
+  card_id: string
+  bet_tokens?: VoteBetTokens
+  challenge_leader?: boolean
+}
 export type ScoreReason =
   | 'narrator_success'
   | 'narrator_fail'
   | 'correct_vote'
   | 'received_vote'
   | 'consolation_bonus'
+  | 'market_correct_vote'
+  | 'clue_risk_bonus'
+  | 'clue_risk_penalty'
+  | 'corrupted_card_bonus'
+  | 'corrupted_vote_penalty'
+  | 'bet_pot_payout'
+  | 'challenge_leader_bonus'
+
+export type CompetitiveMarketPayoutTier =
+  | 'nobody_correct'
+  | 'single_correct'
+  | 'double_correct'
+  | 'crowded_correct'
+  | 'everybody_correct'
+
+export interface CompetitiveClueRiskSummary {
+  profile: RiskClueProfile
+  targetCorrectGuessers: number
+  actualCorrectGuessers: number
+  outcome: 'exact' | 'near' | 'miss'
+  pointsDelta: number
+  tokenCost: number
+}
+
+export interface CompetitiveBetWinnerSummary {
+  playerId: string
+  stake: Exclude<VoteBetTokens, 0>
+  weight: number
+  pointsAwarded: number
+}
+
+export interface CompetitiveBetPotSummary {
+  size: number
+  totalWinningWeight: number
+  winners: CompetitiveBetWinnerSummary[]
+}
+
+export interface CompetitiveCorruptionEventSummary {
+  playerId: string
+  cardId: string
+  fooledPlayerIds: string[]
+  success: boolean
+  pointsDelta: number
+  fooledPenaltyTotal: number
+}
+
+export interface CompetitiveChallengeLeaderAttemptSummary {
+  playerId: string
+  targetLeaderId: string
+  success: boolean
+  pointsDelta: number
+  tokenCost: number
+}
+
+export interface CompetitivePointDeltaSummary {
+  playerId: string
+  total: number
+  breakdown: Array<{
+    reason: ScoreReason | string
+    points: number
+  }>
+}
+
+export interface CompetitiveIncomeBreakdown {
+  base: number
+  position: number
+  interest: number
+}
+
+export interface CompetitiveTokenDeltaSummary {
+  playerId: string
+  tacticalCostPaid: number
+  income: CompetitiveIncomeBreakdown
+  total: number
+}
+
+export interface CompetitiveRoundSummary {
+  roundId: string
+  narratorId: string
+  narratorCardId: string
+  clue: string | null
+  correctGuesserCount: number
+  correctGuesserIds: string[]
+  marketPayoutTier: CompetitiveMarketPayoutTier
+  clueRisk: CompetitiveClueRiskSummary | null
+  betPot: CompetitiveBetPotSummary
+  corruptionEvents: CompetitiveCorruptionEventSummary[]
+  challengeLeaderAttempts: CompetitiveChallengeLeaderAttemptSummary[]
+  playerPointDeltas: CompetitivePointDeltaSummary[]
+  playerTokenDeltas: CompetitiveTokenDeltaSummary[]
+}
+
+export type RoundResolutionSummaryRecord =
+  Omit<Database['public']['Tables']['round_resolution_summaries']['Row'], 'summary'> & {
+    summary: CompetitiveRoundSummary
+  }
 
 /**
  * A Card whose player_id has been nulled during the voting phase

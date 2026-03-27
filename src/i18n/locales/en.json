@@ -30,14 +30,31 @@
     "notReady": "Not ready",
     "startGame": "Start!",
     "shareCode": "Share code",
+    "shareInviteLink": "Share invite link",
     "tapToShare": "tap to share",
     "copied": "Copied!",
+    "codeCopied": "Code copied",
     "chat": "Chat",
     "messagePlaceholder": "Write a message...",
     "leave": "Leave",
+    "preparation": "Preparing room...",
+    "notFound": "Room not found",
+    "loadFailed": "Could not load room",
+    "roomCode": "Room code",
+    "roomRules": "Minimum 3 players",
     "shareHint": "Share this code with your friends so they can join.",
+    "inviteMessage": "Join my Guess The Prompt room with code {{code}}",
     "hostHint": "When at least 3 players are ready, the host can start the game.",
+    "hostWaiting_one": "Waiting for {{count}} more player",
+    "hostWaiting_other": "Waiting for {{count}} more players",
+    "hostWaitingReady": "Waiting for ready players: {{names}}",
+    "hostReady": "Everyone is ready. You can start the game.",
     "guestHint": "Wait here until the host starts the game.",
+    "guestWaiting": "Waiting for the host to start the game.",
+    "guestReadyHint": "Mark yourself as ready so the host can start.",
+    "readySubmitted": "You are ready. Waiting for the host.",
+    "readyUp": "Ready up",
+    "undoReady": "Undo ready",
     "playerCount_one": "{{count}} player",
     "playerCount_other": "{{count}} players"
   },
@@ -82,6 +99,11 @@
     "nextRound": "Next round",
     "points": "{{count}} pts",
     "waiting": "Waiting for others...",
+    "waitingMore_one": "{{count}} player left",
+    "waitingMore_other": "{{count}} players left",
+    "waitingForNarrator": "Waiting for the narrator to share the clue.",
+    "waitingForVotes": "Waiting for the other votes.",
+    "waitingConfirm": "Waiting for confirmation",
     "waitingNarratorTitle": "The narrator is setting up the round",
     "waitingNarratorBody": "As soon as the clue is ready, you will be able to choose your card.",
     "waitingSubmissionTitle": "Waiting for the others to choose",
@@ -105,9 +127,96 @@
     "generateCardPaid": "Generate card (-1)",
     "playSelectedCard": "Play this card",
     "nextWriteClue": "Next: write clue",
+    "endGame": "End game",
     "firstGenerationFree": "Your first generation this round is free",
     "generationCostsOne": "This generation will spend 1 token",
-    "generationUnavailableNoTokens": "Free generation spent and no tokens left"
+    "generationUnavailableNoTokens": "Free generation spent and no tokens left",
+    "tactics": {
+      "eyebrow": "Tactics",
+      "title": "Tactical options",
+      "intuitionTokens_one": "{{count}} intuition",
+      "intuitionTokens_other": "{{count}} intuition",
+      "selectedAction": "Selected tactic: {{name}}",
+      "challengeLeaderSelected": "Challenge the leader enabled",
+      "clearSelection": "Clear selection",
+      "sheetTitle": "Tactical detail",
+      "costIntuition_one": "Costs {{count}} intuition",
+      "costIntuition_other": "Costs {{count}} intuition",
+      "detailLabel": "How it works",
+      "rewardLabel": "Reward",
+      "riskLabel": "Risk",
+      "activateChallenge": "Activate challenge",
+      "useThisTactic": "Use this tactic",
+      "actions": {
+        "risk_normal": {
+          "name": "Normal risk",
+          "short": "Balanced clue profile with no intuition cost.",
+          "detail": "You keep the standard round profile and play a clue with a healthy amount of ambiguity.",
+          "reward": "No resource cost and the usual scoring flow stays intact.",
+          "risk": "You gain no extra edge if the table reads your clue immediately."
+        },
+        "risk_sniper": {
+          "name": "Sniper risk",
+          "short": "A very precise clue built to hit just one player.",
+          "detail": "You aim for a narrow mental target and try to make the round land on a single reader.",
+          "reward": "Potentially higher upside if almost everyone misses except one player.",
+          "risk": "If you overfocus the clue, nobody follows it and the round slips away."
+        },
+        "risk_narrow": {
+          "name": "Narrow risk",
+          "short": "Tighter clue framing with less room for interpretation.",
+          "detail": "You intentionally shrink the space of possible readings to create a more controlled table split.",
+          "reward": "Lets you push a more specific outcome without spending intuition.",
+          "risk": "A clue that is too narrow can become obvious or simply stop working."
+        },
+        "risk_ambush": {
+          "name": "Ambush",
+          "short": "Spend intuition to force a more aggressive clue line.",
+          "detail": "You unlock an offensive tactic that tries to disrupt the table's expected reading.",
+          "reward": "Higher upside than the default line when the trap lands well.",
+          "risk": "You spend intuition up front and may get nothing back if the table stays stable."
+        },
+        "corrupted_card": {
+          "name": "Corrupted card",
+          "short": "Spend intuition to open a sabotage-flavored extra option.",
+          "detail": "You add a corrupted card route to create noise and break obvious choice patterns.",
+          "reward": "Gives you one more misleading angle and can scramble the vote.",
+          "risk": "It costs resources and a poor read can expose your whole plan."
+        },
+        "bet_1": {
+          "name": "Bet x1",
+          "short": "Risk 1 intuition to back your read.",
+          "detail": "If you feel confident, invest a single intuition to increase the value of your vote.",
+          "reward": "A correct read pays better than a normal vote.",
+          "risk": "If you miss, the intuition is gone."
+        },
+        "bet_2": {
+          "name": "Bet x2",
+          "short": "Double down with 2 intuition.",
+          "detail": "This is the aggressive version of the bet: more cost, more exposure, more swing.",
+          "reward": "A correct read pays more than the light bet.",
+          "risk": "A miss burns 2 intuition at once."
+        }
+      },
+      "challengeLeader": {
+        "name": "Challenge leader",
+        "short": "Target the solo leader and try to close the gap.",
+        "detail": "You activate a special challenge against the player holding first place alone. It can only be used once per match.",
+        "reward": "A strong round gives you an extra route to pressure the standings.",
+        "risk": "You spend intuition and the challenge can backfire if the round goes cold."
+      },
+      "notes": {
+        "onlyNarratorRisk": "Only the narrator can choose risk profiles in this phase.",
+        "selectionRequired": "Select a card first.",
+        "noCorruptedCardsLeft": "You have no corrupted cards left.",
+        "needTwoIntuition": "You need 2 intuition.",
+        "needOneIntuition": "You need 1 intuition.",
+        "challengeSpent": "You already used challenge leader in this match.",
+        "challengeNoLeader": "There is no solo leader to challenge.",
+        "challengeSelfLeader": "You cannot challenge yourself while leading.",
+        "challengeNeedIntuition": "You need 1 intuition to activate the challenge."
+      }
+    }
   },
   "gallery": {
     "title": "My gallery",
@@ -173,6 +282,7 @@
     "INVALID_STATE": "Invalid game state",
     "ROOM_NOT_FOUND": "Room not found",
     "MIN_PLAYERS_REQUIRED": "At least 3 players required",
+    "PLAYERS_NOT_READY": "All guests must be ready before starting",
     "INVALID_CARD": "Invalid card",
     "generic": "Something went wrong. Please try again."
   }

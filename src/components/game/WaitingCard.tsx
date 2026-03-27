@@ -1,7 +1,43 @@
-import { View, Text, StyleSheet } from 'react-native'
+import { useEffect, useRef } from 'react'
+import { Animated, View, Text, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { colors, fonts, radii } from '@/constants/theme'
 import { Avatar } from '@/components/ui/Avatar'
+
+/** Single dot — pulses when pending, glows when done */
+function StatusDot({ isSubmitted, isMe, delay }: { isSubmitted: boolean; isMe: boolean; delay: number }) {
+  const pulse = useRef(new Animated.Value(1)).current
+
+  useEffect(() => {
+    if (isSubmitted) {
+      // Snap to full glow, no loop
+      Animated.timing(pulse, { toValue: 1, duration: 150, useNativeDriver: true }).start()
+      return
+    }
+    // Slow breathing pulse while waiting
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.35, duration: 800 + delay * 120, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 800 + delay * 120, useNativeDriver: true }),
+      ]),
+    )
+    loop.start()
+    return () => loop.stop()
+  }, [isSubmitted, pulse, delay])
+
+  return (
+    <Animated.View
+      style={[
+        styles.dot,
+        isSubmitted && styles.dotDone,
+        isMe && styles.dotMe,
+        { opacity: pulse },
+      ]}
+    >
+      <View style={styles.dotInner} />
+    </Animated.View>
+  )
+}
 
 interface Props {
   narratorName: string
@@ -58,16 +94,12 @@ export function WaitingCard({
           const isSubmitted = i < submittedCount
           const isMe = !isCurrentUserNarrator && playerId === currentUserId
           return (
-            <View
+            <StatusDot
               key={i}
-              style={[
-                styles.dot,
-                isSubmitted && styles.dotDone,
-                isMe && styles.dotMe,
-              ]}
-            >
-              <View style={styles.dotInner} />
-            </View>
+              isSubmitted={isSubmitted}
+              isMe={isMe}
+              delay={i}
+            />
           )
         })}
         <View style={styles.countPill}>

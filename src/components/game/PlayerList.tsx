@@ -1,4 +1,4 @@
-import { FlatList, View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { Avatar } from '@/components/ui/Avatar'
 import { colors, fonts } from '@/constants/theme'
@@ -13,12 +13,10 @@ export function PlayerList({ players, onPlayerPress }: PlayerListProps) {
   const { t } = useTranslation()
 
   return (
-    <FlatList
-      data={players}
-      keyExtractor={(p) => p.id}
-      scrollEnabled={false}
-      renderItem={({ item, index }) => (
+    <View>
+      {players.map((item, index) => (
         <TouchableOpacity
+          key={item.id}
           activeOpacity={0.7}
           onPress={() => onPlayerPress?.(item)}
           style={[styles.row, index === players.length - 1 && styles.rowLast]}
@@ -34,8 +32,8 @@ export function PlayerList({ players, onPlayerPress }: PlayerListProps) {
             </Text>
           )}
         </TouchableOpacity>
-      )}
-    />
+      ))}
+    </View>
   )
 }
 

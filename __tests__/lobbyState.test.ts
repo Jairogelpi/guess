@@ -22,6 +22,8 @@ function createPlayer(overrides: Partial<RoomPlayer> = {}): RoomPlayer {
     room_id: 'room-1',
     score: 0,
     wildcards_remaining: 0,
+    generation_tokens: 0,
+    corrupted_cards_remaining: 0,
     ...overrides,
   }
 }

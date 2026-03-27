@@ -23,6 +23,8 @@ describe('card tilt math', () => {
       velocityRotateBoost: expect.any(Number),
       velocityTranslateBoost: expect.any(Number),
     })
+    expect(getCardTiltProfile('hero').dragMultiplierX).toBeLessThan(1)
+    expect(getCardTiltProfile('hero').dragMultiplierY).toBeLessThan(1)
 
     expect(getCardTiltProfile('standard')).toMatchObject({
       maxRotateX: 5,
@@ -123,6 +125,23 @@ describe('card tilt math', () => {
     expect(state.translateX).toBe(30)
     expect(state.translateY).toBe(-27)
     expect(state.scale).toBe(standard.scale)
+  })
+
+  test('hero drag translation stays weighted below direct finger mapping at center', () => {
+    const hero = getCardTiltProfile('hero')
+    const state = computeCardTiltStateFromDrag({
+      profile: hero,
+      layout: { width: 200, height: 300 },
+      drag: { dx: 24, dy: -16 },
+      pointer: { x: 100, y: 150 },
+      velocity: { vx: 0, vy: 0 },
+      previousState: getNeutralTiltState(),
+    })
+
+    expect(state.translateX).toBeGreaterThan(0)
+    expect(state.translateX).toBeLessThan(24)
+    expect(Math.abs(state.translateY)).toBeGreaterThan(0)
+    expect(Math.abs(state.translateY)).toBeLessThan(16)
   })
 
   test('drag state preserves pointer parallax even when drag delta is zero', () => {

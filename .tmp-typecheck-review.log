@@ -1,0 +1,66 @@
+
+> dixit_ai_mobile@1.0.0 typecheck
+> tsc --noEmit --pretty false
+
+__tests__/ui/InteractiveCardTilt.test.tsx(138,3): error TS2339: Property '__resetInteractiveCardTiltRegistry' does not exist on type 'typeof import("C:/Users/jairo/Desktop/PROYECTO GUESSTHEPRONT/dixit_ai_mobile/src/components/ui/InteractiveCardTilt")'.
+__tests__/ui/InteractiveCardTilt.test.tsx(139,3): error TS2339: Property '__setInteractiveCardTiltControllerObserver' does not exist on type 'typeof import("C:/Users/jairo/Desktop/PROYECTO GUESSTHEPRONT/dixit_ai_mobile/src/components/ui/InteractiveCardTilt")'.
+__tests__/ui/InteractiveCardTilt.test.tsx(141,3): error TS2339: Property 'createInteractiveCardTiltController' does not exist on type 'typeof import("C:/Users/jairo/Desktop/PROYECTO GUESSTHEPRONT/dixit_ai_mobile/src/components/ui/InteractiveCardTilt")'.
+supabase/functions/_shared/openrouter.ts(1,41): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/_shared/supabaseAdmin.ts(1,30): error TS2307: Cannot find module 'https://esm.sh/@supabase/supabase-js@2' or its corresponding type declarations.
+supabase/functions/_shared/tempAssets.ts(1,41): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/_shared/types.ts(1,29): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/cleanup-temp-images/index.ts(1,28): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/cleanup-temp-images/index.ts(2,43): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/cleanup-temp-images/index.ts(3,37): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/game-action/index.ts(1,46): error TS2307: Cannot find module 'https://esm.sh/@supabase/supabase-js@2' or its corresponding type declarations.
+supabase/functions/game-action/index.ts(2,28): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/game-action/index.ts(3,43): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/game-action/index.ts(4,19): error TS2307: Cannot find module 'https://deno.land/x/zod@v3.22.4/mod.ts' or its corresponding type declarations.
+supabase/functions/game-action/index.ts(5,33): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/game-action/index.ts(6,45): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/game-action/index.ts(11,8): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/game-action/index.ts(19,8): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/game-action/index.ts(253,47): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(258,44): error TS7006: Parameter 'p' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(346,44): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(359,48): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(453,44): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(469,48): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(577,44): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(590,48): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(665,34): error TS7006: Parameter 'p' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(666,40): error TS7006: Parameter 'p' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(671,39): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(688,25): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(700,46): error TS7006: Parameter 'playedCard' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(703,27): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(709,27): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(732,53): error TS7006: Parameter 'player' implicitly has an 'any' type.
+supabase/functions/game-action/index.ts(796,47): error TS7006: Parameter 'p' implicitly has an 'any' type.
+supabase/functions/image-generate/index.ts(1,19): error TS2307: Cannot find module 'https://deno.land/x/zod@v3.22.4/mod.ts' or its corresponding type declarations.
+supabase/functions/image-generate/index.ts(2,28): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/image-generate/index.ts(3,43): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/image-generate/index.ts(4,37): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/image-generate/index.ts(5,41): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/image-generate/index.ts(6,56): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/image-generate/index.ts(7,52): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/image-generate/index.ts(13,8): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/image-generate/index.ts(21,8): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/prompt-suggest/index.ts(1,28): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/prompt-suggest/index.ts(2,43): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/prompt-suggest/index.ts(3,37): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/prompt-suggest/index.ts(4,66): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/prompt-suggest/index.ts(5,47): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/prompt-suggest/index.ts(6,52): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/room-create/index.ts(1,30): error TS2307: Cannot find module 'https://esm.sh/@supabase/supabase-js@2' or its corresponding type declarations.
+supabase/functions/room-create/index.ts(2,41): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/room-create/index.ts(3,43): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/room-create/index.ts(4,19): error TS2307: Cannot find module 'https://deno.land/x/zod@v3.22.4/mod.ts' or its corresponding type declarations.
+supabase/functions/room-join/index.ts(1,30): error TS2307: Cannot find module 'https://esm.sh/@supabase/supabase-js@2' or its corresponding type declarations.
+supabase/functions/room-join/index.ts(2,41): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/room-join/index.ts(3,43): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/room-join/index.ts(4,19): error TS2307: Cannot find module 'https://deno.land/x/zod@v3.22.4/mod.ts' or its corresponding type declarations.
+supabase/functions/room-leave/index.ts(1,30): error TS2307: Cannot find module 'https://esm.sh/@supabase/supabase-js@2' or its corresponding type declarations.
+supabase/functions/room-leave/index.ts(2,28): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/room-leave/index.ts(3,43): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/room-leave/index.ts(4,19): error TS2307: Cannot find module 'https://deno.land/x/zod@v3.22.4/mod.ts' or its corresponding type declarations.

@@ -53,13 +53,13 @@ export default function Welcome() {
   const cardWidth = Math.min(screenWidth * WELCOME_HERO_CARD_WIDTH_FACTOR, WELCOME_HERO_CARD_MAX_WIDTH)
   const cardHeight = cardWidth * WELCOME_HERO_CARD_RATIO
   const compactHero = screenWidth < 390
-  const titleSize = compactHero ? 42 : 50
-  const highlightSize = compactHero ? 62 : 74
-  const subtitleSize = compactHero ? 15 : 18
-  const guestFontSize = compactHero ? 15 : 18
-  const guestButtonHeight = compactHero ? 40 : WELCOME_HERO_CTA_HEIGHT
-  const secondaryButtonHeight = compactHero ? 34 : WELCOME_HERO_SECONDARY_CTA_HEIGHT
-  const secondaryFontSize = compactHero ? 10 : 11
+  const titleSize = compactHero ? 36 : 44
+  const highlightSize = compactHero ? 56 : 68
+  const subtitleSize = compactHero ? 14 : 16
+  const guestFontSize = compactHero ? 14 : 15
+  const guestButtonHeight = compactHero ? 32 : WELCOME_HERO_CTA_HEIGHT
+  const secondaryButtonHeight = compactHero ? 28 : WELCOME_HERO_SECONDARY_CTA_HEIGHT
+  const secondaryFontSize = compactHero ? 9 : 10
   const secondaryGap = compactHero ? 8 : WELCOME_HERO_SECONDARY_ACTION_GAP
   const secondaryHintMarginTop = compactHero ? 4 : WELCOME_HERO_SECONDARY_HINT_MARGIN_TOP
   const footerYear = new Date().getFullYear()
@@ -122,10 +122,12 @@ export default function Welcome() {
   return (
     <Background>
       <View style={styles.overlayRoot}>
-        <AppHeader />
+        <View style={styles.headerAbsolute}>
+          <AppHeader />
+        </View>
 
         <View style={styles.container}>
-          <InteractiveCardTilt profileName="hero" regionKey="welcome-hero" testID="welcome-hero-tilt">
+          <InteractiveCardTilt profileName="hero" regionKey="welcome-hero" testID="welcome-hero-tilt" showPolish={false}>
             <Animated.View style={[styles.mainCard, animatedStyle, { width: cardWidth, height: cardHeight }]}>
               <Image
                 source={require('../../assets/carta.png')}
@@ -226,9 +228,11 @@ export default function Welcome() {
           </InteractiveCardTilt>
         </View>
 
-        <SafeAreaView edges={['bottom']} style={styles.footerContainer}>
-          <Text style={styles.footerText}>{`GUESS THE PROMPT ${footerYear}`}</Text>
-        </SafeAreaView>
+        <View style={styles.footerAbsolute}>
+          <SafeAreaView edges={['bottom']} style={styles.footerContainer}>
+            <Text style={styles.footerText}>{`GUESS THE PROMPT ${footerYear}`}</Text>
+          </SafeAreaView>
+        </View>
       </View>
     </Background>
   )
@@ -236,30 +240,40 @@ export default function Welcome() {
 
 const styles = StyleSheet.create({
   overlayRoot: { flex: 1, backgroundColor: 'transparent' },
+  headerAbsolute: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  footerAbsolute: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
   mainCard: {
-    borderRadius: 30,
+    borderRadius: 28,
     overflow: 'hidden',
     backgroundColor: WELCOME_HERO_CARD_BACKGROUND,
-    shadowColor: '#e6b800',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: WELCOME_HERO_CARD_SHADOW_OPACITY,
-    shadowRadius: WELCOME_HERO_CARD_SHADOW_RADIUS,
-    elevation: 0,
   },
   cardImage: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
+    borderRadius: 30,
     transform: [{ scale: WELCOME_HERO_IMAGE_SCALE }],
   },
   cardOverlay: {
     ...StyleSheet.absoluteFillObject,
     paddingHorizontal: 24,
     paddingTop: 4,
-    paddingBottom: 16,
+    paddingBottom: 24,
     alignItems: 'center',
-    justifyContent: WELCOME_HERO_OVERLAY_JUSTIFY_CONTENT,
+    justifyContent: 'center',
   },
   cardColumn: {
     width: '100%',
@@ -274,6 +288,7 @@ const styles = StyleSheet.create({
   titleGroup: {
     alignItems: 'center',
     width: '100%',
+    paddingHorizontal: 16,
     gap: 12,
   },
   heroLogo: {
@@ -287,25 +302,25 @@ const styles = StyleSheet.create({
     color: '#fff7ea',
     fontSize: 40,
     textAlign: 'center',
-    textShadowColor: 'rgba(24, 10, 4, 0.88)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 2,
+    textShadowColor: 'rgba(5, 1, 0, 0.42)',
+    textShadowOffset: { width: 1, height: 2 },
+    textShadowRadius: 0,
     letterSpacing: 1.1,
     width: '100%',
   },
   brandTitleHighlight: {
     fontSize: 52,
     marginTop: -8,
-    color: '#fff4e3',
-    textShadowColor: 'rgba(10, 4, 1, 0.95)',
-    textShadowOffset: { width: 0, height: 3 },
+    color: '#fffaf2',
+    textShadowColor: 'rgba(4, 1, 0, 0.46)',
+    textShadowOffset: { width: 1, height: 2 },
     textShadowRadius: 0,
   },
   promptTitleFill: {
-    color: '#fff7ea',
-    textShadowColor: WELCOME_HERO_PROMPT_GLOW_COLOR,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: WELCOME_HERO_PROMPT_GLOW_RADIUS,
+    color: '#fffaf2',
+    textShadowColor: 'rgba(4, 1, 0, 0.46)',
+    textShadowOffset: { width: 1, height: 2 },
+    textShadowRadius: 0,
   },
   divider: {
     width: 74,
@@ -319,15 +334,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
-    textShadowColor: 'rgba(0,0,0,0.18)',
-    textShadowRadius: 2,
+    textShadowColor: 'rgba(4, 1, 0, 0.32)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
     width: '92%',
   },
   cardFooter: {
     alignItems: 'center',
     width: '100%',
-    gap: 24,
-    marginTop: 8,
+    gap: 16,
+    marginTop: 4,
   },
   actionGroup: {
     width: '100%',
@@ -339,11 +355,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFA726',
     overflow: 'hidden',
-    shadowColor: '#FF9500',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 12,
-    elevation: 8,
   },
   guestBtnGradient: {
     flex: 1,
@@ -361,9 +372,9 @@ const styles = StyleSheet.create({
     textAlignVertical: 'center',
     includeFontPadding: false,
     width: '100%',
-    textShadowColor: 'rgba(0,0,0,0.58)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowColor: 'rgba(3, 1, 0, 0.38)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
   },
   disabledBtn: {
     opacity: 0.55,
@@ -374,12 +385,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: 'center',
     paddingHorizontal: 12,
+    textShadowColor: 'rgba(4, 1, 0, 0.28)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
   },
   secondaryActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
+    width: '88%',
+    paddingHorizontal: 8,
   },
   smallActionBtn: {
     flex: 1,
@@ -388,50 +403,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 212, 100, 0.95)',
-    backgroundColor: 'rgba(255, 180, 50, 0.85)',
-    shadowColor: '#ffaa00',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
+    borderColor: 'rgba(255, 210, 100, 0.55)',
+    backgroundColor: 'rgba(255, 180, 50, 0.12)',
   },
   registerBtn: {
-    // Colors removed to match `smallActionBtn` exactly as requested.
+    backgroundColor: 'rgba(220, 140, 20, 0.82)',
+    borderColor: 'rgba(255, 220, 110, 0.90)',
   },
   secondaryBtnText: {
     fontFamily: 'CinzelDecorative_700Bold',
-    color: '#fffaf1',
-    fontSize: 12,
-    lineHeight: 14,
-    letterSpacing: 0.8,
+    color: 'rgba(255, 230, 160, 1.0)',
+    fontSize: 13,
+    lineHeight: 16,
+    letterSpacing: 0.4,
     textAlign: 'center',
     textAlignVertical: 'center',
     includeFontPadding: false,
     width: '100%',
-    textShadowColor: 'rgba(0,0,0,0.64)',
+    textShadowColor: 'rgba(3, 1, 0, 0.45)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowRadius: 1,
   },
   registerBtnText: {
     fontFamily: 'CinzelDecorative_700Bold',
-    color: '#fffaf1',
-    fontSize: 12,
-    lineHeight: 14,
-    letterSpacing: 0.8,
+    color: '#ffffff',
+    fontSize: 13,
+    lineHeight: 16,
+    letterSpacing: 0.4,
     textAlign: 'center',
     textAlignVertical: 'center',
     includeFontPadding: false,
     width: '100%',
-    textShadowColor: 'rgba(0,0,0,0.64)',
+    textShadowColor: 'rgba(3, 1, 0, 0.50)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowRadius: 1,
   },
   accountHintText: {
     color: 'rgba(255, 241, 222, 0.65)',
     fontSize: 11,
     lineHeight: 16,
     textAlign: 'center',
+    textShadowColor: 'rgba(4, 1, 0, 0.22)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
     paddingHorizontal: 18,
   },
   footerContainer: { alignItems: 'center', paddingBottom: 25 },

@@ -54,10 +54,11 @@ export function GalleryWildcardPicker({ onPick, onClose }: GalleryWildcardPicker
           {cards.map((card) => (
             <InteractiveCardTilt
               key={card.id}
-              profileName="lite"
+              profileName="hero"
               regionKey="wildcard-picker"
               onPress={() => onPick(card)}
               style={styles.cardButton}
+              floating={true}
             >
               <View>
                 <View style={styles.cardWrap}>

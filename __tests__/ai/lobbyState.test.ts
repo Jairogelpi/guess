@@ -20,6 +20,8 @@ const players: RoomPlayer[] = [
     challenge_leader_used: false,
     intuition_tokens: 0,
     wildcards_remaining: 3,
+    generation_tokens: 0,
+    corrupted_cards_remaining: 0,
   },
   {
     id: '1',
@@ -34,6 +36,8 @@ const players: RoomPlayer[] = [
     challenge_leader_used: false,
     intuition_tokens: 0,
     wildcards_remaining: 3,
+    generation_tokens: 0,
+    corrupted_cards_remaining: 0,
   },
   {
     id: '3',
@@ -48,6 +52,8 @@ const players: RoomPlayer[] = [
     challenge_leader_used: false,
     intuition_tokens: 0,
     wildcards_remaining: 3,
+    generation_tokens: 0,
+    corrupted_cards_remaining: 0,
   },
 ]
 

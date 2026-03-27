@@ -11,83 +11,89 @@ const p3Card = 'card-p3'
 
 const basePlayers = [narrator, p1, p2, p3]
 const basePlayedCards = [
-  { id: narratorCard, player_id: narrator },
-  { id: p1Card, player_id: p1 },
-  { id: p2Card, player_id: p2 },
-  { id: p3Card, player_id: p3 },
+  { id: narratorCard, player_id: narrator, risk_clue_profile: null, is_corrupted: false },
+  { id: p1Card, player_id: p1, is_corrupted: false },
+  { id: p2Card, player_id: p2, is_corrupted: false },
+  { id: p3Card, player_id: p3, is_corrupted: false },
 ]
 
-describe('calculateScores', () => {
-  test('narrator_fail: all guess correctly → narrator 0, others consolation 2', () => {
+describe('calculateScores unified baseline scoring', () => {
+  test('everybody guesses correctly: narrator gets -2 and each non-narrator gets +1 consolation', () => {
     const votes = [
-      { voter_id: p1, card_id: narratorCard },
-      { voter_id: p2, card_id: narratorCard },
-      { voter_id: p3, card_id: narratorCard },
+      { voter_id: p1, card_id: narratorCard, bet_tokens: 0 },
+      { voter_id: p2, card_id: narratorCard, bet_tokens: 0 },
+      { voter_id: p3, card_id: narratorCard, bet_tokens: 0 },
     ]
+
     const scores = calculateScores({
       narratorId: narrator,
       players: basePlayers,
       votes,
       playedCards: basePlayedCards,
     })
-    expect(scores.find((s) => s.player_id === narrator)?.points).toBe(0)
-    expect(scores.find((s) => s.player_id === narrator)?.reason).toBe('narrator_fail')
-    expect(scores.find((s) => s.player_id === p1)?.points).toBe(2)
-    expect(scores.find((s) => s.player_id === p1)?.reason).toBe('consolation_bonus')
+
+    expect(scores).toContainEqual({ player_id: narrator, points: -2, reason: 'narrator_fail' })
+    expect(scores).toContainEqual({ player_id: p1, points: 1, reason: 'consolation_bonus' })
+    expect(scores).toContainEqual({ player_id: p2, points: 1, reason: 'consolation_bonus' })
+    expect(scores).toContainEqual({ player_id: p3, points: 1, reason: 'consolation_bonus' })
+    expect(scores).not.toContainEqual(
+      expect.objectContaining({ player_id: p1, reason: 'market_correct_vote' }),
+    )
   })
 
-  test('narrator_fail: none guess correctly → narrator 0, others consolation 2', () => {
+  test('nobody guesses correctly: narrator gets -2 and each non-narrator gets +2 consolation', () => {
     const votes = [
-      { voter_id: p1, card_id: p2Card },
-      { voter_id: p2, card_id: p1Card },
-      { voter_id: p3, card_id: p1Card },
+      { voter_id: p1, card_id: p2Card, bet_tokens: 0 },
+      { voter_id: p2, card_id: p1Card, bet_tokens: 0 },
+      { voter_id: p3, card_id: p1Card, bet_tokens: 0 },
     ]
+
     const scores = calculateScores({
       narratorId: narrator,
       players: basePlayers,
       votes,
       playedCards: basePlayedCards,
     })
-    expect(scores.find((s) => s.player_id === narrator)?.points).toBe(0)
-    expect(scores.find((s) => s.player_id === p1)?.reason).toBe('consolation_bonus')
-    expect(scores.find((s) => s.player_id === p2)?.reason).toBe('consolation_bonus')
-    expect(scores.find((s) => s.player_id === p3)?.reason).toBe('consolation_bonus')
+
+    expect(scores).toContainEqual({ player_id: narrator, points: -2, reason: 'narrator_fail' })
+    expect(scores).toContainEqual({ player_id: p1, points: 2, reason: 'consolation_bonus' })
+    expect(scores).toContainEqual({ player_id: p2, points: 2, reason: 'consolation_bonus' })
+    expect(scores).toContainEqual({ player_id: p3, points: 2, reason: 'consolation_bonus' })
   })
 
-  test('narrator_success: some guess correctly → narrator 3, correct voters 3', () => {
+  test('single correct guesser: narrator gets +3 and that guesser gets +4 market payout', () => {
     const votes = [
-      { voter_id: p1, card_id: narratorCard },
-      { voter_id: p2, card_id: p1Card },
-      { voter_id: p3, card_id: narratorCard },
+      { voter_id: p1, card_id: narratorCard, bet_tokens: 0 },
+      { voter_id: p2, card_id: p1Card, bet_tokens: 0 },
+      { voter_id: p3, card_id: p2Card, bet_tokens: 0 },
     ]
+
     const scores = calculateScores({
       narratorId: narrator,
       players: basePlayers,
       votes,
       playedCards: basePlayedCards,
     })
-    expect(scores.find((s) => s.player_id === narrator)?.points).toBe(3)
-    expect(scores.find((s) => s.player_id === narrator)?.reason).toBe('narrator_success')
-    expect(scores.find((s) => s.player_id === p1)?.points).toBe(3)
-    expect(scores.find((s) => s.player_id === p1)?.reason).toBe('correct_vote')
-    expect(scores.find((s) => s.player_id === p3)?.points).toBe(3)
+
+    expect(scores).toContainEqual({ player_id: narrator, points: 3, reason: 'narrator_success' })
+    expect(scores).toContainEqual({ player_id: p1, points: 4, reason: 'market_correct_vote' })
   })
 
-  test('received_vote: non-narrator cards that got votes earn 1pt per vote', () => {
+  test('non-corrupted decoy cards earn +1 per opponent vote', () => {
     const votes = [
-      { voter_id: p1, card_id: narratorCard },
-      { voter_id: p2, card_id: p3Card },
-      { voter_id: p3, card_id: narratorCard },
+      { voter_id: p1, card_id: p3Card, bet_tokens: 0 },
+      { voter_id: p2, card_id: narratorCard, bet_tokens: 0 },
+      { voter_id: p3, card_id: p1Card, bet_tokens: 0 },
     ]
+
     const scores = calculateScores({
       narratorId: narrator,
       players: basePlayers,
       votes,
       playedCards: basePlayedCards,
     })
-    // p3 received 1 vote from p2 → 1pt received_vote
-    const p3Scores = scores.filter((s) => s.player_id === p3)
-    const receivedVote = p3Scores.find((s) => s.reason === 'received_vote')
-    expect(receivedVote?.points).toBe(1)
+
+    expect(scores).toContainEqual({ player_id: p3, points: 1, reason: 'received_vote' })
+    expect(scores).toContainEqual({ player_id: p1, points: 1, reason: 'received_vote' })
   })
 })

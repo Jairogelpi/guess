@@ -1,294 +1,212 @@
-import { calculateScores, type ScoreEntry } from '../../supabase/functions/game-action/scoring'
+import type {
+  CompetitiveRoundSummary,
+  RoundResolutionSummaryRecord,
+} from '../../src/types/game'
 import { buildRoundResolutionSummary } from '../../supabase/functions/game-action/roundSummary'
 
-function applyScoreEntries(
-  scoresBefore: Record<string, number>,
-  scoreEntries: ScoreEntry[],
-) {
-  return scoreEntries.reduce<Record<string, number>>((scores, entry) => {
-    return {
-      ...scores,
-      [entry.player_id]: (scores[entry.player_id] ?? 0) + entry.points,
-    }
-  }, { ...scoresBefore })
-}
-
 describe('buildRoundResolutionSummary', () => {
-  test('supports partial score maps by inferring participants from round data when no roster is provided', () => {
-    const summary = buildRoundResolutionSummary({
-      roundId: 'round-plan',
+  test('public summary contract exposes unified competitive explanation sections', () => {
+    const summary: CompetitiveRoundSummary = {
+      roundId: 'round-1',
       narratorId: 'narrator',
       narratorCardId: 'card-n',
       clue: 'moonlight',
-      votes: [
-        { voter_id: 'p1', card_id: 'card-x' },
-        { voter_id: 'p2', card_id: 'card-n' },
-        { voter_id: 'p3', card_id: 'card-x' },
+      correctGuesserCount: 1,
+      correctGuesserIds: ['p2'],
+      marketPayoutTier: 'single_correct',
+      clueRisk: {
+        profile: 'sniper',
+        targetCorrectGuessers: 1,
+        actualCorrectGuessers: 1,
+        outcome: 'exact',
+        pointsDelta: 2,
+        tokenCost: 0,
+      },
+      betPot: {
+        size: 2,
+        totalWinningWeight: 2,
+        winners: [
+          {
+            playerId: 'p2',
+            stake: 2,
+            weight: 2,
+            pointsAwarded: 2,
+          },
+        ],
+      },
+      corruptionEvents: [
+        {
+          playerId: 'p4',
+          cardId: 'card-x',
+          fooledPlayerIds: ['p1', 'p3'],
+          success: true,
+          pointsDelta: 2,
+          fooledPenaltyTotal: -2,
+        },
       ],
-      playedCards: [
-        { id: 'card-n', player_id: 'narrator', tactical_action: 'subtle_bet' },
-        { id: 'card-x', player_id: 'p4', tactical_action: 'trap_card' },
+      challengeLeaderAttempts: [
+        {
+          playerId: 'p2',
+          targetLeaderId: 'narrator',
+          success: true,
+          pointsDelta: 2,
+          tokenCost: 1,
+        },
       ],
-      scoreEntries: [{ player_id: 'p4', reason: 'trap_card_bonus', points: 1 }],
-      scoresBefore: { narrator: 6, p4: 4 },
-      scoresAfter: { narrator: 9, p4: 6 },
-    })
+      playerPointDeltas: [
+        {
+          playerId: 'narrator',
+          total: 5,
+          breakdown: [
+            { reason: 'narrator_success', points: 3 },
+            { reason: 'clue_risk_bonus', points: 2 },
+          ],
+        },
+        {
+          playerId: 'p1',
+          total: -1,
+          breakdown: [{ reason: 'corrupted_vote_penalty', points: -1 }],
+        },
+        {
+          playerId: 'p2',
+          total: 8,
+          breakdown: [
+            { reason: 'market_correct_vote', points: 4 },
+            { reason: 'bet_pot_payout', points: 2 },
+            { reason: 'challenge_leader_bonus', points: 2 },
+          ],
+        },
+        {
+          playerId: 'p3',
+          total: -1,
+          breakdown: [{ reason: 'corrupted_vote_penalty', points: -1 }],
+        },
+        {
+          playerId: 'p4',
+          total: 2,
+          breakdown: [{ reason: 'corrupted_card_bonus', points: 2 }],
+        },
+      ],
+      playerTokenDeltas: [
+        {
+          playerId: 'narrator',
+          tacticalCostPaid: 0,
+          income: { base: 2, position: 2, interest: 1 },
+          total: 5,
+        },
+        {
+          playerId: 'p2',
+          tacticalCostPaid: 3,
+          income: { base: 2, position: 1, interest: 0 },
+          total: 0,
+        },
+        {
+          playerId: 'p4',
+          tacticalCostPaid: 1,
+          income: { base: 2, position: 0, interest: 0 },
+          total: 1,
+        },
+      ],
+    }
 
-    expect(summary.correctVoterIds).toEqual(['p2'])
-    expect(summary.deceptionEvents).toEqual([
-      expect.objectContaining({
-        sourcePlayerId: 'p4',
-        fooledPlayerId: 'p1',
-        cardId: 'card-x',
-        trapCard: true,
-      }),
-      expect.objectContaining({
-        sourcePlayerId: 'p4',
-        fooledPlayerId: 'p3',
-        cardId: 'card-x',
-        trapCard: true,
-      }),
-    ])
-    expect(summary.tacticalEvents).toContainEqual(
-      expect.objectContaining({
-        playerId: 'p4',
-        type: 'trap_card',
-        success: true,
-        pointsDelta: 1,
-        intuitionDelta: 1,
-        description: 'Trap card fooled 2 players',
-      }),
-    )
+    const record: RoundResolutionSummaryRecord = {
+      created_at: '2026-03-24T19:30:00.000Z',
+      round_id: 'round-1',
+      summary,
+    }
+
+    expect(record.summary.clueRisk?.profile).toBe('sniper')
+    expect(record.summary.betPot.size).toBe(2)
+    expect(record.summary.playerTokenDeltas[1]?.income.position).toBe(1)
   })
 
-  test('tracks phase 1 tactical results with intuition deltas and readable descriptions', () => {
-    const playedCards = [
-      { id: 'card-n', player_id: 'narrator', tactical_action: 'subtle_bet' as const },
-      { id: 'card-a', player_id: 'p1', tactical_action: null },
-      { id: 'card-b', player_id: 'p2', tactical_action: null },
-      { id: 'card-c', player_id: 'p3', tactical_action: 'trap_card' as const },
-      { id: 'card-d', player_id: 'p4', tactical_action: null },
-      { id: 'card-e', player_id: 'p5', tactical_action: null },
-    ]
-    const votes = [
-      { voter_id: 'p1', card_id: 'card-c', tactical_action: null },
-      { voter_id: 'p2', card_id: 'card-n', tactical_action: 'firm_read' as const },
-      { voter_id: 'p3', card_id: 'card-d', tactical_action: null },
-      { voter_id: 'p4', card_id: 'card-c', tactical_action: null },
-      { voter_id: 'p5', card_id: 'card-n', tactical_action: null },
-    ]
-    const scoreEntries = calculateScores({
-      narratorId: 'narrator',
-      players: ['narrator', 'p1', 'p2', 'p3', 'p4', 'p5'],
-      votes,
-      playedCards,
-    })
-    const scoresBefore = { narrator: 6, p1: 5, p2: 2, p3: 4, p4: 1, p5: 3 }
-    const scoresAfter = applyScoreEntries(scoresBefore, scoreEntries)
-
+  test('emits clue risk, bet pot, corruption, challenge, and income breakdown sections', () => {
     const summary = buildRoundResolutionSummary({
       roundId: 'round-1',
       narratorId: 'narrator',
       narratorCardId: 'card-n',
       clue: 'moonlight',
-      votes,
-      playedCards,
-      scoreEntries,
-      scoresBefore,
-      scoresAfter,
-    })
-
-    expect(summary.correctVoterIds).toEqual(['p2', 'p5'])
-    expect(summary.deceptionEvents).toHaveLength(3)
-    expect(summary.deceptionEvents).toContainEqual(
-      expect.objectContaining({
-        sourcePlayerId: 'p3',
-        fooledPlayerId: 'p1',
-        cardId: 'card-c',
-        trapCard: true,
-      }),
-    )
-    expect(summary.deceptionEvents).toContainEqual(
-      expect.objectContaining({
-        sourcePlayerId: 'p4',
-        fooledPlayerId: 'p3',
-        cardId: 'card-d',
-        trapCard: false,
-      }),
-    )
-    expect(summary.tacticalEvents).toContainEqual(
-      expect.objectContaining({
-        playerId: 'narrator',
-        type: 'subtle_bet',
-        success: true,
-        pointsDelta: 1,
-        intuitionDelta: 1,
-        description: 'Subtle Bet hit the balanced clue sweet spot',
-      }),
-    )
-    expect(summary.tacticalEvents).toContainEqual(
-      expect.objectContaining({
-        playerId: 'p3',
-        type: 'trap_card',
-        success: true,
-        pointsDelta: 1,
-        intuitionDelta: 1,
-        description: 'Trap card fooled 2 players',
-      }),
-    )
-    expect(summary.tacticalEvents).toContainEqual(
-      expect.objectContaining({
-        playerId: 'p2',
-        type: 'firm_read',
-        success: true,
-        pointsDelta: 1,
-        intuitionDelta: 1,
-        description: 'Firm Read found the narrator in a hard round',
-      }),
-    )
-    expect(summary.leaderboardDeltas).toContainEqual(
-      expect.objectContaining({
-        playerId: 'p3',
-        scoreBefore: 4,
-        scoreAfter: 7,
-        positionBefore: 3,
-        positionAfter: 2,
-      }),
-    )
-  })
-
-  test('ignores out-of-roster votes when deriving summary events and hard-round reads', () => {
-    const playedCards = [
-      { id: 'card-n', player_id: 'narrator', tactical_action: null },
-      { id: 'card-a', player_id: 'p1', tactical_action: null },
-      { id: 'card-b', player_id: 'p2', tactical_action: null },
-      { id: 'card-c', player_id: 'p3', tactical_action: 'trap_card' as const },
-    ]
-    const votes = [
-      { voter_id: 'p1', card_id: 'card-n', tactical_action: 'firm_read' as const },
-      { voter_id: 'p2', card_id: 'card-c', tactical_action: null },
-      { voter_id: 'p3', card_id: 'card-b', tactical_action: null },
-      { voter_id: 'spectator', card_id: 'card-n', tactical_action: null },
-      { voter_id: 'outsider', card_id: 'card-c', tactical_action: null },
-    ]
-    const scoreEntries = calculateScores({
-      narratorId: 'narrator',
-      players: ['narrator', 'p1', 'p2', 'p3', 'bench-1'],
-      votes,
-      playedCards,
-    })
-    const scoresBefore = { narrator: 4, p1: 2, p2: 1, p3: 3, 'bench-1': 0 }
-    const scoresAfter = applyScoreEntries(scoresBefore, scoreEntries)
-
-    const summary = buildRoundResolutionSummary({
-      roundId: 'round-1b',
-      narratorId: 'narrator',
-      narratorCardId: 'card-n',
-      clue: 'fog',
-      players: ['narrator', 'p1', 'p2', 'p3', 'bench-1'],
-      votes,
-      playedCards,
-      scoreEntries,
-      scoresBefore,
-      scoresAfter,
-    })
-
-    expect(summary.correctVoterIds).toEqual(['p1'])
-    expect(summary.deceptionEvents).toEqual([
-      expect.objectContaining({
-        sourcePlayerId: 'p3',
-        fooledPlayerId: 'p2',
-        cardId: 'card-c',
-        trapCard: true,
-      }),
-      expect.objectContaining({
-        sourcePlayerId: 'p2',
-        fooledPlayerId: 'p3',
-        cardId: 'card-b',
-        trapCard: false,
-      }),
-    ])
-    expect(summary.tacticalEvents).toContainEqual(
-      expect.objectContaining({
-        playerId: 'p1',
-        type: 'firm_read',
-        success: true,
-        pointsDelta: 1,
-        intuitionDelta: 1,
-        description: 'Firm Read found the narrator in a hard round',
-      }),
-    )
-  })
-
-  test('records failed subtle bet with zero intuition gain and a readable failure reason', () => {
-    const playedCards = [
-      { id: 'card-n', player_id: 'narrator', tactical_action: 'subtle_bet' as const },
-      { id: 'card-a', player_id: 'p1', tactical_action: null },
-      { id: 'card-b', player_id: 'p2', tactical_action: null },
-      { id: 'card-c', player_id: 'p3', tactical_action: null },
-    ]
-    const votes = [
-      { voter_id: 'p1', card_id: 'card-n', tactical_action: null },
-      { voter_id: 'p2', card_id: 'card-n', tactical_action: null },
-      { voter_id: 'p3', card_id: 'card-n', tactical_action: null },
-    ]
-    const scoreEntries = calculateScores({
-      narratorId: 'narrator',
-      players: ['narrator', 'p1', 'p2', 'p3'],
-      votes,
-      playedCards,
-    })
-
-    const summary = buildRoundResolutionSummary({
-      roundId: 'round-2',
-      narratorId: 'narrator',
-      narratorCardId: 'card-n',
-      clue: 'sunrise',
-      votes,
-      playedCards,
-      scoreEntries,
-      scoresBefore: { narrator: 0, p1: 0, p2: 0, p3: 0 },
-      scoresAfter: applyScoreEntries({ narrator: 0, p1: 0, p2: 0, p3: 0 }, scoreEntries),
-    })
-
-    expect(summary.tacticalEvents).toContainEqual(
-      expect.objectContaining({
-        playerId: 'narrator',
-        type: 'subtle_bet',
-        success: false,
-        pointsDelta: 0,
-        intuitionDelta: 0,
-        description: 'Subtle Bet missed the balanced clue sweet spot',
-      }),
-    )
-  })
-
-  test('emits challenge leader events from inline flags using score entries', () => {
-    const summary = buildRoundResolutionSummary({
-      roundId: 'round-3',
-      narratorId: 'narrator',
-      narratorCardId: 'card-n',
-      clue: null,
       votes: [
+        { voter_id: 'p1', card_id: 'card-x', bet_tokens: 0 },
+        { voter_id: 'p2', card_id: 'card-n', bet_tokens: 2, challenge_leader: true },
+        { voter_id: 'p3', card_id: 'card-x', bet_tokens: 0 },
+      ],
+      playedCards: [
         {
-          voter_id: 'p1',
-          card_id: 'card-n',
-          tactical_action: null,
-          challenge_leader: true,
+          id: 'card-n',
+          player_id: 'narrator',
+          risk_clue_profile: 'sniper',
+          challenge_leader: false,
+        },
+        {
+          id: 'card-x',
+          player_id: 'p4',
+          is_corrupted: true,
+          challenge_leader: false,
         },
       ],
-      playedCards: [{ id: 'card-n', player_id: 'narrator', tactical_action: null }],
-      scoreEntries: [{ player_id: 'p1', reason: 'leader_challenge_bonus', points: 1 }],
-      scoresBefore: { narrator: 0, p1: 0 },
-      scoresAfter: { narrator: 0, p1: 1 },
-    })
+      scoreEntries: [
+        { player_id: 'narrator', reason: 'narrator_success', points: 3 },
+        { player_id: 'narrator', reason: 'clue_risk_bonus', points: 2 },
+        { player_id: 'p1', reason: 'corrupted_vote_penalty', points: -1 },
+        { player_id: 'p2', reason: 'market_correct_vote', points: 4 },
+        { player_id: 'p2', reason: 'bet_pot_payout', points: 2 },
+        { player_id: 'p2', reason: 'challenge_leader_bonus', points: 2 },
+        { player_id: 'p3', reason: 'corrupted_vote_penalty', points: -1 },
+        { player_id: 'p4', reason: 'corrupted_card_bonus', points: 2 },
+      ],
+      scoresBefore: { narrator: 6, p1: 5, p2: 2, p3: 4, p4: 1 },
+      scoresAfter: { narrator: 11, p1: 4, p2: 10, p3: 3, p4: 3 },
+      tokenSnapshots: {
+        narrator: { spent: 0, base: 2, position: 2, interest: 1, total: 5 },
+        p1: { spent: 0, base: 2, position: 1, interest: 0, total: 3 },
+        p2: { spent: 3, base: 2, position: 1, interest: 0, total: 0 },
+        p3: { spent: 0, base: 2, position: 1, interest: 0, total: 3 },
+        p4: { spent: 1, base: 2, position: 0, interest: 0, total: 1 },
+      },
+    } as never)
 
-    expect(summary.tacticalEvents).toContainEqual(
+    expect(summary).toEqual(
       expect.objectContaining({
-        playerId: 'p1',
-        type: 'challenge_leader',
-        success: true,
-        pointsDelta: 1,
+        correctGuesserCount: 1,
+        marketPayoutTier: 'single_correct',
+        clueRisk: expect.objectContaining({
+          profile: 'sniper',
+          outcome: 'exact',
+        }),
+        betPot: expect.objectContaining({
+          size: 2,
+          winners: [expect.objectContaining({ playerId: 'p2', stake: 2, pointsAwarded: 2 })],
+        }),
+        corruptionEvents: [
+          expect.objectContaining({
+            playerId: 'p4',
+            cardId: 'card-x',
+            fooledPlayerIds: ['p1', 'p3'],
+            success: true,
+          }),
+        ],
+        challengeLeaderAttempts: [
+          expect.objectContaining({
+            playerId: 'p2',
+            targetLeaderId: 'narrator',
+            success: true,
+            pointsDelta: 2,
+          }),
+        ],
+        playerPointDeltas: expect.arrayContaining([
+          expect.objectContaining({ playerId: 'narrator', total: 5 }),
+          expect.objectContaining({ playerId: 'p2', total: 8 }),
+          expect.objectContaining({ playerId: 'p4', total: 2 }),
+        ]),
+        playerTokenDeltas: expect.arrayContaining([
+          expect.objectContaining({
+            playerId: 'p2',
+            tacticalCostPaid: 3,
+            income: expect.objectContaining({ base: 2, position: 1, interest: 0 }),
+            total: 0,
+          }),
+        ]),
       }),
     )
   })
