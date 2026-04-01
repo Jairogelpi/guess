@@ -186,9 +186,29 @@ Implementation consequences:
 
 - the server should validate user prompt input at `250` characters, not `500`
 - prompt builders must explicitly optimize for compact density
+- the server must not silently hard-trim model output mid-sentence
 - tests must fail if builder instructions allow over-budget outputs
 
 This budget should not reduce richness by making text vague. It should force the model to choose stronger details instead of longer prose.
+
+### Request validation
+
+- `image-generate.prompt` must be trimmed and rejected if it exceeds `250` characters
+- `prompt-suggest.basePrompt`, when present, must follow the same trimmed `<= 250` rule
+- `prompt-suggest.basePrompt` that becomes empty after trimming should be treated as absent and should fall back to suggestion mode rather than raising a validation error
+
+### Over-budget model response handling
+
+The server must define a deterministic recovery path when the text model still returns more than `250` characters.
+
+Required behavior:
+
+1. trim the model response
+2. if the response is `<= 250`, accept it
+3. if it is over budget, run one additional compression pass instructing the model to preserve the exact same scene while compressing to `<= 250`
+4. if the compression pass still exceeds `250` or returns unusable text, fail the request with the existing stage-specific AI error instead of naively truncating the text
+
+This keeps the prompt coherent while still honoring the product limit.
 
 ---
 
@@ -359,6 +379,7 @@ Behavior changes:
 
 - empty payload returns a richer original card idea
 - `{ basePrompt }` returns an enriched version of the same idea, not the same generic refinement used by image generation
+- whitespace-only `basePrompt` is treated as absent and routes to suggestion mode
 
 ### `image-generate`
 
@@ -395,12 +416,22 @@ Add prompt-focused unit coverage around the shared builder layer and endpoint ro
 - enhancement output is explicitly constrained to `<= 250` characters
 - generation brief output is explicitly constrained to `<= 250` characters
 - prompt-suggest routes empty requests to suggestion mode
+- prompt-suggest routes whitespace-only `basePrompt` to suggestion mode
 - prompt-suggest routes `basePrompt` requests to enhancement mode
 - generic filler phrases are blocked or explicitly discouraged in the builder output
+- over-budget model responses trigger one compression retry and then fail cleanly if still over budget
 
 ### Verification intent
 
 These tests should not try to validate model creativity directly. They should validate that the prompts sent to the model encode the intended behavior and constraints.
+
+### Manual verification
+
+Add a small manual sample review for planning and implementation verification:
+
+- generate several empty-state suggestions and confirm they feel denser and less interchangeable
+- enhance several user-written prompts and confirm the core idea is preserved
+- inspect several returned `brief` values and confirm they stay within `250` characters while remaining imageable and specific
 
 ---
 
