@@ -1,7 +1,7 @@
 # Dixit AI Mobile - Prompt Creativity Escalation Design
 **Date:** 2026-04-01
 **Project:** `dixit_ai_mobile`
-**Status:** Draft
+**Status:** Approved
 
 ---
 
@@ -196,6 +196,7 @@ This budget should not reduce richness by making text vague. It should force the
 - `image-generate.prompt` must be trimmed and rejected if it exceeds `250` characters
 - `prompt-suggest.basePrompt`, when present, must follow the same trimmed `<= 250` rule
 - `prompt-suggest.basePrompt` that becomes empty after trimming should be treated as absent and should fall back to suggestion mode rather than raising a validation error
+- over-`250` input should stay on the existing validation-error path for this phase rather than introducing a new error code just for length
 
 ### Over-budget model response handling
 
@@ -203,10 +204,10 @@ The server must define a deterministic recovery path when the text model still r
 
 Required behavior:
 
-1. trim the model response
+1. trim surrounding whitespace from the model response without truncating characters
 2. if the response is `<= 250`, accept it
 3. if it is over budget, run one additional compression pass instructing the model to preserve the exact same scene while compressing to `<= 250`
-4. if the compression pass still exceeds `250` or returns unusable text, fail the request with the existing stage-specific AI error instead of naively truncating the text
+4. if the compression pass still exceeds `250` or returns unusable text such as empty output, JSON, or explanatory prose, fail the request with the existing stage-specific AI error instead of naively truncating the text
 
 This keeps the prompt coherent while still honoring the product limit.
 
