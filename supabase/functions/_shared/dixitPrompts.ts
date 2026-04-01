@@ -60,10 +60,17 @@ Rules:
 - return only the prompt text
 - no titles, no explanations, no JSON`
 
+function escapeUserThemeText(prompt: string): string {
+  return prompt
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
 function buildSceneDataMessage(prompt: string): ChatMessage {
   return {
     role: 'user',
-    content: `<user_theme>${prompt}</user_theme>\n\nApply Dixit style anchors:\n${DIXIT_STYLE}`,
+    content: `<user_theme>${escapeUserThemeText(prompt)}</user_theme>\n\nApply Dixit style anchors:\n${DIXIT_STYLE}`,
   }
 }
 
