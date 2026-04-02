@@ -72,6 +72,8 @@ describe('promptBudget', () => {
     'Sure-footed mountain goats climb a cathedral made of salt.',
     'scene-stealing fox beneath a flooded chandelier',
     '[underwater library with fish on the shelves]',
+    '[1980s arcade overgrown with moss]',
+    '[true blue cathedral under the sea]',
     'a masked diver studies an altar as it reflects moonlight.',
     'a fox carries a lighthouse\nthrough a flooded hallway',
   ])('isUsablePromptOutput keeps literal scene language usable: %s', (text) => {
@@ -99,6 +101,7 @@ describe('promptBudget', () => {
     'Explicaci\u00f3n: una nina abre una biblioteca sumergida',
     'This depicts a girl opening an underwater library.',
     'Scene: a girl opens an underwater library.',
+    'scene-a girl opens an underwater library.',
     'Scene-girl opens an underwater library.',
     'Scene-a girl opens an underwater library.',
     'Scene- a girl opens an underwater library.',
@@ -108,6 +111,7 @@ describe('promptBudget', () => {
     'Scene prompt: a girl opens an underwater library.',
     'Image prompt: a girl opens an underwater library.',
     'Answer: a girl opens an underwater library.',
+    'prompt-a girl opens an underwater library.',
     'This scene is about memory and wonder.',
     'This prompt is about a girl opening an underwater library.',
     'In this scene, a girl opens an underwater library.',
@@ -140,6 +144,7 @@ describe('promptBudget', () => {
   test.each([
     'Descripci\u00f3n: una ni\u00f1a abre una biblioteca submarina.',
     'Escena: una ni\u00f1a abre una biblioteca submarina.',
+    'escena-una ni\u00f1a abre una biblioteca submarina.',
     'Escena-nina abre una biblioteca submarina.',
     'Escena-una ni\u00f1a abre una biblioteca submarina.',
     'Escena- una ni\u00f1a abre una biblioteca submarina.',
