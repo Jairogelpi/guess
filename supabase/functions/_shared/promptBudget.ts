@@ -9,9 +9,9 @@ const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|prompt|respuesta|response|output|resultado|result)\s*[:\-]/i
 const META_LEAD_IN_PATTERN =
   /^(?:here(?: is|'s)|this is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
-const ASSISTANT_CONFIRMATION_PATTERN = /^(?:sure|claro)(?:\s*[,:.!]|\s+-)/i
+const ASSISTANT_CONFIRMATION_PATTERN = /^[¡¿]?(?:sure|claro)(?:\s*[,:.!?]|\s+-)/i
 const EXPLANATORY_SCENE_PATTERN =
-  /^(?:this|the)\s+(?:scene|image|prompt)\s+(?:depicts|shows|portrays|illustrates)\b/i
+  /^(?:(?:this(?:\s+(?:scene|image|prompt))?)|(?:the\s+(?:scene|image|prompt)))\s+(?:depicts|shows|portrays|illustrates)\b/i
 const INTERPRETIVE_SENTENCE_PATTERN =
   /(?:^|[.!?]\s+)(?:it|this|this\s+scene|this\s+image|the\s+scene|the\s+image|the\s+prompt)\s+(?:symbolizes|symbolises|represents|means|evokes|suggests|implies)\b/i
 const SPANISH_INTERPRETIVE_SENTENCE_PATTERN =
@@ -65,35 +65,36 @@ export function normalizePromptInput(
 
 export function isUsablePromptOutput(text: string): boolean {
   const normalized = text.trim()
+  const normalizedForChecks = normalized.replace(COLLAPSIBLE_WHITESPACE_PATTERN, ' ')
 
   if (!normalized) {
     return false
   }
 
-  if (normalized.includes('\n') || normalized.startsWith('```')) {
+  if (normalized.startsWith('```')) {
     return false
   }
 
-  if (OBVIOUS_JSON_PATTERN.test(normalized)) {
+  if (OBVIOUS_JSON_PATTERN.test(normalizedForChecks)) {
     return false
   }
 
   if (
-    EXPLANATORY_PREFIX_PATTERN.test(normalized) ||
-    META_LEAD_IN_PATTERN.test(normalized) ||
-    ASSISTANT_CONFIRMATION_PATTERN.test(normalized)
+    EXPLANATORY_PREFIX_PATTERN.test(normalizedForChecks) ||
+    META_LEAD_IN_PATTERN.test(normalizedForChecks) ||
+    ASSISTANT_CONFIRMATION_PATTERN.test(normalizedForChecks)
   ) {
     return false
   }
 
   if (
-    EXPLANATORY_SCENE_PATTERN.test(normalized) ||
-    INTERPRETIVE_SENTENCE_PATTERN.test(normalized) ||
-    SPANISH_INTERPRETIVE_SENTENCE_PATTERN.test(normalized) ||
-    INTERPRETIVE_REFLECTION_PATTERN.test(normalized) ||
-    SPANISH_INTERPRETIVE_REFLECTION_PATTERN.test(normalized) ||
-    INTERPRETIVE_CLAUSE_PATTERN.test(normalized) ||
-    INTERPRETIVE_REFLECTING_CLAUSE_PATTERN.test(normalized)
+    EXPLANATORY_SCENE_PATTERN.test(normalizedForChecks) ||
+    INTERPRETIVE_SENTENCE_PATTERN.test(normalizedForChecks) ||
+    SPANISH_INTERPRETIVE_SENTENCE_PATTERN.test(normalizedForChecks) ||
+    INTERPRETIVE_REFLECTION_PATTERN.test(normalizedForChecks) ||
+    SPANISH_INTERPRETIVE_REFLECTION_PATTERN.test(normalizedForChecks) ||
+    INTERPRETIVE_CLAUSE_PATTERN.test(normalizedForChecks) ||
+    INTERPRETIVE_REFLECTING_CLAUSE_PATTERN.test(normalizedForChecks)
   ) {
     return false
   }

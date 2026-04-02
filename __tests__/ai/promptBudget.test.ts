@@ -57,6 +57,7 @@ describe('promptBudget', () => {
   test.each([
     'Sure-footed mountain goats climb a cathedral made of salt.',
     'a masked diver studies an altar as it reflects moonlight.',
+    'a fox carries a lighthouse\nthrough a flooded hallway',
   ])('isUsablePromptOutput keeps literal scene language usable: %s', (text) => {
     expect(isUsablePromptOutput(text)).toBe(true)
   })
@@ -71,6 +72,7 @@ describe('promptBudget', () => {
 
   test.each([
     'Explicación: una nina abre una biblioteca sumergida',
+    'This depicts a girl opening an underwater library.',
     'In this scene, a girl opens an underwater library.',
     'In this image, a girl opens an underwater library.',
     'Sure! a girl opens an underwater library.',
@@ -92,6 +94,7 @@ describe('promptBudget', () => {
 
   test.each([
     'Descripción: una niña abre una biblioteca submarina.',
+    '\u00a1Claro! una niña abre una biblioteca submarina.',
     'En esta escena, una niña abre una biblioteca submarina.',
     'En esta imagen, una niña abre una biblioteca submarina.',
     'Claro! una niña abre una biblioteca submarina.',
