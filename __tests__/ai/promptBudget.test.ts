@@ -16,6 +16,10 @@ describe('promptBudget', () => {
     expect(normalizePromptInput(' '.repeat(4), 250)).toBeUndefined()
   })
 
+  test('normalizePromptInput strips control characters before trimming', () => {
+    expect(normalizePromptInput('\u0000  hola\u0007  ', 250)).toBe('hola')
+  })
+
   test('normalizePromptInput throws a validation-specific error when text exceeds the budget', () => {
     expect(() => normalizePromptInput('x'.repeat(251), 250)).toThrow(PromptBudgetValidationError)
   })
@@ -40,6 +44,14 @@ describe('promptBudget', () => {
         'una nina abre una biblioteca sumergida. Peces de papel flotan entre los estantes.',
       ),
     ).toBe(true)
+  })
+
+  test('isUsablePromptOutput rejects explanatory under-budget prose', () => {
+    expect(
+      isUsablePromptOutput(
+        'This scene depicts a girl opening an underwater library. It symbolizes memory and wonder.',
+      ),
+    ).toBe(false)
   })
 
   test('buildCompressionMessages preserves the exact same scene while compressing to 250 characters or less', () => {

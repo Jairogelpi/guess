@@ -7,6 +7,10 @@ const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicacion|explicacion breve|explanation|descripcion|description|prompt|respuesta|response|output|resultado|result)\s*[:\-]/i
 const META_LEAD_IN_PATTERN =
   /^(?:here(?: is|'s)|this is|the prompt is|prompt text|respuesta final|final prompt)\b/i
+const EXPLANATORY_SCENE_PATTERN =
+  /^(?:this|the)\s+(?:scene|image|prompt)\s+(?:depicts|shows|portrays|illustrates)\b/i
+const SYMBOLIC_INTERPRETATION_PATTERN =
+  /\b(?:it|this)\s+(?:symbolizes|symbolises|represents|means|evokes)\b/i
 
 export class PromptBudgetValidationError extends Error {
   constructor(message: string) {
@@ -60,6 +64,13 @@ export function isUsablePromptOutput(text: string): boolean {
   }
 
   if (EXPLANATORY_PREFIX_PATTERN.test(normalized) || META_LEAD_IN_PATTERN.test(normalized)) {
+    return false
+  }
+
+  if (
+    EXPLANATORY_SCENE_PATTERN.test(normalized) ||
+    SYMBOLIC_INTERPRETATION_PATTERN.test(normalized)
+  ) {
     return false
   }
 
