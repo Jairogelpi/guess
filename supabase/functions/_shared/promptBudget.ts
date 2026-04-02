@@ -4,13 +4,13 @@ const DEFAULT_MAX_PROMPT_CHARS = 250
 const CONTROL_CHAR_PATTERN = /[\u0000-\u001F\u007F]/g
 const OBVIOUS_JSON_PATTERN = /^(?:\{[\s\S]*\}|\[[\s\S]*\])$/
 const EXPLANATORY_PREFIX_PATTERN =
-  /^(?:explicacion|explicacion breve|explanation|descripcion|description|prompt|respuesta|response|output|resultado|result)\s*[:\-]/i
+  /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripcion|description|prompt|respuesta|response|output|resultado|result)\s*[:\-]/i
 const META_LEAD_IN_PATTERN =
-  /^(?:here(?: is|'s)|this is|the prompt is|prompt text|respuesta final|final prompt)\b/i
+  /^(?:here(?: is|'s)|this is|the prompt is|prompt text|respuesta final|final prompt|in this scene|sure)\b[\s,:-]*/i
 const EXPLANATORY_SCENE_PATTERN =
   /^(?:this|the)\s+(?:scene|image|prompt)\s+(?:depicts|shows|portrays|illustrates)\b/i
 const SYMBOLIC_INTERPRETATION_PATTERN =
-  /\b(?:it|this)\s+(?:symbolizes|symbolises|represents|means|evokes)\b/i
+  /\b(?:it|this)\s+(?:symbolizes|symbolises|represents|means|evokes|suggests|implies|reflects)\b/i
 
 export class PromptBudgetValidationError extends Error {
   constructor(message: string) {

@@ -54,6 +54,17 @@ describe('promptBudget', () => {
     ).toBe(false)
   })
 
+  test.each([
+    'Explicación: una nina abre una biblioteca sumergida',
+    'In this scene, a girl opens an underwater library.',
+    'Sure, a girl opens an underwater library with fish in the shelves.',
+    'a girl opens an underwater library. It suggests memory and wonder.',
+    'a girl opens an underwater library. It implies a forgotten childhood.',
+    'a girl opens an underwater library. It reflects grief and hope.',
+  ])('isUsablePromptOutput rejects additional explanatory invalid forms: %s', (text) => {
+    expect(isUsablePromptOutput(text)).toBe(false)
+  })
+
   test('buildCompressionMessages preserves the exact same scene while compressing to 250 characters or less', () => {
     const messages = buildCompressionMessages(
       'una nina abre una biblioteca sumergida con peces en los estantes',
