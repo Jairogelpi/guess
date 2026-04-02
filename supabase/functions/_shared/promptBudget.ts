@@ -6,7 +6,8 @@ const CONTROL_CHAR_PATTERN = /[\u0000-\u0008\u000E-\u001F\u007F]/g
 const COLLAPSIBLE_WHITESPACE_PATTERN = /\s+/g
 const JSON_OBJECT_SHAPED_PATTERN = /^\s*\{\s*(?:"[^"]+"|'[^']+'|[A-Za-z_][\w-]*)\s*:/i
 const JSON_COMPLEX_ARRAY_SHAPED_PATTERN = /^\s*\[\s*(?:"|'|\{)/i
-const JSON_SCALAR_ARRAY_SHAPED_PATTERN = /^\s*\[\s*(?:-?\d+(?:\.\d+)?|true|false|null)\s*$/i
+const JSON_SCALAR_ARRAY_SHAPED_PATTERN =
+  /^\s*\[\s*(?:-?(?:\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|true|false|null)(?=\s*(?:,|\]|$))/i
 const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|respuesta|response|output|resultado|result)\s*[:\-]/i
 const LABEL_PREFIX_PATTERN =
@@ -14,7 +15,7 @@ const LABEL_PREFIX_PATTERN =
 const ARTICLE_DASH_LABEL_PREFIX_PATTERN =
   /^(?:(?:scene|image)(?:\s+prompt)?|answer|prompt|escena|imagen)-(?=(?:a|an|the|una|un|el|la)\b)/i
 const CAPITALIZED_DASH_LABEL_PREFIX_PATTERN =
-  /^(?:(?:Scene|Image)(?:\s+prompt)?|Answer|Prompt|Escena|Imagen)-(?=[a-z\u00df-\u00ff])/u
+  /^(?:(?:Scene|Image)(?:\s+prompt)?|Answer|Prompt|Escena|Imagen)-(?=[A-Za-z\u00c0-\u017f0-9])/u
 const META_LEAD_IN_PATTERN =
   /^(?:here(?: is|['\u2019]s)|this is|this\s+(?:scene|image|prompt)\s+is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
 const ASSISTANT_CONFIRMATION_PATTERN =
