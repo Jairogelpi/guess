@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import {
   buildEnhancementMessages,
+  buildGenerationBriefMessages,
   buildSuggestionMessages,
 } from '../../supabase/functions/_shared/dixitPrompts'
 import {
@@ -8,6 +9,7 @@ import {
   buildCompressionMessages,
 } from '../../supabase/functions/_shared/promptBudget'
 import {
+  resolveGenerationBriefRequest,
   resolvePromptSuggestPrompt,
   resolvePromptSuggestRequest,
 } from '../../supabase/functions/_shared/promptFlow'
@@ -50,6 +52,38 @@ describe('promptFlow', () => {
     const enhancement = resolvePromptSuggestRequest('una nina en una biblioteca inundada')
 
     expect(suggestion.temperature).toBeGreaterThan(enhancement.temperature)
+  })
+
+  test('generation input is trimmed before length validation and accepts trimmed 250-character prompts', () => {
+    const prompt = `  ${'x'.repeat(250)}  `
+    const request = resolveGenerationBriefRequest(prompt)
+
+    expect(request.prompt).toBe('x'.repeat(250))
+    expect(request.messages).toEqual(buildGenerationBriefMessages('x'.repeat(250)))
+  })
+
+  test('generation input rejects trimmed values at 251 characters', () => {
+    expect(() => resolveGenerationBriefRequest(`  ${'x'.repeat(251)}  `)).toThrow(
+      PromptBudgetValidationError,
+    )
+  })
+
+  test('whitespace-only generation input throws the validation-specific invalid payload error', () => {
+    expect(() => resolveGenerationBriefRequest('   ')).toThrow(PromptBudgetValidationError)
+  })
+
+  test('generation request uses the dedicated image-brief builder rather than enhancement copy', () => {
+    const prompt = 'una nina con una llave de coral'
+    const request = resolveGenerationBriefRequest(prompt)
+
+    expect(request.messages).toEqual(buildGenerationBriefMessages(prompt))
+    expect(request.messages).not.toEqual(buildEnhancementMessages(prompt))
+  })
+
+  test('generation normalization returns trimmed prompt text', () => {
+    const request = resolveGenerationBriefRequest('  una nina en una biblioteca inundada  ')
+
+    expect(request.prompt).toBe('una nina en una biblioteca inundada')
   })
 
   test('over-250 input throws before any model call', async () => {

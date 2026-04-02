@@ -2,9 +2,14 @@ import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 import { handleCors } from '../_shared/cors.ts'
 import { errorResponse, okResponse } from '../_shared/types.ts'
 import { createSupabaseAdmin } from '../_shared/supabaseAdmin.ts'
-import { buildRefinementMessages } from '../_shared/dixitPrompts.ts'
 import { AI_ERROR_CODES, AiError, ensureAiError } from '../_shared/errors.ts'
 import { callOpenRouter, extractTextContent } from '../_shared/openrouter.ts'
+import {
+  PromptBudgetValidationError,
+  buildCompressionMessages,
+  resolvePromptOutputWithinBudget,
+} from '../_shared/promptBudget.ts'
+import { resolveGenerationBriefRequest } from '../_shared/promptFlow.ts'
 import {
   buildPollinationsAuthHeaders,
   buildPollinationsImageUrl,
@@ -21,7 +26,7 @@ import {
 } from '../_shared/tempAssets.ts'
 
 const schema = z.object({
-  prompt: z.string().min(1).max(500),
+  prompt: z.string(),
   scope: z.enum(['round', 'gallery']),
   roomCode: z.string().min(1).optional(),
   roundId: z.string().uuid().optional(),
@@ -62,13 +67,34 @@ Deno.serve(async (req) => {
       )
     }
 
+    const generationRequest = resolveGenerationBriefRequest(body.data.prompt)
     const refinementPayload = await callOpenRouter({
-      messages: buildRefinementMessages(body.data.prompt),
+      messages: generationRequest.messages,
       temperature: 0.4,
       failureCode: 'PROMPT_REFINEMENT_FAILED',
     })
 
-    const brief = extractTextContent(refinementPayload) || body.data.prompt
+    const firstBrief = extractTextContent(refinementPayload)
+    let brief: string
+
+    try {
+      brief = await resolvePromptOutputWithinBudget(firstBrief, async (text) => {
+        const compressionPayload = await callOpenRouter({
+          messages: buildCompressionMessages(text),
+          temperature: 0.2,
+          failureCode: 'PROMPT_REFINEMENT_FAILED',
+        })
+
+        return extractTextContent(compressionPayload)
+      })
+    } catch (error) {
+      if (error instanceof Error && error.message === 'INVALID_PROMPT_OUTPUT') {
+        throw new AiError(AI_ERROR_CODES.PROMPT_REFINEMENT_FAILED, 'Prompt refinement failed')
+      }
+
+      throw error
+    }
+
     const { primary, fallback } = getPollinationsModels()
     const pollinationsKey = getPollinationsApiKey()
     if (!pollinationsKey) {
@@ -157,6 +183,10 @@ Deno.serve(async (req) => {
       expiresAt,
     })
   } catch (error) {
+    if (error instanceof PromptBudgetValidationError) {
+      return errorResponse('INVALID_PAYLOAD', error.message, 400)
+    }
+
     const aiError = ensureAiError(
       error,
       AI_ERROR_CODES.IMAGE_PROVIDER_FAILED,

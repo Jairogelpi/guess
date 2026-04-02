@@ -1,8 +1,10 @@
 import {
+  buildGenerationBriefMessages,
   buildPromptSuggestMessages,
   type ChatMessage,
 } from './dixitPrompts.ts'
 import {
+  PromptBudgetValidationError,
   buildCompressionMessages,
   normalizePromptInput,
   resolvePromptOutputWithinBudget,
@@ -16,6 +18,22 @@ export const EMPTY_SUGGESTION_RESPONSE_ERROR = 'EMPTY_SUGGESTION_RESPONSE'
 export interface PromptSuggestModelRequest {
   messages: ChatMessage[]
   temperature: number
+}
+
+export function resolveGenerationBriefRequest(rawPrompt: string): {
+  prompt: string
+  messages: ChatMessage[]
+} {
+  const prompt = normalizePromptInput(rawPrompt)
+
+  if (!prompt) {
+    throw new PromptBudgetValidationError('Prompt input is required')
+  }
+
+  return {
+    prompt,
+    messages: buildGenerationBriefMessages(prompt),
+  }
 }
 
 export function resolvePromptSuggestRequest(rawBasePrompt: unknown): {
