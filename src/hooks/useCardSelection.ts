@@ -41,11 +41,13 @@ export function useCardSelection({ roomCode, round, userId }: Params) {
 
   async function handleGenerate(index: number, prompt: string) {
     if (!round || !userId || generatingSlot !== null) return
+    const trimmedPrompt = prompt.trim()
+    if (!trimmedPrompt) return
     setGeneratingSlot(index)
     try {
-      const result = await generate({ prompt, scope: 'round', roomCode, roundId: round.id })
+      const result = await generate({ prompt: trimmedPrompt, scope: 'round', roomCode, roundId: round.id })
       if (!result?.imageUrl) return
-      const cardId = await insertCard(round.id, userId, result.imageUrl, result.brief ?? prompt)
+      const cardId = await insertCard(roomCode, result.imageUrl, result.brief ?? trimmedPrompt)
       if (!cardId) return
       setSlots((prev) =>
         prev.map((s, i) => i === index ? { ...s, id: cardId, imageUri: result.imageUrl } : s),
