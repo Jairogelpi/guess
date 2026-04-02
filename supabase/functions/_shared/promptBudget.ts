@@ -9,13 +9,13 @@ const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|prompt|respuesta|response|output|resultado|result)\s*[:\-]/i
 const META_LEAD_IN_PATTERN =
   /^(?:here(?: is|'s)|this is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
-const ASSISTANT_CONFIRMATION_PATTERN = /^(?:sure|claro)(?:\s*[,:.]|\s+-)/i
+const ASSISTANT_CONFIRMATION_PATTERN = /^(?:sure|claro)(?:\s*[,:.!]|\s+-)/i
 const EXPLANATORY_SCENE_PATTERN =
   /^(?:this|the)\s+(?:scene|image|prompt)\s+(?:depicts|shows|portrays|illustrates)\b/i
 const INTERPRETIVE_SENTENCE_PATTERN =
-  /(?:^|[.!?]\s+)(?:it|this|the\s+scene|the\s+image|the\s+prompt)\s+(?:symbolizes|symbolises|represents|means|evokes|suggests|implies)\b/i
+  /(?:^|[.!?]\s+)(?:it|this|this\s+scene|this\s+image|the\s+scene|the\s+image|the\s+prompt)\s+(?:symbolizes|symbolises|represents|means|evokes|suggests|implies)\b/i
 const SPANISH_INTERPRETIVE_SENTENCE_PATTERN =
-  /(?:^|[.!?]\s+)(?:(?:esto|la\s+escena|la\s+imagen)\s+)?(?:simboliza|representa|evoca|sugiere|implica)\b/i
+  /(?:^|[.!?]\s+)(?:(?:esto|esta\s+escena|esta\s+imagen|la\s+escena|la\s+imagen)\s+)?(?:simboliza|representa|evoca|sugiere|implica)\b/i
 const INTERPRETIVE_REFLECTION_PATTERN =
   /(?:^|[.!?]\s+)(?:it|this)\s+reflects\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of|memory\b|wonder\b|grief\b|hope\b|loss\b|loneliness\b|change\b|childhood\b|nostalgia\b|identity\b)/i
 const INTERPRETIVE_CLAUSE_PATTERN =
