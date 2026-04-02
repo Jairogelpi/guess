@@ -20,6 +20,10 @@ describe('promptBudget', () => {
     expect(normalizePromptInput('\u0000  hola\u0007  ', 250)).toBe('hola')
   })
 
+  test('normalizePromptInput preserves word boundaries for multiline and tabbed input', () => {
+    expect(normalizePromptInput('  moon\ncat\taltar  ', 250)).toBe('moon cat altar')
+  })
+
   test('normalizePromptInput throws a validation-specific error when text exceeds the budget', () => {
     expect(() => normalizePromptInput('x'.repeat(251), 250)).toThrow(PromptBudgetValidationError)
   })
@@ -73,6 +77,15 @@ describe('promptBudget', () => {
     'a child walks through a paper storm, implying fear of change.',
     'a paper city folds inward, reflecting themes of memory and loss.',
   ])('isUsablePromptOutput rejects additional explanatory invalid forms: %s', (text) => {
+    expect(isUsablePromptOutput(text)).toBe(false)
+  })
+
+  test.each([
+    'Descripci\u00f3n: una ni\u00f1a abre una biblioteca submarina.',
+    'En esta escena, una ni\u00f1a abre una biblioteca submarina.',
+    'una ni\u00f1a abre una biblioteca submarina. Simboliza memoria y asombro.',
+    'una ni\u00f1a abre una biblioteca submarina, simbolizando memoria y asombro.',
+  ])('isUsablePromptOutput rejects representative Spanish explanatory forms: %s', (text) => {
     expect(isUsablePromptOutput(text)).toBe(false)
   })
 
