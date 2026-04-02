@@ -6,7 +6,9 @@ const CONTROL_CHAR_PATTERN = /[\u0000-\u0008\u000E-\u001F\u007F]/g
 const COLLAPSIBLE_WHITESPACE_PATTERN = /\s+/g
 const OBVIOUS_JSON_PATTERN = /^(?:\{[\s\S]*\}|\[[\s\S]*\])$/
 const EXPLANATORY_PREFIX_PATTERN =
-  /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|scene|image|answer|prompt|escena|imagen|respuesta|response|output|resultado|result)\s*[:\-]/i
+  /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|respuesta|response|output|resultado|result)\s*[:\-]/i
+const LABEL_PREFIX_PATTERN =
+  /^(?:(?:scene|image)(?:\s+prompt)?|answer|prompt|escena|imagen)\s*:/i
 const META_LEAD_IN_PATTERN =
   /^(?:here(?: is|['\u2019]s)|this is|this\s+(?:scene|image|prompt)\s+is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
 const ASSISTANT_CONFIRMATION_PATTERN =
@@ -16,18 +18,18 @@ const EXPLANATORY_SCENE_PATTERN =
 const SPANISH_EXPLANATORY_SCENE_PATTERN =
   /^(?:esta|la)\s+(?:escena|imagen|prompt)\s+(?:muestra|transmite|es)\b/i
 const INTERPRETIVE_SENTENCE_PATTERN =
-  /(?:^|[.!?]\s+)(?:it|this|this\s+scene|this\s+image|the\s+scene|the\s+image|the\s+prompt)\s+(?:symbolizes|symbolises|represents|means|evokes|suggests|implies)\b/i
+  /(?:^|[.!?;]\s*)(?:it|this|this\s+scene|this\s+image|the\s+scene|the\s+image|the\s+prompt)\s+(?:symbolizes|symbolises|represents|means|evokes|suggests|implies)\b/i
 const SPANISH_INTERPRETIVE_SENTENCE_PATTERN =
-  /(?:^|[.!?]\s+)(?:(?:esto|esta\s+escena|esta\s+imagen|la\s+escena|la\s+imagen)\s+)?(?:simboliza|representa|evoca|sugiere|implica)\b/i
+  /(?:^|[.!?;]\s*)(?:(?:esto|esta\s+escena|esta\s+imagen|la\s+escena|la\s+imagen)\s+)?(?:simboliza|representa|evoca|sugiere|implica)\b/i
 const INTERPRETIVE_REFLECTION_PATTERN =
-  /(?:^|[.!?]\s+)(?:it|this|this\s+scene|this\s+image|the\s+scene|the\s+image)\s+reflects\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of|memory\b|wonder\b|grief\b|hope\b|loss\b|loneliness\b|change\b|childhood\b|nostalgia\b|identity\b)/i
+  /(?:^|[.!?;]\s*)(?:it|this|this\s+scene|this\s+image|the\s+scene|the\s+image)\s+reflects\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of|memory\b|wonder\b|grief\b|hope\b|loss\b|loneliness\b|change\b|childhood\b|nostalgia\b|identity\b)/i
 const INTERPRETIVE_CLAUSE_PATTERN =
   /,\s*(?:symbolizing|symbolising|suggesting|implying|simbolizando|sugiriendo|implicando)\b/i
 const INTERPRETIVE_APPOSITIVE_CLAUSE_PATTERN = /,\s*(?:an?\s+metaphor\s+for|s[i\u00ed]mbolo\s+de)\b/i
 const INTERPRETIVE_REFLECTING_CLAUSE_PATTERN =
   /,\s*(?:reflecting|reflejando)\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of|memory\b|wonder\b|grief\b|hope\b|loss\b|nostalgia\b|temas?\s+de|la\s+idea\s+de|la\s+sensaci[o\u00f3]n\s+de|memoria\b|asombro\b|dolor\b|esperanza\b|p(?:e|\u00e9)rdida\b)\b/i
 const SPANISH_INTERPRETIVE_REFLECTION_PATTERN =
-  /(?:^|[.!?]\s+)(?:(?:esto|esta\s+escena|esta\s+imagen|la\s+escena|la\s+imagen)\s+)?refleja\s+(?:temas?\s+de|la\s+idea\s+de|la\s+sensaci[o\u00f3]n\s+de|memoria\b|asombro\b|dolor\b|esperanza\b|p(?:e|\u00e9)rdida\b|soledad\b|cambio\b|infancia\b|nostalgia\b|identidad\b)/i
+  /(?:^|[.!?;]\s*)(?:(?:esto|esta\s+escena|esta\s+imagen|la\s+escena|la\s+imagen)\s+)?refleja\s+(?:temas?\s+de|la\s+idea\s+de|la\s+sensaci[o\u00f3]n\s+de|memoria\b|asombro\b|dolor\b|esperanza\b|p(?:e|\u00e9)rdida\b|soledad\b|cambio\b|infancia\b|nostalgia\b|identidad\b)/i
 
 export class PromptBudgetValidationError extends Error {
   constructor(message: string) {
@@ -111,6 +113,7 @@ export function isUsablePromptOutput(text: string): boolean {
   for (const candidate of candidates) {
     if (
       EXPLANATORY_PREFIX_PATTERN.test(candidate) ||
+      LABEL_PREFIX_PATTERN.test(candidate) ||
       META_LEAD_IN_PATTERN.test(candidate) ||
       ASSISTANT_CONFIRMATION_PATTERN.test(candidate) ||
       EXPLANATORY_SCENE_PATTERN.test(candidate) ||
