@@ -95,6 +95,17 @@ describe('promptFlow', () => {
     expect(runModel).toHaveBeenCalledTimes(2)
   })
 
+  test('empty first model output preserves the explicit empty response error path', async () => {
+    const runModel = jest
+      .fn<Promise<string>, [{ messages: unknown; temperature: number }]>()
+      .mockResolvedValueOnce('')
+
+    await expect(resolvePromptSuggestPrompt(undefined, runModel)).rejects.toThrow(
+      'EMPTY_SUGGESTION_RESPONSE',
+    )
+    expect(runModel).toHaveBeenCalledTimes(1)
+  })
+
   test('success path returns the accepted within-budget prompt', async () => {
     const acceptedPrompt =
       '  una nina abre una biblioteca sumergida con peces en los estantes  '

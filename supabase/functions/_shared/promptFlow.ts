@@ -11,6 +11,7 @@ import {
 const SUGGEST_TEMPERATURE = 1
 const ENHANCE_TEMPERATURE = 0.7
 const COMPRESSION_TEMPERATURE = 0.2
+export const EMPTY_SUGGESTION_RESPONSE_ERROR = 'EMPTY_SUGGESTION_RESPONSE'
 
 export interface PromptSuggestModelRequest {
   messages: ChatMessage[]
@@ -50,6 +51,10 @@ export async function resolvePromptSuggestPrompt(
     messages: request.messages,
     temperature: request.temperature,
   })
+
+  if (!firstResponse.trim()) {
+    throw new Error(EMPTY_SUGGESTION_RESPONSE_ERROR)
+  }
 
   return resolvePromptOutputWithinBudget(firstResponse, async (text) =>
     runModel({

@@ -4,7 +4,10 @@ import { createSupabaseAdmin } from '../_shared/supabaseAdmin.ts'
 import { AI_ERROR_CODES, ensureAiError } from '../_shared/errors.ts'
 import { callOpenRouter, extractTextContent } from '../_shared/openrouter.ts'
 import { PromptBudgetValidationError } from '../_shared/promptBudget.ts'
-import { resolvePromptSuggestPrompt } from '../_shared/promptFlow.ts'
+import {
+  EMPTY_SUGGESTION_RESPONSE_ERROR,
+  resolvePromptSuggestPrompt,
+} from '../_shared/promptFlow.ts'
 
 Deno.serve(async (req) => {
   const corsResult = handleCors(req)
@@ -45,6 +48,10 @@ Deno.serve(async (req) => {
   } catch (error) {
     if (error instanceof PromptBudgetValidationError) {
       return errorResponse('INVALID_PAYLOAD', error.message, 400)
+    }
+
+    if (error instanceof Error && error.message === EMPTY_SUGGESTION_RESPONSE_ERROR) {
+      return errorResponse(AI_ERROR_CODES.PROMPT_SUGGEST_FAILED, 'Empty suggestion response', 500)
     }
 
     const aiError = ensureAiError(
