@@ -90,11 +90,14 @@ describe('promptBudget', () => {
     'Sure, a girl opens an underwater library with fish in the shelves.',
     'This scene suggests memory and wonder.',
     'This image evokes nostalgia.',
+    'This image reflects nostalgia.',
     'The scene symbolizes memory and wonder.',
+    'The scene reflects grief and hope.',
     'a girl opens an underwater library. It suggests memory and wonder.',
     'a girl opens an underwater library. It implies a forgotten childhood.',
     'a girl opens an underwater library. It reflects grief and hope.',
     'a girl opens an underwater library, symbolizing memory and wonder.',
+    'a girl opens an underwater library, reflecting memory and wonder.',
     'a fox carries a lighthouse, suggesting loneliness and duty.',
     'a child walks through a paper storm, implying fear of change.',
     'a paper city folds inward, reflecting themes of memory and loss.',
@@ -114,12 +117,15 @@ describe('promptBudget', () => {
     'Claro, una niña abre una biblioteca submarina.',
     'Esta escena sugiere memoria y asombro.',
     'Esta imagen evoca nostalgia.',
+    'Esta imagen refleja nostalgia.',
     'La escena transmite memoria y asombro.',
     'La escena simboliza memoria y asombro.',
+    'La escena refleja memoria y asombro.',
     'una niña abre una biblioteca submarina. Simboliza memoria y asombro.',
     'una niña abre una biblioteca submarina. Esto simboliza memoria y asombro.',
     'una niña abre una biblioteca submarina. Refleja memoria y asombro.',
     'una niña abre una biblioteca submarina, simbolizando memoria y asombro.',
+    'una niña abre una biblioteca submarina, reflejando memoria y asombro.',
   ])('isUsablePromptOutput rejects representative Spanish explanatory forms: %s', (text) => {
     expect(isUsablePromptOutput(text)).toBe(false)
   })
@@ -160,6 +166,22 @@ describe('promptBudget', () => {
     await expect(resolvePromptOutputWithinBudget(overBudget, compress)).resolves.toBe(compressed)
     expect(compress).toHaveBeenCalledTimes(1)
     expect(compress).toHaveBeenCalledWith(overBudget)
+  })
+
+  test('resolvePromptOutputWithinBudget retries exactly once even when the over-budget first response is unusable', async () => {
+    const overBudgetUnusable = `{"prompt":"${'x'.repeat(240)}"}`
+    const compressed = 'una nina abre una biblioteca sumergida con peces en los estantes'
+    const compress = jest.fn<Promise<string>, [string]>().mockResolvedValue(compressed)
+
+    await expect(resolvePromptOutputWithinBudget(overBudgetUnusable, compress)).resolves.toBe(
+      compressed,
+    )
+    expect(compress).toHaveBeenCalledTimes(1)
+    expect(compress).toHaveBeenCalledWith(overBudgetUnusable)
+  })
+
+  test('normalizePromptInput accepts exact 250-character input', () => {
+    expect(normalizePromptInput('x'.repeat(250), 250)).toBe('x'.repeat(250))
   })
 
   test('resolvePromptOutputWithinBudget fails immediately without compressing under-budget unusable output', async () => {

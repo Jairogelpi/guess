@@ -8,9 +8,9 @@ const OBVIOUS_JSON_PATTERN = /^(?:\{[\s\S]*\}|\[[\s\S]*\])$/
 const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|prompt|respuesta|response|output|resultado|result)\s*[:\-]/i
 const META_LEAD_IN_PATTERN =
-  /^(?:here(?: is|['’]s)|this is|this\s+(?:scene|image|prompt)\s+is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
+  /^(?:here(?: is|['\u2019]s)|this is|this\s+(?:scene|image|prompt)\s+is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
 const ASSISTANT_CONFIRMATION_PATTERN =
-  /^[¡¿]?(?:sure|claro(?:\s+que\s+s[ií])?)(?:\s*[,:.!?]|\s+-)/i
+  /^[\u00a1\u00bf]?(?:sure|claro(?:\s+que\s+s[i\u00ed])?)(?:\s*[,:.!?]|\s+-)/i
 const EXPLANATORY_SCENE_PATTERN =
   /^(?:(?:this(?:\s+(?:scene|image|prompt))?)|(?:the\s+(?:scene|image|prompt)))\s+(?:depicts|shows|portrays|illustrates|is)\b/i
 const SPANISH_EXPLANATORY_SCENE_PATTERN =
@@ -20,13 +20,13 @@ const INTERPRETIVE_SENTENCE_PATTERN =
 const SPANISH_INTERPRETIVE_SENTENCE_PATTERN =
   /(?:^|[.!?]\s+)(?:(?:esto|esta\s+escena|esta\s+imagen|la\s+escena|la\s+imagen)\s+)?(?:simboliza|representa|evoca|sugiere|implica)\b/i
 const INTERPRETIVE_REFLECTION_PATTERN =
-  /(?:^|[.!?]\s+)(?:it|this)\s+reflects\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of|memory\b|wonder\b|grief\b|hope\b|loss\b|loneliness\b|change\b|childhood\b|nostalgia\b|identity\b)/i
+  /(?:^|[.!?]\s+)(?:it|this|this\s+scene|this\s+image|the\s+scene|the\s+image)\s+reflects\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of|memory\b|wonder\b|grief\b|hope\b|loss\b|loneliness\b|change\b|childhood\b|nostalgia\b|identity\b)/i
 const INTERPRETIVE_CLAUSE_PATTERN =
   /,\s*(?:symbolizing|symbolising|suggesting|implying|simbolizando|sugiriendo|implicando)\b/i
 const INTERPRETIVE_REFLECTING_CLAUSE_PATTERN =
-  /,\s*(?:reflecting|reflejando)\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of|temas?\s+de|la\s+idea\s+de|la\s+sensaci[o\u00f3]n\s+de)\b/i
+  /,\s*(?:reflecting|reflejando)\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of|memory\b|wonder\b|grief\b|hope\b|loss\b|nostalgia\b|temas?\s+de|la\s+idea\s+de|la\s+sensaci[o\u00f3]n\s+de|memoria\b|asombro\b|dolor\b|esperanza\b|p(?:e|\u00e9)rdida\b)\b/i
 const SPANISH_INTERPRETIVE_REFLECTION_PATTERN =
-  /(?:^|[.!?]\s+)(?:esto\s+)?refleja\s+(?:temas?\s+de|la\s+idea\s+de|la\s+sensaci[o\u00f3]n\s+de|memoria\b|asombro\b|dolor\b|esperanza\b|p[eé]rdida\b|soledad\b|cambio\b|infancia\b|nostalgia\b|identidad\b)/i
+  /(?:^|[.!?]\s+)(?:(?:esto|esta\s+escena|esta\s+imagen|la\s+escena|la\s+imagen)\s+)?refleja\s+(?:temas?\s+de|la\s+idea\s+de|la\s+sensaci[o\u00f3]n\s+de|memoria\b|asombro\b|dolor\b|esperanza\b|p(?:e|\u00e9)rdida\b|soledad\b|cambio\b|infancia\b|nostalgia\b|identidad\b)/i
 
 export class PromptBudgetValidationError extends Error {
   constructor(message: string) {
