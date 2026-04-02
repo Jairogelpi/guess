@@ -57,6 +57,7 @@ describe('promptBudget', () => {
   test.each([
     'Sure-footed mountain goats climb a cathedral made of salt.',
     'scene-stealing fox beneath a flooded chandelier',
+    '[underwater library with fish on the shelves]',
     'a masked diver studies an altar as it reflects moonlight.',
     'a fox carries a lighthouse\nthrough a flooded hallway',
   ])('isUsablePromptOutput keeps literal scene language usable: %s', (text) => {
@@ -82,6 +83,7 @@ describe('promptBudget', () => {
     'Explicaci\u00f3n: una nina abre una biblioteca sumergida',
     'This depicts a girl opening an underwater library.',
     'Scene: a girl opens an underwater library.',
+    'Scene - a girl opens an underwater library.',
     'Image: a girl opens an underwater library.',
     'Scene prompt: a girl opens an underwater library.',
     'Image prompt: a girl opens an underwater library.',
@@ -103,6 +105,7 @@ describe('promptBudget', () => {
     'a girl opens an underwater library. It implies a forgotten childhood.',
     'a girl opens an underwater library. It reflects grief and hope.',
     'a girl opens an underwater library; it symbolizes memory and wonder.',
+    'a girl opens an underwater library, evoking nostalgia.',
     'a girl opens an underwater library, symbolizing memory and wonder.',
     'a girl opens an underwater library, reflecting memory and wonder.',
     'a fox carries a lighthouse, a metaphor for loneliness and duty.',
@@ -116,6 +119,7 @@ describe('promptBudget', () => {
   test.each([
     'Descripci\u00f3n: una ni\u00f1a abre una biblioteca submarina.',
     'Escena: una ni\u00f1a abre una biblioteca submarina.',
+    'Escena - una ni\u00f1a abre una biblioteca submarina.',
     'Imagen: una ni\u00f1a abre una biblioteca submarina.',
     '\u00a1Claro! una ni\u00f1a abre una biblioteca submarina.',
     'Claro que s\u00ed, una ni\u00f1a abre una biblioteca submarina.',
@@ -135,6 +139,7 @@ describe('promptBudget', () => {
     'una ni\u00f1a abre una biblioteca submarina. Esto simboliza memoria y asombro.',
     'una ni\u00f1a abre una biblioteca submarina. Refleja memoria y asombro.',
     'una ni\u00f1a abre una biblioteca submarina; simboliza memoria y asombro.',
+    'una ni\u00f1a abre una biblioteca submarina, evocando nostalgia.',
     'una ni\u00f1a abre una biblioteca submarina, s\u00edmbolo de memoria y asombro.',
     'una ni\u00f1a abre una biblioteca submarina, simbolizando memoria y asombro.',
     'una ni\u00f1a abre una biblioteca submarina, reflejando memoria y asombro.',
