@@ -71,10 +71,20 @@ describe('promptBudget', () => {
   })
 
   test.each([
+    'a girl opens an underwater library\nIt symbolizes memory and wonder.',
+    'una niña abre una biblioteca submarina\nSimboliza memoria y asombro.',
+  ])('isUsablePromptOutput rejects multiline meta prose: %s', (text) => {
+    expect(isUsablePromptOutput(text)).toBe(false)
+  })
+
+  test.each([
     'Explicación: una nina abre una biblioteca sumergida',
     'This depicts a girl opening an underwater library.',
+    'This scene is about memory and wonder.',
+    'This prompt is about a girl opening an underwater library.',
     'In this scene, a girl opens an underwater library.',
     'In this image, a girl opens an underwater library.',
+    'Here’s a girl opening an underwater library.',
     'Sure! a girl opens an underwater library.',
     'Sure. a girl opens an underwater library.',
     'Sure, a girl opens an underwater library with fish in the shelves.',
@@ -94,14 +104,17 @@ describe('promptBudget', () => {
 
   test.each([
     'Descripción: una niña abre una biblioteca submarina.',
-    '\u00a1Claro! una niña abre una biblioteca submarina.',
+    '¡Claro! una niña abre una biblioteca submarina.',
+    'Claro que sí, una niña abre una biblioteca submarina.',
     'En esta escena, una niña abre una biblioteca submarina.',
     'En esta imagen, una niña abre una biblioteca submarina.',
+    'La imagen muestra una niña abre una biblioteca submarina.',
     'Claro! una niña abre una biblioteca submarina.',
     'Claro. una niña abre una biblioteca submarina.',
     'Claro, una niña abre una biblioteca submarina.',
     'Esta escena sugiere memoria y asombro.',
     'Esta imagen evoca nostalgia.',
+    'La escena transmite memoria y asombro.',
     'La escena simboliza memoria y asombro.',
     'una niña abre una biblioteca submarina. Simboliza memoria y asombro.',
     'una niña abre una biblioteca submarina. Esto simboliza memoria y asombro.',

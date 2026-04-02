@@ -8,10 +8,13 @@ const OBVIOUS_JSON_PATTERN = /^(?:\{[\s\S]*\}|\[[\s\S]*\])$/
 const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|prompt|respuesta|response|output|resultado|result)\s*[:\-]/i
 const META_LEAD_IN_PATTERN =
-  /^(?:here(?: is|'s)|this is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
-const ASSISTANT_CONFIRMATION_PATTERN = /^[¡¿]?(?:sure|claro)(?:\s*[,:.!?]|\s+-)/i
+  /^(?:here(?: is|['’]s)|this is|this\s+(?:scene|image|prompt)\s+is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
+const ASSISTANT_CONFIRMATION_PATTERN =
+  /^[¡¿]?(?:sure|claro(?:\s+que\s+s[ií])?)(?:\s*[,:.!?]|\s+-)/i
 const EXPLANATORY_SCENE_PATTERN =
-  /^(?:(?:this(?:\s+(?:scene|image|prompt))?)|(?:the\s+(?:scene|image|prompt)))\s+(?:depicts|shows|portrays|illustrates)\b/i
+  /^(?:(?:this(?:\s+(?:scene|image|prompt))?)|(?:the\s+(?:scene|image|prompt)))\s+(?:depicts|shows|portrays|illustrates|is)\b/i
+const SPANISH_EXPLANATORY_SCENE_PATTERN =
+  /^(?:esta|la)\s+(?:escena|imagen|prompt)\s+(?:muestra|transmite|es)\b/i
 const INTERPRETIVE_SENTENCE_PATTERN =
   /(?:^|[.!?]\s+)(?:it|this|this\s+scene|this\s+image|the\s+scene|the\s+image|the\s+prompt)\s+(?:symbolizes|symbolises|represents|means|evokes|suggests|implies)\b/i
 const SPANISH_INTERPRETIVE_SENTENCE_PATTERN =
@@ -38,6 +41,29 @@ function stripControlCharacters(value: string): string {
     .replace(CONTROL_CHAR_PATTERN, '')
 }
 
+function normalizeWhitespace(value: string): string {
+  return value.replace(COLLAPSIBLE_WHITESPACE_PATTERN, ' ').trim()
+}
+
+function buildPromptOutputCandidates(value: string): string[] {
+  const candidates = new Set<string>()
+  const collapsed = normalizeWhitespace(value)
+
+  if (collapsed) {
+    candidates.add(collapsed)
+  }
+
+  for (const line of value.split(/\r?\n+/)) {
+    const normalizedLine = normalizeWhitespace(line)
+
+    if (normalizedLine) {
+      candidates.add(normalizedLine)
+    }
+  }
+
+  return [...candidates]
+}
+
 function createInvalidPromptOutputError(): Error {
   return new Error('INVALID_PROMPT_OUTPUT')
 }
@@ -50,7 +76,7 @@ export function normalizePromptInput(
     return undefined
   }
 
-  const normalized = stripControlCharacters(raw).replace(COLLAPSIBLE_WHITESPACE_PATTERN, ' ').trim()
+  const normalized = normalizeWhitespace(stripControlCharacters(raw))
 
   if (!normalized) {
     return undefined
@@ -65,7 +91,6 @@ export function normalizePromptInput(
 
 export function isUsablePromptOutput(text: string): boolean {
   const normalized = text.trim()
-  const normalizedForChecks = normalized.replace(COLLAPSIBLE_WHITESPACE_PATTERN, ' ')
 
   if (!normalized) {
     return false
@@ -75,28 +100,29 @@ export function isUsablePromptOutput(text: string): boolean {
     return false
   }
 
-  if (OBVIOUS_JSON_PATTERN.test(normalizedForChecks)) {
+  const candidates = buildPromptOutputCandidates(normalized)
+  const collapsed = candidates[0] ?? ''
+
+  if (OBVIOUS_JSON_PATTERN.test(collapsed)) {
     return false
   }
 
-  if (
-    EXPLANATORY_PREFIX_PATTERN.test(normalizedForChecks) ||
-    META_LEAD_IN_PATTERN.test(normalizedForChecks) ||
-    ASSISTANT_CONFIRMATION_PATTERN.test(normalizedForChecks)
-  ) {
-    return false
-  }
-
-  if (
-    EXPLANATORY_SCENE_PATTERN.test(normalizedForChecks) ||
-    INTERPRETIVE_SENTENCE_PATTERN.test(normalizedForChecks) ||
-    SPANISH_INTERPRETIVE_SENTENCE_PATTERN.test(normalizedForChecks) ||
-    INTERPRETIVE_REFLECTION_PATTERN.test(normalizedForChecks) ||
-    SPANISH_INTERPRETIVE_REFLECTION_PATTERN.test(normalizedForChecks) ||
-    INTERPRETIVE_CLAUSE_PATTERN.test(normalizedForChecks) ||
-    INTERPRETIVE_REFLECTING_CLAUSE_PATTERN.test(normalizedForChecks)
-  ) {
-    return false
+  for (const candidate of candidates) {
+    if (
+      EXPLANATORY_PREFIX_PATTERN.test(candidate) ||
+      META_LEAD_IN_PATTERN.test(candidate) ||
+      ASSISTANT_CONFIRMATION_PATTERN.test(candidate) ||
+      EXPLANATORY_SCENE_PATTERN.test(candidate) ||
+      SPANISH_EXPLANATORY_SCENE_PATTERN.test(candidate) ||
+      INTERPRETIVE_SENTENCE_PATTERN.test(candidate) ||
+      SPANISH_INTERPRETIVE_SENTENCE_PATTERN.test(candidate) ||
+      INTERPRETIVE_REFLECTION_PATTERN.test(candidate) ||
+      SPANISH_INTERPRETIVE_REFLECTION_PATTERN.test(candidate) ||
+      INTERPRETIVE_CLAUSE_PATTERN.test(candidate) ||
+      INTERPRETIVE_REFLECTING_CLAUSE_PATTERN.test(candidate)
+    ) {
+      return false
+    }
   }
 
   return true
