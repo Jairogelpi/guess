@@ -1,4 +1,4 @@
-import type { ChatMessage } from './dixitPrompts'
+import type { ChatMessage } from './dixitPrompts.ts'
 
 const DEFAULT_MAX_PROMPT_CHARS = 250
 const CONTROL_CHAR_PATTERN = /[\u0000-\u001F\u007F]/g
@@ -7,7 +7,6 @@ const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicacion|explicacion breve|explanation|descripcion|description|prompt|respuesta|response|output|resultado|result)\s*[:\-]/i
 const META_LEAD_IN_PATTERN =
   /^(?:here(?: is|'s)|this is|the prompt is|prompt text|respuesta final|final prompt)\b/i
-const MULTI_SENTENCE_PATTERN = /[.!?]+(?:\s+|$)/g
 
 export class PromptBudgetValidationError extends Error {
   constructor(message: string) {
@@ -18,11 +17,6 @@ export class PromptBudgetValidationError extends Error {
 
 function stripControlCharacters(value: string): string {
   return value.replace(CONTROL_CHAR_PATTERN, '')
-}
-
-function hasMultipleSentences(text: string): boolean {
-  const matches = text.match(MULTI_SENTENCE_PATTERN)
-  return (matches?.length ?? 0) > 1
 }
 
 function createInvalidPromptOutputError(): Error {
@@ -66,10 +60,6 @@ export function isUsablePromptOutput(text: string): boolean {
   }
 
   if (EXPLANATORY_PREFIX_PATTERN.test(normalized) || META_LEAD_IN_PATTERN.test(normalized)) {
-    return false
-  }
-
-  if (hasMultipleSentences(normalized)) {
     return false
   }
 

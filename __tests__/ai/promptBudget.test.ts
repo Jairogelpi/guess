@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import {
   PromptBudgetValidationError,
   buildCompressionMessages,
@@ -30,6 +31,14 @@ describe('promptBudget', () => {
   test('isUsablePromptOutput accepts card-prompt shaped scene text', () => {
     expect(
       isUsablePromptOutput('una nina abre una biblioteca sumergida con peces en los estantes'),
+    ).toBe(true)
+  })
+
+  test('isUsablePromptOutput accepts compact two-sentence scene prompts', () => {
+    expect(
+      isUsablePromptOutput(
+        'una nina abre una biblioteca sumergida. Peces de papel flotan entre los estantes.',
+      ),
     ).toBe(true)
   })
 
@@ -95,4 +104,13 @@ describe('promptBudget', () => {
       expect(compress).toHaveBeenCalledTimes(1)
     },
   )
+
+  test('promptBudget uses an explicit .ts suffix for the local dixitPrompts import', () => {
+    const source = readFileSync(
+      'supabase/functions/_shared/promptBudget.ts',
+      'utf8',
+    )
+
+    expect(source).toContain("from './dixitPrompts.ts'")
+  })
 })
