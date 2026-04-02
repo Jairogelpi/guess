@@ -104,6 +104,8 @@ describe('promptBudget', () => {
     'a girl opens an underwater library\nsymbolizing memory and wonder.',
     'una ni\u00f1a abre una biblioteca submarina\nSimboliza memoria y asombro.',
     'una ni\u00f1a abre una biblioteca submarina\nreflejando memoria y asombro.',
+    'scene-setting harbor under a red moon. It symbolizes memory and wonder.',
+    'Scene-stealing fox beneath a flooded chandelier. It implies loneliness.',
   ])('isUsablePromptOutput rejects multiline meta prose: %s', (text) => {
     expect(isUsablePromptOutput(text)).toBe(false)
   })
@@ -115,6 +117,7 @@ describe('promptBudget', () => {
     'Scene-Girl opens an underwater library.',
     'Scene-1980s arcade overgrown with moss',
     'scene-closeup of a fox',
+    'scene-stealing-closeup of a fox',
     'image-closeup of a fox',
     'Scene-Setting harbor under a red moon',
     'Scene-rendering of a fox',

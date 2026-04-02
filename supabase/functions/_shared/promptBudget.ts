@@ -12,7 +12,7 @@ const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|respuesta|response|output|resultado|result)\s*[:\-]/i
 const LABEL_PREFIX_PATTERN =
   /^(?:(?:scene|image)(?:\s+prompt)?|answer|prompt|escena|imagen)(?:\s*:\s*|\s*[-\u2014]\s+)/i
-const SAFE_SCENE_DASH_COMPOUND_PATTERN = /^(?:scene|Scene)-(?:setting|stealing)\b/
+const SAFE_SCENE_DASH_COMPOUND_PATTERN = /^(?:scene|Scene)-(?:setting|stealing)(?=\s|$)/
 const GENERIC_DASH_LABEL_PREFIX_PATTERN =
   /^(?:(?:image|imagen)(?:\s+prompt)?|prompt|answer)-(?=\S)/i
 const SCENE_DASH_LABEL_PREFIX_PATTERN = /^(?:scene|escena)-(?=\S)/i
@@ -145,15 +145,13 @@ export function isUsablePromptOutput(text: string): boolean {
   }
 
   for (const candidate of candidates) {
-    if (SAFE_SCENE_DASH_COMPOUND_PATTERN.test(candidate)) {
-      continue
-    }
+    const hasSafeSceneDashCompound = SAFE_SCENE_DASH_COMPOUND_PATTERN.test(candidate)
 
     if (
       EXPLANATORY_PREFIX_PATTERN.test(candidate) ||
       LABEL_PREFIX_PATTERN.test(candidate) ||
       GENERIC_DASH_LABEL_PREFIX_PATTERN.test(candidate) ||
-      SCENE_DASH_LABEL_PREFIX_PATTERN.test(candidate) ||
+      (!hasSafeSceneDashCompound && SCENE_DASH_LABEL_PREFIX_PATTERN.test(candidate)) ||
       META_LEAD_IN_PATTERN.test(candidate) ||
       ASSISTANT_CONFIRMATION_PATTERN.test(candidate) ||
       EXPLANATORY_SCENE_PATTERN.test(candidate) ||
