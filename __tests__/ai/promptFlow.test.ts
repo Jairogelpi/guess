@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import {
   buildEnhancementMessages,
   buildSuggestionMessages,
@@ -43,5 +44,12 @@ describe('promptFlow', () => {
     const enhancement = resolvePromptSuggestRequest('una nina en una biblioteca inundada')
 
     expect(suggestion.temperature).toBeGreaterThan(enhancement.temperature)
+  })
+
+  test('prompt-suggest preserves the baseline unauthorized response contract', () => {
+    const source = readFileSync('supabase/functions/prompt-suggest/index.ts', 'utf8')
+
+    expect(source).toContain("const internalUrl = Deno.env.get('SUPABASE_URL')")
+    expect(source).toContain("${authError?.message || 'Invalid token'} (Token start: ${token.substring(0, 10)}... | Func URL: ${internalUrl})")
   })
 })
