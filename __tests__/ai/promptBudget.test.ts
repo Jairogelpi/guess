@@ -72,7 +72,10 @@ describe('promptBudget', () => {
   test.each([
     'Explicación: una nina abre una biblioteca sumergida',
     'In this scene, a girl opens an underwater library.',
+    'In this image, a girl opens an underwater library.',
+    'Sure. a girl opens an underwater library.',
     'Sure, a girl opens an underwater library with fish in the shelves.',
+    'The scene symbolizes memory and wonder.',
     'a girl opens an underwater library. It suggests memory and wonder.',
     'a girl opens an underwater library. It implies a forgotten childhood.',
     'a girl opens an underwater library. It reflects grief and hope.',
@@ -85,14 +88,16 @@ describe('promptBudget', () => {
   })
 
   test.each([
-    'Descripci\u00f3n: una ni\u00f1a abre una biblioteca submarina.',
-    'En esta escena, una ni\u00f1a abre una biblioteca submarina.',
-    'En esta imagen, una ni\u00f1a abre una biblioteca submarina.',
-    'Claro, una ni\u00f1a abre una biblioteca submarina.',
-    'una ni\u00f1a abre una biblioteca submarina. Simboliza memoria y asombro.',
-    'una ni\u00f1a abre una biblioteca submarina. Esto simboliza memoria y asombro.',
-    'una ni\u00f1a abre una biblioteca submarina. Refleja memoria y asombro.',
-    'una ni\u00f1a abre una biblioteca submarina, simbolizando memoria y asombro.',
+    'Descripción: una niña abre una biblioteca submarina.',
+    'En esta escena, una niña abre una biblioteca submarina.',
+    'En esta imagen, una niña abre una biblioteca submarina.',
+    'Claro. una niña abre una biblioteca submarina.',
+    'Claro, una niña abre una biblioteca submarina.',
+    'La escena simboliza memoria y asombro.',
+    'una niña abre una biblioteca submarina. Simboliza memoria y asombro.',
+    'una niña abre una biblioteca submarina. Esto simboliza memoria y asombro.',
+    'una niña abre una biblioteca submarina. Refleja memoria y asombro.',
+    'una niña abre una biblioteca submarina, simbolizando memoria y asombro.',
   ])('isUsablePromptOutput rejects representative Spanish explanatory forms: %s', (text) => {
     expect(isUsablePromptOutput(text)).toBe(false)
   })
