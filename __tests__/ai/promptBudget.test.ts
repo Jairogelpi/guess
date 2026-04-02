@@ -43,6 +43,9 @@ describe('promptBudget', () => {
   test.each([
     '{"prompt":"hola"',
     '{"prompt":"hola"} trailing',
+    '{prompt:"hola"}',
+    "{'prompt':'hola'}",
+    '["a girl opens an underwater library"',
   ])('isUsablePromptOutput rejects malformed JSON-shaped output: %s', (text) => {
     expect(isUsablePromptOutput(text)).toBe(false)
   })
@@ -96,6 +99,7 @@ describe('promptBudget', () => {
     'Explicaci\u00f3n: una nina abre una biblioteca sumergida',
     'This depicts a girl opening an underwater library.',
     'Scene: a girl opens an underwater library.',
+    'Scene-girl opens an underwater library.',
     'Scene-a girl opens an underwater library.',
     'Scene- a girl opens an underwater library.',
     'Scene - a girl opens an underwater library.',
@@ -136,6 +140,7 @@ describe('promptBudget', () => {
   test.each([
     'Descripci\u00f3n: una ni\u00f1a abre una biblioteca submarina.',
     'Escena: una ni\u00f1a abre una biblioteca submarina.',
+    'Escena-nina abre una biblioteca submarina.',
     'Escena-una ni\u00f1a abre una biblioteca submarina.',
     'Escena- una ni\u00f1a abre una biblioteca submarina.',
     'Escena - una ni\u00f1a abre una biblioteca submarina.',
