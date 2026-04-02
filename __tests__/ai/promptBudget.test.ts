@@ -24,6 +24,10 @@ describe('promptBudget', () => {
     expect(normalizePromptInput('  moon\ncat\taltar  ', 250)).toBe('moon cat altar')
   })
 
+  test('normalizePromptInput collapses multiline and tab-expanded whitespace runs', () => {
+    expect(normalizePromptInput('moon\n  cat\taltar', 250)).toBe('moon cat altar')
+  })
+
   test('normalizePromptInput throws a validation-specific error when text exceeds the budget', () => {
     expect(() => normalizePromptInput('x'.repeat(251), 250)).toThrow(PromptBudgetValidationError)
   })
@@ -83,7 +87,11 @@ describe('promptBudget', () => {
   test.each([
     'Descripci\u00f3n: una ni\u00f1a abre una biblioteca submarina.',
     'En esta escena, una ni\u00f1a abre una biblioteca submarina.',
+    'En esta imagen, una ni\u00f1a abre una biblioteca submarina.',
+    'Claro, una ni\u00f1a abre una biblioteca submarina.',
     'una ni\u00f1a abre una biblioteca submarina. Simboliza memoria y asombro.',
+    'una ni\u00f1a abre una biblioteca submarina. Esto simboliza memoria y asombro.',
+    'una ni\u00f1a abre una biblioteca submarina. Refleja memoria y asombro.',
     'una ni\u00f1a abre una biblioteca submarina, simbolizando memoria y asombro.',
   ])('isUsablePromptOutput rejects representative Spanish explanatory forms: %s', (text) => {
     expect(isUsablePromptOutput(text)).toBe(false)
