@@ -3,12 +3,8 @@ import { errorResponse, okResponse } from '../_shared/types.ts'
 import { createSupabaseAdmin } from '../_shared/supabaseAdmin.ts'
 import { AI_ERROR_CODES, ensureAiError } from '../_shared/errors.ts'
 import { callOpenRouter, extractTextContent } from '../_shared/openrouter.ts'
-import {
-  buildCompressionMessages,
-  PromptBudgetValidationError,
-  resolvePromptOutputWithinBudget,
-} from '../_shared/promptBudget.ts'
-import { resolvePromptSuggestRequest } from '../_shared/promptFlow.ts'
+import { PromptBudgetValidationError } from '../_shared/promptBudget.ts'
+import { resolvePromptSuggestPrompt } from '../_shared/promptFlow.ts'
 
 Deno.serve(async (req) => {
   const corsResult = handleCors(req)
@@ -35,23 +31,14 @@ Deno.serve(async (req) => {
     }
 
     const reqBody = await req.json().catch(() => ({}))
-    const promptSuggestRequest = resolvePromptSuggestRequest(reqBody.basePrompt)
-
-    const payload = await callOpenRouter({
-      messages: promptSuggestRequest.messages,
-      temperature: promptSuggestRequest.temperature,
-      failureCode: 'PROMPT_SUGGEST_FAILED',
-    })
-
-    const firstResponse = extractTextContent(payload)
-    const prompt = await resolvePromptOutputWithinBudget(firstResponse, async (text) => {
-      const compressedPayload = await callOpenRouter({
-        messages: buildCompressionMessages(text),
-        temperature: 0.2,
+    const prompt = await resolvePromptSuggestPrompt(reqBody.basePrompt, async (request) => {
+      const payload = await callOpenRouter({
+        messages: request.messages,
+        temperature: request.temperature,
         failureCode: 'PROMPT_SUGGEST_FAILED',
       })
 
-      return extractTextContent(compressedPayload)
+      return extractTextContent(payload)
     })
 
     return okResponse({ prompt })
