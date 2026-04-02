@@ -16,6 +16,10 @@ describe('promptBudget', () => {
     expect(normalizePromptInput(' '.repeat(4), 250)).toBeUndefined()
   })
 
+  test('normalizePromptInput returns undefined for non-string input', () => {
+    expect(normalizePromptInput(123 as unknown, 250)).toBeUndefined()
+  })
+
   test('normalizePromptInput strips control characters before trimming', () => {
     expect(normalizePromptInput('\u0000  hola\u0007  ', 250)).toBe('hola')
   })
@@ -34,6 +38,13 @@ describe('promptBudget', () => {
 
   test('isUsablePromptOutput rejects obvious JSON', () => {
     expect(isUsablePromptOutput('{"prompt":"hola"}')).toBe(false)
+  })
+
+  test.each([
+    '{"prompt":"hola"',
+    '{"prompt":"hola"} trailing',
+  ])('isUsablePromptOutput rejects malformed JSON-shaped output: %s', (text) => {
+    expect(isUsablePromptOutput(text)).toBe(false)
   })
 
   test('isUsablePromptOutput rejects explanatory prefixes', () => {
@@ -85,6 +96,7 @@ describe('promptBudget', () => {
     'Explicaci\u00f3n: una nina abre una biblioteca sumergida',
     'This depicts a girl opening an underwater library.',
     'Scene: a girl opens an underwater library.',
+    'Scene-a girl opens an underwater library.',
     'Scene- a girl opens an underwater library.',
     'Scene - a girl opens an underwater library.',
     'Scene \u2014 a girl opens an underwater library.',
@@ -105,6 +117,7 @@ describe('promptBudget', () => {
     'This image reflects nostalgia.',
     'The scene symbolizes memory and wonder.',
     'The scene reflects grief and hope.',
+    'A girl opens an underwater library. The atmosphere feels mysterious and symbolic.',
     'a girl opens an underwater library. It suggests memory and wonder.',
     'a girl opens an underwater library. It implies a forgotten childhood.',
     'a girl opens an underwater library. It reflects grief and hope.',
@@ -123,6 +136,7 @@ describe('promptBudget', () => {
   test.each([
     'Descripci\u00f3n: una ni\u00f1a abre una biblioteca submarina.',
     'Escena: una ni\u00f1a abre una biblioteca submarina.',
+    'Escena-una ni\u00f1a abre una biblioteca submarina.',
     'Escena- una ni\u00f1a abre una biblioteca submarina.',
     'Escena - una ni\u00f1a abre una biblioteca submarina.',
     'Imagen: una ni\u00f1a abre una biblioteca submarina.',
@@ -140,6 +154,7 @@ describe('promptBudget', () => {
     'La escena transmite memoria y asombro.',
     'La escena simboliza memoria y asombro.',
     'La escena refleja memoria y asombro.',
+    'Una ni\u00f1a abre una biblioteca submarina. El tono es de memoria y asombro.',
     'una ni\u00f1a abre una biblioteca submarina. Simboliza memoria y asombro.',
     'una ni\u00f1a abre una biblioteca submarina. Esto simboliza memoria y asombro.',
     'una ni\u00f1a abre una biblioteca submarina. Refleja memoria y asombro.',

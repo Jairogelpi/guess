@@ -4,10 +4,13 @@ const DEFAULT_MAX_PROMPT_CHARS = 250
 const WORD_BOUNDARY_CONTROL_PATTERN = /[\u0009-\u000D]+/g
 const CONTROL_CHAR_PATTERN = /[\u0000-\u0008\u000E-\u001F\u007F]/g
 const COLLAPSIBLE_WHITESPACE_PATTERN = /\s+/g
+const JSON_OBJECT_SHAPED_PATTERN = /^\s*\{\s*"[^"]+"\s*:/i
 const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|respuesta|response|output|resultado|result)\s*[:\-]/i
 const LABEL_PREFIX_PATTERN =
   /^(?:(?:scene|image)(?:\s+prompt)?|answer|prompt|escena|imagen)(?:\s*:\s*|\s*[-\u2014]\s+)/i
+const UNSPACED_DASH_LABEL_PREFIX_PATTERN =
+  /^(?:(?:scene|image)(?:\s+prompt)?|answer|prompt|escena|imagen)-(?=(?:a|an|the|una|un|el|la)\b)/i
 const META_LEAD_IN_PATTERN =
   /^(?:here(?: is|['\u2019]s)|this is|this\s+(?:scene|image|prompt)\s+is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
 const ASSISTANT_CONFIRMATION_PATTERN =
@@ -22,6 +25,8 @@ const SPANISH_INTERPRETIVE_SENTENCE_PATTERN =
   /(?:^|[.!?;]\s*)(?:(?:esto|esta\s+escena|esta\s+imagen|la\s+escena|la\s+imagen)\s+)?(?:simboliza|representa|evoca|sugiere|implica)\b/i
 const INTERPRETIVE_REFLECTION_PATTERN =
   /(?:^|[.!?;]\s*)(?:it|this|this\s+scene|this\s+image|the\s+scene|the\s+image)\s+reflects\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of|memory\b|wonder\b|grief\b|hope\b|loss\b|loneliness\b|change\b|childhood\b|nostalgia\b|identity\b)/i
+const TONE_COMMENTARY_PATTERN =
+  /(?:^|[.!?;]\s*)(?:the\s+atmosphere\s+feels|the\s+tone\s+is|el\s+tono\s+es(?:\s+de)?|la\s+atm[o\u00f3]sfera\s+se\s+siente)\b/i
 const INTERPRETIVE_CLAUSE_PATTERN =
   /,\s*(?:symbolizing|symbolising|suggesting|implying|evoking|simbolizando|sugiriendo|implicando|evocando)\b/i
 const INTERPRETIVE_PARTICIPLE_LINE_PATTERN =
@@ -71,6 +76,10 @@ function buildPromptOutputCandidates(value: string): string[] {
 }
 
 function isObviousJson(value: string): boolean {
+  if (JSON_OBJECT_SHAPED_PATTERN.test(value)) {
+    return true
+  }
+
   if (!/^[\[{]/.test(value)) {
     return false
   }
@@ -130,6 +139,7 @@ export function isUsablePromptOutput(text: string): boolean {
     if (
       EXPLANATORY_PREFIX_PATTERN.test(candidate) ||
       LABEL_PREFIX_PATTERN.test(candidate) ||
+      UNSPACED_DASH_LABEL_PREFIX_PATTERN.test(candidate) ||
       META_LEAD_IN_PATTERN.test(candidate) ||
       ASSISTANT_CONFIRMATION_PATTERN.test(candidate) ||
       EXPLANATORY_SCENE_PATTERN.test(candidate) ||
@@ -137,6 +147,7 @@ export function isUsablePromptOutput(text: string): boolean {
       INTERPRETIVE_SENTENCE_PATTERN.test(candidate) ||
       SPANISH_INTERPRETIVE_SENTENCE_PATTERN.test(candidate) ||
       INTERPRETIVE_REFLECTION_PATTERN.test(candidate) ||
+      TONE_COMMENTARY_PATTERN.test(candidate) ||
       SPANISH_INTERPRETIVE_REFLECTION_PATTERN.test(candidate) ||
       INTERPRETIVE_CLAUSE_PATTERN.test(candidate) ||
       INTERPRETIVE_PARTICIPLE_LINE_PATTERN.test(candidate) ||
