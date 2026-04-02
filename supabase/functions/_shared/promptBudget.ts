@@ -6,11 +6,17 @@ const OBVIOUS_JSON_PATTERN = /^(?:\{[\s\S]*\}|\[[\s\S]*\])$/
 const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripcion|description|prompt|respuesta|response|output|resultado|result)\s*[:\-]/i
 const META_LEAD_IN_PATTERN =
-  /^(?:here(?: is|'s)|this is|the prompt is|prompt text|respuesta final|final prompt|in this scene|sure)\b[\s,:-]*/i
+  /^(?:here(?: is|'s)|this is|the prompt is|prompt text|respuesta final|final prompt|in this scene)\b[\s,:-]*/i
+const ASSISTANT_CONFIRMATION_PATTERN = /^sure(?:\s*[:,]|\s+-)/i
 const EXPLANATORY_SCENE_PATTERN =
   /^(?:this|the)\s+(?:scene|image|prompt)\s+(?:depicts|shows|portrays|illustrates)\b/i
-const SYMBOLIC_INTERPRETATION_PATTERN =
-  /\b(?:it|this)\s+(?:symbolizes|symbolises|represents|means|evokes|suggests|implies|reflects)\b/i
+const INTERPRETIVE_SENTENCE_PATTERN =
+  /(?:^|[.!?]\s+)(?:it|this)\s+(?:symbolizes|symbolises|represents|means|evokes|suggests|implies)\b/i
+const INTERPRETIVE_REFLECTION_PATTERN =
+  /(?:^|[.!?]\s+)(?:it|this)\s+reflects\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of|memory\b|wonder\b|grief\b|hope\b|loss\b|loneliness\b|change\b|childhood\b|nostalgia\b|identity\b)/i
+const INTERPRETIVE_CLAUSE_PATTERN = /,\s*(?:symbolizing|symbolising|suggesting|implying)\b/i
+const INTERPRETIVE_REFLECTING_CLAUSE_PATTERN =
+  /,\s*reflecting\s+(?:themes?\s+of|the\s+theme\s+of|an?\s+idea\s+of|an?\s+sense\s+of)\b/i
 
 export class PromptBudgetValidationError extends Error {
   constructor(message: string) {
@@ -63,13 +69,20 @@ export function isUsablePromptOutput(text: string): boolean {
     return false
   }
 
-  if (EXPLANATORY_PREFIX_PATTERN.test(normalized) || META_LEAD_IN_PATTERN.test(normalized)) {
+  if (
+    EXPLANATORY_PREFIX_PATTERN.test(normalized) ||
+    META_LEAD_IN_PATTERN.test(normalized) ||
+    ASSISTANT_CONFIRMATION_PATTERN.test(normalized)
+  ) {
     return false
   }
 
   if (
     EXPLANATORY_SCENE_PATTERN.test(normalized) ||
-    SYMBOLIC_INTERPRETATION_PATTERN.test(normalized)
+    INTERPRETIVE_SENTENCE_PATTERN.test(normalized) ||
+    INTERPRETIVE_REFLECTION_PATTERN.test(normalized) ||
+    INTERPRETIVE_CLAUSE_PATTERN.test(normalized) ||
+    INTERPRETIVE_REFLECTING_CLAUSE_PATTERN.test(normalized)
   ) {
     return false
   }

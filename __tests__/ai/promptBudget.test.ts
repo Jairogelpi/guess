@@ -46,6 +46,13 @@ describe('promptBudget', () => {
     ).toBe(true)
   })
 
+  test.each([
+    'Sure-footed mountain goats climb a cathedral made of salt.',
+    'a masked diver studies an altar as it reflects moonlight.',
+  ])('isUsablePromptOutput keeps literal scene language usable: %s', (text) => {
+    expect(isUsablePromptOutput(text)).toBe(true)
+  })
+
   test('isUsablePromptOutput rejects explanatory under-budget prose', () => {
     expect(
       isUsablePromptOutput(
@@ -61,6 +68,10 @@ describe('promptBudget', () => {
     'a girl opens an underwater library. It suggests memory and wonder.',
     'a girl opens an underwater library. It implies a forgotten childhood.',
     'a girl opens an underwater library. It reflects grief and hope.',
+    'a girl opens an underwater library, symbolizing memory and wonder.',
+    'a fox carries a lighthouse, suggesting loneliness and duty.',
+    'a child walks through a paper storm, implying fear of change.',
+    'a paper city folds inward, reflecting themes of memory and loss.',
   ])('isUsablePromptOutput rejects additional explanatory invalid forms: %s', (text) => {
     expect(isUsablePromptOutput(text)).toBe(false)
   })
