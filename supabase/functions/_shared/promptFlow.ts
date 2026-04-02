@@ -13,6 +13,7 @@ import {
 const SUGGEST_TEMPERATURE = 1
 const ENHANCE_TEMPERATURE = 0.7
 const COMPRESSION_TEMPERATURE = 0.2
+const MAX_GENERATION_PROMPT_CHARS = 250
 export const EMPTY_SUGGESTION_RESPONSE_ERROR = 'EMPTY_SUGGESTION_RESPONSE'
 
 export interface PromptSuggestModelRequest {
@@ -24,6 +25,18 @@ export function resolveGenerationBriefRequest(rawPrompt: string): {
   prompt: string
   messages: ChatMessage[]
 } {
+  const trimmedPrompt = rawPrompt.trim()
+
+  if (!trimmedPrompt) {
+    throw new PromptBudgetValidationError('Prompt input is required')
+  }
+
+  if (trimmedPrompt.length > MAX_GENERATION_PROMPT_CHARS) {
+    throw new PromptBudgetValidationError(
+      `Prompt input exceeds ${MAX_GENERATION_PROMPT_CHARS} characters`,
+    )
+  }
+
   const prompt = normalizePromptInput(rawPrompt)
 
   if (!prompt) {

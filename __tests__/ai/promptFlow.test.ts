@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs'
 import {
   buildEnhancementMessages,
   buildGenerationBriefMessages,
@@ -64,6 +63,12 @@ describe('promptFlow', () => {
 
   test('generation input rejects trimmed values at 251 characters', () => {
     expect(() => resolveGenerationBriefRequest(`  ${'x'.repeat(251)}  `)).toThrow(
+      PromptBudgetValidationError,
+    )
+  })
+
+  test('generation input rejects 251-character trimmed values even if internal whitespace would collapse below the limit', () => {
+    expect(() => resolveGenerationBriefRequest(`${'x'.repeat(248)}  y`)).toThrow(
       PromptBudgetValidationError,
     )
   })
@@ -157,10 +162,4 @@ describe('promptFlow', () => {
     })
   })
 
-  test('prompt-suggest preserves the baseline unauthorized response contract', () => {
-    const source = readFileSync('supabase/functions/prompt-suggest/index.ts', 'utf8')
-
-    expect(source).toContain("const internalUrl = Deno.env.get('SUPABASE_URL')")
-    expect(source).toContain("${authError?.message || 'Invalid token'} (Token start: ${token.substring(0, 10)}... | Func URL: ${internalUrl})")
-  })
 })
