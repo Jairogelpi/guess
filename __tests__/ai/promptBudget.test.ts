@@ -46,6 +46,11 @@ describe('promptBudget', () => {
     '{prompt:"hola"}',
     "{'prompt':'hola'}",
     '["a girl opens an underwater library"',
+    '[123',
+    '[-1',
+    '[true',
+    '[false',
+    '[null',
   ])('isUsablePromptOutput rejects malformed JSON-shaped output: %s', (text) => {
     expect(isUsablePromptOutput(text)).toBe(false)
   })
@@ -70,6 +75,7 @@ describe('promptBudget', () => {
 
   test.each([
     'Sure-footed mountain goats climb a cathedral made of salt.',
+    'scene-setting harbor under a red moon',
     'scene-stealing fox beneath a flooded chandelier',
     '[underwater library with fish on the shelves]',
     '[1980s arcade overgrown with moss]',

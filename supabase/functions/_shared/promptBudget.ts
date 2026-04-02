@@ -5,13 +5,16 @@ const WORD_BOUNDARY_CONTROL_PATTERN = /[\u0009-\u000D]+/g
 const CONTROL_CHAR_PATTERN = /[\u0000-\u0008\u000E-\u001F\u007F]/g
 const COLLAPSIBLE_WHITESPACE_PATTERN = /\s+/g
 const JSON_OBJECT_SHAPED_PATTERN = /^\s*\{\s*(?:"[^"]+"|'[^']+'|[A-Za-z_][\w-]*)\s*:/i
-const JSON_ARRAY_SHAPED_PATTERN = /^\s*\[\s*(?:"|'|\{)/i
+const JSON_COMPLEX_ARRAY_SHAPED_PATTERN = /^\s*\[\s*(?:"|'|\{)/i
+const JSON_SCALAR_ARRAY_SHAPED_PATTERN = /^\s*\[\s*(?:-?\d+(?:\.\d+)?|true|false|null)\s*$/i
 const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|respuesta|response|output|resultado|result)\s*[:\-]/i
 const LABEL_PREFIX_PATTERN =
   /^(?:(?:scene|image)(?:\s+prompt)?|answer|prompt|escena|imagen)(?:\s*:\s*|\s*[-\u2014]\s+)/i
-const UNSPACED_DASH_LABEL_PREFIX_PATTERN =
-  /^(?:(?:scene|image)(?:\s+prompt)?|answer|prompt|escena|imagen)-(?!stealing\b)/i
+const ARTICLE_DASH_LABEL_PREFIX_PATTERN =
+  /^(?:(?:scene|image)(?:\s+prompt)?|answer|prompt|escena|imagen)-(?=(?:a|an|the|una|un|el|la)\b)/i
+const CAPITALIZED_DASH_LABEL_PREFIX_PATTERN =
+  /^(?:(?:Scene|Image)(?:\s+prompt)?|Answer|Prompt|Escena|Imagen)-(?=[a-z\u00df-\u00ff])/u
 const META_LEAD_IN_PATTERN =
   /^(?:here(?: is|['\u2019]s)|this is|this\s+(?:scene|image|prompt)\s+is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
 const ASSISTANT_CONFIRMATION_PATTERN =
@@ -77,7 +80,11 @@ function buildPromptOutputCandidates(value: string): string[] {
 }
 
 function isObviousJson(value: string): boolean {
-  if (JSON_OBJECT_SHAPED_PATTERN.test(value) || JSON_ARRAY_SHAPED_PATTERN.test(value)) {
+  if (
+    JSON_OBJECT_SHAPED_PATTERN.test(value) ||
+    JSON_COMPLEX_ARRAY_SHAPED_PATTERN.test(value) ||
+    JSON_SCALAR_ARRAY_SHAPED_PATTERN.test(value)
+  ) {
     return true
   }
 
@@ -140,7 +147,8 @@ export function isUsablePromptOutput(text: string): boolean {
     if (
       EXPLANATORY_PREFIX_PATTERN.test(candidate) ||
       LABEL_PREFIX_PATTERN.test(candidate) ||
-      UNSPACED_DASH_LABEL_PREFIX_PATTERN.test(candidate) ||
+      ARTICLE_DASH_LABEL_PREFIX_PATTERN.test(candidate) ||
+      CAPITALIZED_DASH_LABEL_PREFIX_PATTERN.test(candidate) ||
       META_LEAD_IN_PATTERN.test(candidate) ||
       ASSISTANT_CONFIRMATION_PATTERN.test(candidate) ||
       EXPLANATORY_SCENE_PATTERN.test(candidate) ||
