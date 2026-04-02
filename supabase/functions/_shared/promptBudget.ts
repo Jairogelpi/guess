@@ -12,11 +12,10 @@ const EXPLANATORY_PREFIX_PATTERN =
   /^(?:explicaci[o\u00f3]n|explicaci[o\u00f3]n breve|explanation|descripci[o\u00f3]n|descripcion|description|respuesta|response|output|resultado|result)\s*[:\-]/i
 const LABEL_PREFIX_PATTERN =
   /^(?:(?:scene|image)(?:\s+prompt)?|answer|prompt|escena|imagen)(?:\s*:\s*|\s*[-\u2014]\s+)/i
-const GENERIC_DASH_LABEL_PREFIX_PATTERN = /^(?:prompt|answer)-(?=\S)/i
-const ARTICLE_DASH_LABEL_PREFIX_PATTERN =
-  /^(?:(?:scene|image)(?:\s+prompt)?|answer|prompt|escena|imagen)-(?=(?:a|an|the|una|un|el|la)\b)/i
-const CAPITALIZED_DASH_LABEL_PREFIX_PATTERN =
-  /^(?:(?:Image|Imagen)(?:\s+prompt)?|Answer|Prompt)-(?=\S)|^(?:Scene|Escena)-(?!(?:[A-Za-z\u00c0-\u017f]+ing)\b)(?=[A-Za-z\u00c0-\u017f0-9])/u
+const SAFE_SCENE_DASH_COMPOUND_PATTERN = /^(?:scene|Scene)-(?:setting|stealing)\b/
+const GENERIC_DASH_LABEL_PREFIX_PATTERN =
+  /^(?:(?:image|imagen)(?:\s+prompt)?|prompt|answer)-(?=\S)/i
+const SCENE_DASH_LABEL_PREFIX_PATTERN = /^(?:scene|escena)-(?=\S)/i
 const META_LEAD_IN_PATTERN =
   /^(?:here(?: is|['\u2019]s)|this is|this\s+(?:scene|image|prompt)\s+is|the prompt is|prompt text|respuesta final|final prompt|in this scene|in this image|en esta escena|en esta imagen)\b[\s,:.-]*/i
 const ASSISTANT_CONFIRMATION_PATTERN =
@@ -146,12 +145,15 @@ export function isUsablePromptOutput(text: string): boolean {
   }
 
   for (const candidate of candidates) {
+    if (SAFE_SCENE_DASH_COMPOUND_PATTERN.test(candidate)) {
+      continue
+    }
+
     if (
       EXPLANATORY_PREFIX_PATTERN.test(candidate) ||
       LABEL_PREFIX_PATTERN.test(candidate) ||
       GENERIC_DASH_LABEL_PREFIX_PATTERN.test(candidate) ||
-      ARTICLE_DASH_LABEL_PREFIX_PATTERN.test(candidate) ||
-      CAPITALIZED_DASH_LABEL_PREFIX_PATTERN.test(candidate) ||
+      SCENE_DASH_LABEL_PREFIX_PATTERN.test(candidate) ||
       META_LEAD_IN_PATTERN.test(candidate) ||
       ASSISTANT_CONFIRMATION_PATTERN.test(candidate) ||
       EXPLANATORY_SCENE_PATTERN.test(candidate) ||
