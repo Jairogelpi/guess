@@ -126,7 +126,7 @@ export async function insertTempAssetRow({
 }: {
   supabase: {
     from: (table: string) => {
-      insert: (payload: Record<string, unknown>) => Promise<{ error: { message?: string } | null }>
+      insert: (payload: Record<string, unknown>) => PromiseLike<{ error: { message?: string } | null }>
     }
   }
   row: Record<string, unknown>

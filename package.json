@@ -10,13 +10,15 @@
     "room:3p": "node ./scripts/create-three-player-room.mjs",
     "room:3p:open": "node ./scripts/open-three-player-room.mjs",
     "test": "jest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -p tsconfig.app.json",
+    "typecheck:supabase": "tsc -p tsconfig.supabase.json"
   },
   "dependencies": {
     "@expo-google-fonts/cinzel-decorative": "^0.4.1",
     "@supabase/supabase-js": "^2.99.2",
     "base64-arraybuffer": "^1.0.2",
     "expo": "~55.0.7",
+    "expo-blur": "~55.0.10",
     "expo-constants": "~55.0.8",
     "expo-file-system": "~55.0.11",
     "expo-font": "^55.0.4",
