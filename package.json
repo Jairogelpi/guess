@@ -11,7 +11,8 @@
     "room:3p:open": "node ./scripts/open-three-player-room.mjs",
     "test": "jest",
     "typecheck": "tsc -p tsconfig.app.json",
-    "typecheck:supabase": "tsc -p tsconfig.supabase.json"
+    "typecheck:supabase": "tsc -p tsconfig.supabase.json",
+    "typecheck:all": "npm run typecheck ; npm run typecheck:supabase"
   },
   "dependencies": {
     "@expo-google-fonts/cinzel-decorative": "^0.4.1",
