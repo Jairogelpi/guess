@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { View, Text, ScrollView, StyleSheet, Alert } from 'react-native'
+import { View, Text, ScrollView, StyleSheet } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { colors } from '@/constants/theme'
-import { buildLeaveRoomConfirmCopy } from '@/lib/leaveRoomConfirm'
 import { buildRoomEndedCopy } from '@/lib/roomEndReason'
 import { useConfirmRoomExit } from '@/hooks/useConfirmRoomExit'
 import type { Room, RoomPlayer } from '@/types/game'
@@ -25,10 +24,11 @@ export default function EndedScreen() {
   const [room, setRoom] = useState<Room | null>(null)
   const [winner, setWinner] = useState<string | null>(null)
 
-  useConfirmRoomExit({
+  const { allowNextNavigation } = useConfirmRoomExit({
     enabled: true,
     t,
     onConfirmExit: () => {
+      allowNextNavigation()
       router.replace('/(tabs)')
     },
   })
@@ -63,16 +63,8 @@ export default function EndedScreen() {
   }, [code])
 
   function handleGoHome() {
-    const copy = buildLeaveRoomConfirmCopy(t)
-
-    Alert.alert(copy.title, copy.message, [
-      { text: copy.cancelLabel, style: 'cancel' },
-      {
-        text: copy.confirmLabel,
-        style: 'destructive',
-        onPress: () => router.replace('/(tabs)'),
-      },
-    ])
+    allowNextNavigation()
+    router.replace('/(tabs)')
   }
 
   const endedCopy = buildRoomEndedCopy(t, room?.ended_reason, room?.ended_by === userId)

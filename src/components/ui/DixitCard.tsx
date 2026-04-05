@@ -51,12 +51,11 @@ export function DixitCard({
   // Use paddingBottom hack to enforce aspect ratio instead.
   const cardStyles = [
     styles.card,
-    selected && styles.cardSelected,
+    (glowing || selected) && styles.cardSelected,
     compact && styles.cardCompact,
-    (glowing || selected) && styles.cardGlowing,
     isWeb
       ? ({ width: '100%', paddingBottom: `${(1 / aspectRatio) * 100}%` } as any)
-      : { aspectRatio, flex: 1 },
+      : { aspectRatio, width: '100%' },
   ]
 
   const content = React.createElement(
@@ -77,7 +76,7 @@ export function DixitCard({
       React.createElement(View, { style: styles.cornerOrnamentTL }),
       React.createElement(View, { style: styles.cornerOrnamentBR }),
       /* Selected overlay */
-      selected ? React.createElement(View, { style: styles.selectedOverlay }) : null,
+      (glowing || selected) ? React.createElement(View, { style: styles.selectedOverlay }) : null,
     ),
     label
       ? React.createElement(
@@ -88,10 +87,16 @@ export function DixitCard({
       : null,
   )
 
+  const wrapperStyles = [
+    styles.wrapper,
+    selected && styles.wrapperSelected,
+    (glowing || selected) && styles.wrapperGlowing,
+  ]
+
   if (!interactive) {
     return React.createElement(
       View,
-      { style: [styles.wrapper, selected && styles.wrapperSelected], testID },
+      { style: wrapperStyles, testID },
       content,
     )
   }
@@ -103,7 +108,7 @@ export function DixitCard({
       onPress,
       disabled: disabled ?? (!onPress && !onLongPress),
       activeOpacity: 0.88,
-      style: [styles.wrapper, selected && styles.wrapperSelected],
+      style: wrapperStyles,
       testID,
     },
     content,
@@ -117,6 +122,13 @@ const styles = StyleSheet.create({
   },
   wrapperSelected: {
     transform: [{ scale: 1.03 }],
+  },
+  wrapperGlowing: {
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 14,
   },
   card: {
     borderRadius: radii.md + 2,
@@ -133,13 +145,6 @@ const styles = StyleSheet.create({
   cardCompact: {
     borderWidth: 2,
     borderRadius: radii.md,
-  },
-  cardGlowing: {
-    shadowColor: colors.gold,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 14,
   },
   /* Native: image fills parent via flex */
   nativeImageFill: {

@@ -16,20 +16,22 @@ export default function TabsLayout() {
       <Tabs
         screenOptions={({ route }) => {
           const activeItem = APP_TAB_ITEMS.find((entry) => entry.route === route.name)
+          const floatingBottomInset = Math.max(insets.bottom, 10)
 
           return {
             headerShown: false,
             sceneStyle: {
               backgroundColor: 'transparent',
             },
+            tabBarBackground: () => null,
             tabBarStyle: {
               position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: Math.max(insets.bottom + 52, 64),
-              paddingBottom: Math.max(insets.bottom, 8),
-              paddingTop: 4,
+              left: 18,
+              right: 18,
+              bottom: floatingBottomInset,
+              height: 64,
+              paddingBottom: 8,
+              paddingTop: 6,
               borderTopWidth: 0,
               backgroundColor: 'transparent',
               elevation: 0,

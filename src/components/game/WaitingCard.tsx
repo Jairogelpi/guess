@@ -1,43 +1,10 @@
-import { useEffect, useRef } from 'react'
-import { Animated, View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { colors, fonts, radii } from '@/constants/theme'
 import { Avatar } from '@/components/ui/Avatar'
-
-/** Single dot — pulses when pending, glows when done */
-function StatusDot({ isSubmitted, isMe, delay }: { isSubmitted: boolean; isMe: boolean; delay: number }) {
-  const pulse = useRef(new Animated.Value(1)).current
-
-  useEffect(() => {
-    if (isSubmitted) {
-      // Snap to full glow, no loop
-      Animated.timing(pulse, { toValue: 1, duration: 150, useNativeDriver: true }).start()
-      return
-    }
-    // Slow breathing pulse while waiting
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 0.35, duration: 800 + delay * 120, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 800 + delay * 120, useNativeDriver: true }),
-      ]),
-    )
-    loop.start()
-    return () => loop.stop()
-  }, [isSubmitted, pulse, delay])
-
-  return (
-    <Animated.View
-      style={[
-        styles.dot,
-        isSubmitted && styles.dotDone,
-        isMe && styles.dotMe,
-        { opacity: pulse },
-      ]}
-    >
-      <View style={styles.dotInner} />
-    </Animated.View>
-  )
-}
+import type { RoomPlayer } from '@/types/game'
+import { buildWaitingProgress } from '@/lib/waitingProgress'
 
 interface Props {
   narratorName: string
@@ -48,6 +15,7 @@ interface Props {
   isCurrentUserNarrator: boolean
   currentUserId: string
   submittedPlayerIds: string[]
+  orderedPlayers: RoomPlayer[]
   contextMessage: string
 }
 
@@ -60,6 +28,7 @@ export function WaitingCard({
   isCurrentUserNarrator,
   currentUserId,
   submittedPlayerIds,
+  orderedPlayers,
   contextMessage,
 }: Props) {
   const { t } = useTranslation()
@@ -68,6 +37,7 @@ export function WaitingCard({
   const waitingText = remaining > 0
     ? t('game.waitingMore', { count: remaining })
     : t('game.waiting')
+  const waitingProgress = buildWaitingProgress(orderedPlayers, submittedPlayerIds)
 
   return (
     <View style={styles.card}>
@@ -88,26 +58,86 @@ export function WaitingCard({
 
       <View style={styles.divider} />
 
-      <View style={styles.dotsRow}>
-        {Array.from({ length: expectedCount }).map((_, i) => {
-          const playerId = submittedPlayerIds[i]
-          const isSubmitted = i < submittedCount
-          const isMe = !isCurrentUserNarrator && playerId === currentUserId
-          return (
-            <StatusDot
-              key={i}
-              isSubmitted={isSubmitted}
-              isMe={isMe}
-              delay={i}
-            />
-          )
-        })}
+      <View style={styles.progressHeader}>
         <View style={styles.countPill}>
           <Text style={styles.dotsLabel}>
             {submittedCount}/{expectedCount}
           </Text>
         </View>
       </View>
+
+      <View style={styles.progressRow}>
+        {waitingProgress.displayPlayers.map((player) => {
+          const isMe = !isCurrentUserNarrator && player.playerId === currentUserId
+          return (
+            <View
+              key={player.playerId}
+              style={[
+                styles.playerSlot,
+                player.isCurrentTarget && styles.playerSlotCurrent,
+                player.submitted && styles.playerSlotDone,
+                player.isCurrentTarget && styles.playerSlotPriority,
+              ]}
+            >
+              <View style={styles.playerAvatarWrap}>
+                <Avatar
+                  uri={player.avatarUrl}
+                  name={player.displayName}
+                  size={32}
+                  borderColor={
+                    player.submitted
+                      ? colors.gold
+                      : player.isCurrentTarget
+                        ? colors.orange
+                        : isMe
+                          ? 'rgba(249, 115, 22, 0.42)'
+                        : 'rgba(230, 184, 0, 0.18)'
+                  }
+                  textColor={
+                    player.submitted || player.isCurrentTarget
+                      ? colors.goldLight
+                      : 'rgba(255, 241, 222, 0.62)'
+                  }
+                />
+                {player.submitted ? (
+                  <View style={styles.doneBadge}>
+                    <MaterialCommunityIcons name="check" size={10} color="#0a0602" />
+                  </View>
+                ) : null}
+              </View>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.playerName,
+                  player.submitted && styles.playerNameDone,
+                  player.isCurrentTarget && styles.playerNameCurrent,
+                ]}
+              >
+                {player.displayName}
+              </Text>
+              <Text
+                style={[
+                  styles.playerState,
+                  player.submitted && styles.playerStateDone,
+                  player.isCurrentTarget && styles.playerStateCurrent,
+                ]}
+              >
+                {player.submitted
+                  ? t('game.waitingDone')
+                  : player.isCurrentTarget
+                    ? t('game.waitingNowShort')
+                    : t('game.waitingPending')}
+              </Text>
+            </View>
+          )
+        })}
+      </View>
+
+      {waitingProgress.currentTargetName ? (
+        <Text style={styles.waitingNowText}>
+          {t('game.waitingCurrentPlayer', { name: waitingProgress.currentTargetName })}
+        </Text>
+      ) : null}
 
       <Text style={styles.contextMsg}>{contextMessage}</Text>
       <View style={styles.statusFooter}>
@@ -177,35 +207,89 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(230, 184, 0, 0.15)',
     marginVertical: 4,
   },
-  dotsRow: {
+  progressHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
     gap: 8,
     flexWrap: 'wrap',
   },
-  dot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(230, 184, 0, 0.05)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(230, 184, 0, 0.2)',
+  playerSlot: {
+    minWidth: 76,
+    flex: 1,
+    gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 241, 222, 0.035)',
+    borderWidth: 1,
+    borderColor: 'rgba(230, 184, 0, 0.08)',
   },
-  dotInner: {
+  playerSlotDone: {
+    backgroundColor: 'rgba(230, 184, 0, 0.08)',
+    borderColor: 'rgba(230, 184, 0, 0.2)',
+  },
+  playerSlotCurrent: {
+    backgroundColor: 'rgba(249, 115, 22, 0.08)',
+    borderColor: 'rgba(249, 115, 22, 0.3)',
+  },
+  playerSlotPriority: {
+    transform: [{ scale: 1.03 }],
+    shadowColor: colors.orange,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  playerAvatarWrap: {
+    position: 'relative',
+  },
+  doneBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.gold,
+    borderWidth: 1,
+    borderColor: 'rgba(10, 6, 2, 0.24)',
+  },
+  playerName: {
+    color: 'rgba(255, 241, 222, 0.56)',
+    fontSize: 11,
+    lineHeight: 13,
+    fontFamily: fonts.title,
+    textAlign: 'center',
     width: '100%',
-    height: '100%',
-    borderRadius: 99,
   },
-  dotDone: {
-    borderColor: colors.gold,
-    backgroundColor: 'rgba(230, 184, 0, 0.15)',
+  playerNameDone: {
+    color: colors.goldLight,
   },
-  dotMe: {
-    borderColor: colors.orange,
-    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+  playerNameCurrent: {
+    color: '#ffd59b',
+  },
+  playerState: {
+    color: 'rgba(255, 241, 222, 0.42)',
+    fontSize: 9,
+    lineHeight: 11,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  playerStateDone: {
+    color: colors.gold,
+  },
+  playerStateCurrent: {
+    color: colors.orange,
   },
   countPill: {
     backgroundColor: 'rgba(230, 184, 0, 0.1)',
@@ -220,6 +304,13 @@ const styles = StyleSheet.create({
     color: colors.gold,
     fontSize: 11,
     fontFamily: fonts.titleHeavy,
+  },
+  waitingNowText: {
+    color: '#ffd59b',
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: fonts.title,
+    textAlign: 'center',
   },
   contextMsg: {
     color: 'rgba(255, 241, 222, 0.7)',

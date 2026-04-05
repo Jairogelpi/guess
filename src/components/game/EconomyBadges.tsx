@@ -35,6 +35,54 @@ function Badge({
   )
 }
 
+export function CompactEconomy({
+  intuitionTokens,
+  wildcardsLeft,
+  generationTokens,
+  corruptedCardsRemaining,
+  onPress,
+}: Props & { onPress: () => void }) {
+  const { t } = useTranslation()
+
+  return (
+    <View style={styles.container}>
+      <Badge
+        icon="brain"
+        value={intuitionTokens}
+        label={t('game.intuition', { defaultValue: 'INT' })}
+        accent={colors.gold}
+        onPress={onPress}
+      />
+      <View style={styles.divider} />
+      <Badge
+        icon="cards-outline"
+        value={wildcardsLeft}
+        label={t('game.wildcards', { defaultValue: 'WILD' })}
+        onPress={onPress}
+      />
+      <View style={styles.divider} />
+      <Badge
+        icon="auto-fix"
+        value={generationTokens}
+        label={t('game.gen', { defaultValue: 'GEN' })}
+        onPress={onPress}
+      />
+      {corruptedCardsRemaining !== undefined && (
+        <>
+          <View style={styles.divider} />
+          <Badge
+            icon="skull-outline"
+            value={corruptedCardsRemaining}
+            label={t('game.corrupt', { defaultValue: 'COR' })}
+            accent="rgba(185, 28, 28, 0.8)"
+            onPress={onPress}
+          />
+        </>
+      )}
+    </View>
+  )
+}
+
 export function EconomyBadges({
   intuitionTokens,
   wildcardsLeft,

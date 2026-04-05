@@ -1,163 +1,237 @@
-import { View, Image, Text, StyleSheet, Dimensions } from 'react-native'
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
+import { ScrollView, View, Text, StyleSheet, Dimensions } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
-import { colors, radii, shadows, fonts } from '@/constants/theme'
+import { DixitCard } from '@/components/ui/DixitCard'
+import { colors, fonts, radii } from '@/constants/theme'
 import type { MaskedCard } from '@/stores/useGameStore'
 
 interface Props {
   cards: MaskedCard[]
   selectedId?: string | null
+  committedId?: string | null
+  pendingId?: string | null
   onSelect?: (card: MaskedCard) => void
+  onPreview?: (card: MaskedCard) => void
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width
-const CARD_WIDTH = SCREEN_WIDTH * 0.22
-const CARD_HEIGHT = CARD_WIDTH * 1.5
-const ARC_RADIUS = 800
-const SPREAD_ANGLE_DEG = 7
-
-const SPRING_CONFIG = { damping: 18, stiffness: 180 }
+const CARD_WIDTH = Math.min(SCREEN_WIDTH * 0.82, 360)
+const CARD_ASPECT_RATIO = 2 / 3
 
 function VoteCard({
   card,
-  index,
-  total,
   isSelected,
+  isCommitted,
+  isPending,
   onPress,
+  onLongPress,
 }: {
   card: MaskedCard
-  index: number
-  total: number
   isSelected: boolean
+  isCommitted: boolean
+  isPending: boolean
   onPress: () => void
+  onLongPress: () => void
 }) {
-  const mid = (total - 1) / 2
-  const offset = index - mid
-  const angleDeg = offset * SPREAD_ANGLE_DEG
-  const angleRad = (angleDeg * Math.PI) / 180
-
-  const targetX = Math.sin(angleRad) * ARC_RADIUS
-  const targetY = ARC_RADIUS - Math.cos(angleRad) * ARC_RADIUS + (isSelected ? -20 : 0)
-  const targetScale = isSelected ? 1.12 : 1
-
-  const animX = useSharedValue(targetX)
-  const animY = useSharedValue(targetY)
-  const animR = useSharedValue(angleDeg)
-  const animS = useSharedValue(targetScale)
-
-  animX.value = withSpring(targetX, SPRING_CONFIG)
-  animY.value = withSpring(targetY, SPRING_CONFIG)
-  animR.value = withSpring(angleDeg, SPRING_CONFIG)
-  animS.value = withSpring(targetScale, SPRING_CONFIG)
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: animX.value },
-      { translateY: animY.value },
-      { rotate: `${animR.value}deg` },
-      { scale: animS.value },
-    ],
-  }))
-
-  const zIndex = isSelected ? 20 : 10 - Math.abs(index - Math.floor(total / 2))
+  const badgeLabel = isPending ? 'NUEVA' : isCommitted ? 'ENVIADA' : isSelected ? 'ACTUAL' : null
 
   return (
-    <Animated.View
-      style={[
-        styles.voteCardContainer,
-        { width: CARD_WIDTH, height: CARD_HEIGHT, zIndex },
-        animatedStyle,
-      ]}
-    >
+    <View style={styles.voteCardContainer}>
       <InteractiveCardTilt
         profileName="hero"
         regionKey="vote-field"
         onPress={onPress}
+        onLongPress={onLongPress}
         style={styles.tiltWrap}
       >
         <View
           style={[
-            styles.cardWrap,
-            isSelected && styles.cardWrapSelected,
+            styles.cardShell,
+            isSelected && styles.cardShellSelected,
+            isCommitted && styles.cardShellCommitted,
+            isPending && styles.cardShellPending,
           ]}
         >
-          <Image
-            source={{ uri: card.image_url }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-          {isSelected && <View style={styles.selectedGlow} />}
+          <View style={styles.cardFrame}>
+            {badgeLabel && (
+              <View
+                style={[
+                  styles.stateBadge,
+                  isPending ? styles.stateBadgePending : styles.stateBadgeCommitted,
+                ]}
+              >
+                <Text style={styles.stateBadgeText}>{badgeLabel}</Text>
+              </View>
+            )}
+            <View style={styles.previewBadge}>
+              <MaterialCommunityIcons name="magnify" size={12} color="rgba(255,241,222,0.78)" />
+              <Text style={styles.previewBadgeText}>MANTEN</Text>
+            </View>
+            <DixitCard
+              uri={card.image_url}
+              selected={isSelected}
+              interactive={false}
+              glowing={isSelected}
+              aspectRatio={CARD_ASPECT_RATIO}
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(5,2,0,0.82)', 'rgba(0,0,0,0.96)']}
+              locations={[0, 0.42, 1]}
+              style={styles.promptOverlay}
+            >
+              <View style={styles.promptChip}>
+                <Text style={styles.promptText} numberOfLines={2}>
+                  {card.prompt}
+                </Text>
+              </View>
+            </LinearGradient>
+          </View>
         </View>
       </InteractiveCardTilt>
-    </Animated.View>
+    </View>
   )
 }
 
-export function VoteCardField({ cards, selectedId, onSelect }: Props) {
+export function VoteCardField({ cards, selectedId, committedId, pendingId, onSelect, onPreview }: Props) {
   return (
-    <View style={styles.fieldContainer}>
-      <View style={styles.fieldArea}>
-        {cards.map((card, i) => (
+    <ScrollView
+      style={styles.fieldContainer}
+      contentContainerStyle={styles.fieldArea}
+      showsVerticalScrollIndicator={false}
+    >
+      {cards.map((card) => (
           <VoteCard
             key={card.id}
             card={card}
-            index={i}
-            total={cards.length}
             isSelected={card.id === selectedId}
+            isCommitted={card.id === committedId}
+            isPending={card.id === pendingId}
             onPress={() => onSelect?.(card)}
+            onLongPress={() => onPreview?.(card)}
           />
         ))}
-      </View>
-    </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
   fieldContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 20,
   },
   fieldArea: {
-    width: '100%',
-    height: CARD_HEIGHT + 40,
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 22,
+    paddingTop: 14,
+    paddingBottom: 34,
   },
   voteCardContainer: {
-    position: 'absolute',
-    alignSelf: 'center',
+    width: CARD_WIDTH,
   },
   tiltWrap: {
-    flex: 1,
-  },
-  cardWrap: {
-    flex: 1,
-    borderRadius: radii.md,
-    overflow: 'hidden',
-    borderWidth: 2.5,
-    borderColor: colors.cardBorder,
-    backgroundColor: colors.surfaceDeep,
-    ...shadows.card,
-  },
-  cardWrapSelected: {
-    borderColor: colors.goldLight,
-    borderWidth: 3,
-    shadowColor: colors.gold,
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    elevation: 16,
-  },
-  image: {
     width: '100%',
-    height: '100%',
   },
-  selectedGlow: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: radii.md - 2,
-    borderWidth: 2,
-    borderColor: 'rgba(251, 176, 36, 0.45)',
-    backgroundColor: 'rgba(251, 176, 36, 0.06)',
+  cardShell: {
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 184, 0, 0.18)',
+  },
+  cardShellSelected: {
+    transform: [{ translateY: -4 }],
+    borderColor: 'rgba(230, 184, 0, 0.62)',
+  },
+  cardShellCommitted: {
+    borderColor: 'rgba(245, 201, 96, 0.9)',
+    shadowColor: 'rgba(245, 201, 96, 0.8)',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  cardShellPending: {
+    borderColor: '#ffb35c',
+    shadowColor: '#ffb35c',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.48,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  cardFrame: {
+    position: 'relative',
+  },
+  stateBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 2,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+  },
+  stateBadgeCommitted: {
+    backgroundColor: 'rgba(245, 201, 96, 0.92)',
+    borderColor: 'rgba(20, 12, 5, 0.8)',
+  },
+  stateBadgePending: {
+    backgroundColor: '#ffb35c',
+    borderColor: 'rgba(20, 12, 5, 0.8)',
+  },
+  stateBadgeText: {
+    color: '#201005',
+    fontFamily: fonts.titleHeavy,
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  previewBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    zIndex: 2,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,241,222,0.28)',
+    backgroundColor: 'rgba(8, 4, 1, 0.62)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  previewBadgeText: {
+    color: 'rgba(255,241,222,0.78)',
+    fontFamily: fonts.titleHeavy,
+    fontSize: 9,
+    letterSpacing: 0.8,
+  },
+  promptOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 14,
+    paddingTop: 54,
+    paddingBottom: 16,
+    borderBottomLeftRadius: radii.xl,
+    borderBottomRightRadius: radii.xl,
+  },
+  promptChip: {
+    alignSelf: 'stretch',
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 184, 0, 0.18)',
+    backgroundColor: 'rgba(20, 12, 5, 0.72)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  promptText: {
+    color: colors.goldLight,
+    fontSize: 14,
+    lineHeight: 19,
+    fontFamily: fonts.title,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 })

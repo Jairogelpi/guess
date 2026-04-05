@@ -1,28 +1,32 @@
 // app/room/[code]/game.tsx
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ScrollView, StyleSheet } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useAuth } from '@/hooks/useAuth'
 import { useRoom } from '@/hooks/useRoom'
 import { useRound } from '@/hooks/useRound'
 import { useGameActions } from '@/hooks/useGameActions'
 import { useConfirmRoomExit } from '@/hooks/useConfirmRoomExit'
 import { useGameStore } from '@/stores/useGameStore'
+import { useUIStore } from '@/stores/useUIStore'
 import { useGamePhaseOrchestration } from '@/hooks/useGamePhaseOrchestration'
+import { buildLeaveRoomConfirmCopy } from '@/lib/leaveRoomConfirm'
+import { getPlayerDepartureNotice } from '@/lib/playerDepartureNotice'
 import { NarratorPhase } from '@/components/game-phases/NarratorPhase'
 import { PlayersPhase } from '@/components/game-phases/PlayersPhase'
 import { VotingPhase } from '@/components/game-phases/VotingPhase'
 import { ResultsPhase } from '@/components/game-phases/ResultsPhase'
-import { TacticalActionPicker } from '@/components/game/TacticalActionPicker'
 import { AppHeader } from '@/components/layout/AppHeader'
-import { GameStatusHUD } from '@/components/game/GameStatusHUD'
-import { LiveStandingsStrip } from '@/components/game/LiveStandingsStrip'
-import { EconomyBadges } from '@/components/game/EconomyBadges'
+import { UnifiedHUD } from '@/components/game/UnifiedHUD'
 import { WaitingCard } from '@/components/game/WaitingCard'
 import { GameLoadingScreen } from '@/components/game/GameLoadingScreen'
 import { GameLayout } from '@/components/layout/GameLayout'
 import { GameErrorBoundary } from '@/components/game/GameErrorBoundary'
+import { Modal } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/Button'
+import { colors } from '@/constants/theme'
+import type { RoomPlayer } from '@/types/game'
 
 export default function GameScreen() {
   const { code } = useLocalSearchParams<{ code: string }>()
@@ -31,6 +35,9 @@ export default function GameScreen() {
   const { room, players } = useRoom(code ?? null)
   const { userId } = useAuth()
   const { leaveRoom } = useGameActions()
+  const showToast = useUIStore((s) => s.showToast)
+  const [showLeaveModal, setShowLeaveModal] = useState(false)
+  const previousPlayersRef = useRef<RoomPlayer[]>([])
 
   useRound(room?.id)
 
@@ -45,6 +52,21 @@ export default function GameScreen() {
       router.replace('/(tabs)')
     },
   })
+
+  useEffect(() => {
+    if (!userId) return
+
+    const previousPlayers = previousPlayersRef.current
+
+    if (previousPlayers.length > 0) {
+      const departureNotice = getPlayerDepartureNotice(previousPlayers, players, userId, t)
+      if (departureNotice) {
+        showToast(departureNotice, 'info')
+      }
+    }
+
+    previousPlayersRef.current = players
+  }, [players, showToast, t, userId])
 
   useEffect(() => {
     if (!code || !room) return
@@ -76,27 +98,31 @@ export default function GameScreen() {
   const intuitionTokens = currentPlayer?.intuition_tokens ?? 0
   const challengeLeaderUsed = currentPlayer?.challenge_leader_used ?? false
   const corruptedCardsRemaining = currentPlayer?.corrupted_cards_remaining ?? 0
+  const leaveCopy = buildLeaveRoomConfirmCopy(t)
+
+  async function handleConfirmLeaveRoom() {
+    if (!code) return
+    setShowLeaveModal(false)
+    allowNextNavigation()
+    await leaveRoom(code)
+    router.replace('/(tabs)')
+  }
 
   return (
     <GameLayout>
       <AppHeader title={t('game.title', { defaultValue: 'PARTIDA' })} />
-      
-      <GameStatusHUD
+
+      <UnifiedHUD
         roundNumber={round.round_number}
         maxRounds={room.max_rounds}
         phaseLabel={phaseLabels[status] ?? t(status)}
-        stepCurrent={stepCurrent}
-        stepTotal={stepTotal}
         phaseStartedAt={round.phase_started_at}
-        phaseDurationSeconds={room.phase_duration_seconds ?? undefined}
-      />
-
-      <LiveStandingsStrip players={players} currentUserId={userId} />
-
-      <EconomyBadges
-        intuitionTokens={intuitionTokens}
+        phaseDurationSeconds={room.phase_duration_seconds}
+        players={players}
+        currentUserId={userId}
         wildcardsLeft={wildcardsLeft}
         generationTokens={generationTokens}
+        intuitionTokens={intuitionTokens}
         corruptedCardsRemaining={corruptedCardsRemaining}
       />
 
@@ -106,6 +132,9 @@ export default function GameScreen() {
             <NarratorPhase
               roomCode={code}
               wildcardsRemaining={wildcardsLeft}
+              intuitionTokens={intuitionTokens}
+              challengeLeaderUsed={challengeLeaderUsed}
+              allPlayers={players}
             />
           ) : (
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -114,26 +143,12 @@ export default function GameScreen() {
                 narratorAvatar={narratorAvatar}
                 clue={undefined}
                 submittedCount={0}
-                expectedCount={nonNarratorPlayers.length}
+                expectedCount={1}
                 isCurrentUserNarrator={false}
                 currentUserId={userId}
                 submittedPlayerIds={[]}
+                orderedPlayers={players.filter((p) => p.player_id === round.narrator_id)}
                 contextMessage={t('game.waitingForNarrator')}
-              />
-              <TacticalActionPicker
-                phase="narrator_turn"
-                selectionActive={false}
-                intuitionTokens={intuitionTokens}
-                isPhaseOwner={false}
-                helperTextOverrideKey="game.tactics.notes.onlyNarratorRisk"
-                playerId={userId}
-                players={players}
-                challengeLeaderUsed={challengeLeaderUsed}
-                corruptedCardsRemaining={corruptedCardsRemaining}
-                selectedAction={null}
-                selectedChallengeLeader={false}
-                onSelectAction={() => {}}
-                onSelectChallengeLeader={() => {}}
               />
             </ScrollView>
           )}
@@ -147,6 +162,12 @@ export default function GameScreen() {
             narratorClue={round.clue}
             isWaiting={isNarrator || submittedPlayerIds.includes(userId)}
             wildcardsRemaining={wildcardsLeft}
+            narratorName={narratorName}
+            narratorAvatar={narratorAvatar}
+            submittedPlayerIds={submittedPlayerIds}
+            expectedCount={nonNarratorPlayers.length}
+            currentUserId={userId}
+            waitingPlayers={nonNarratorPlayers}
           />
         </GameErrorBoundary>
       )}
@@ -156,8 +177,6 @@ export default function GameScreen() {
           <VotingPhase
             roomCode={code}
             isNarrator={isNarrator}
-            narratorName={narratorName}
-            narratorAvatar={narratorAvatar}
             players={nonNarratorPlayers}
             votedPlayerIds={[]}
             intuitionTokens={intuitionTokens}
@@ -177,6 +196,33 @@ export default function GameScreen() {
           />
         </GameErrorBoundary>
       )}
+
+      <View style={styles.leaveActionBar}>
+        <Button
+          variant="ghost"
+          onPress={() => setShowLeaveModal(true)}
+          style={styles.leaveActionButton}
+          textStyle={styles.leaveActionText}
+          testID="leave-game-button"
+        >
+          {t('roomExit.confirm')}
+        </Button>
+      </View>
+
+      <Modal visible={showLeaveModal} onClose={() => setShowLeaveModal(false)} title={leaveCopy.title}>
+        <View style={styles.modalBody}>
+          <Text style={styles.modalText}>{leaveCopy.message}</Text>
+          <Text style={styles.modalHint}>{t('roomExit.gameWarning')}</Text>
+        </View>
+        <View style={styles.modalActions}>
+          <Button variant="ghost" onPress={() => setShowLeaveModal(false)} style={styles.modalButton}>
+            {leaveCopy.cancelLabel}
+          </Button>
+          <Button variant="danger" onPress={() => void handleConfirmLeaveRoom()} style={styles.modalButton}>
+            {leaveCopy.confirmLabel}
+          </Button>
+        </View>
+      </Modal>
     </GameLayout>
   )
 }
@@ -184,4 +230,40 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: 18 },
+  leaveActionBar: {
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 14,
+  },
+  leaveActionButton: {
+    alignSelf: 'center',
+    minWidth: 180,
+    opacity: 0.96,
+  },
+  leaveActionText: {
+    color: '#ffe8c8',
+  },
+  modalBody: {
+    gap: 10,
+  },
+  modalText: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  modalHint: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 4,
+  },
+  modalButton: {
+    flex: 1,
+  },
 })

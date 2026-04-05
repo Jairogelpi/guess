@@ -1,14 +1,40 @@
 import React from 'react'
 
+jest.mock('react', () => ({
+  ...jest.requireActual('react'),
+  useState: (initial: unknown) => [initial, jest.fn()],
+  useRef: (initial: unknown) => ({ current: initial }),
+  useEffect: jest.fn(),
+}))
+
 jest.mock('react-native', () => ({
   ScrollView: 'ScrollView',
   View: 'View',
   Text: 'Text',
+  TouchableOpacity: 'TouchableOpacity',
+  Pressable: 'Pressable',
+  Modal: 'Modal',
   StyleSheet: { create: <T,>(styles: T) => styles },
+  Animated: {
+    Value: class { constructor(_v: number) {} },
+    Text: 'Animated.Text',
+    View: 'Animated.View',
+    timing: () => ({ start: jest.fn() }),
+    loop: () => ({ start: jest.fn() }),
+    sequence: (arr: unknown[]) => arr,
+  },
 }))
 
 jest.mock('@/components/ui/Avatar', () => ({
   Avatar: ({ name }: { name: string }) => React.createElement('Avatar', { name }),
+}), { virtual: true })
+
+jest.mock('@expo/vector-icons', () => ({
+  MaterialCommunityIcons: 'MaterialCommunityIcons',
+}), { virtual: true })
+
+jest.mock('@/components/game/ScoreBoard', () => ({
+  ScoreBoard: () => React.createElement('ScoreBoard', null),
 }), { virtual: true })
 
 const { LiveStandingsStrip } = require('../src/components/game/LiveStandingsStrip') as typeof import('../src/components/game/LiveStandingsStrip')

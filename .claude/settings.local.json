@@ -49,7 +49,19 @@
       "Bash('WORKTREE=/c/Users/jairo/Desktop/PROYECTO GUESSTHEPRONT/dixit_ai_mobile/.claude/worktrees/agent-a5af1a6b' ls $WORKTREE/src/components/game-phases/)",
       "Bash(echo 'directory missing' ls $WORKTREE/src/components/game/)",
       "Bash('WORKTREE=/c/Users/jairo/Desktop/PROYECTO GUESSTHEPRONT/dixit_ai_mobile/.claude/worktrees/agent-a5af1a6b' ls $WORKTREE/*.json)",
-      "Bash(npx expo:*)"
+      "Bash(npx expo:*)",
+      "Bash(grep -r \"La pista ideal\\\\|Escribe una pista\\\\|narratorHint\\\\|narratorClue\\\\|clueInput\\\\|NarratorClue\\\\|clue\" C:/Users/jairo/Desktop/guess/src --include=*.tsx --include=*.ts -l)",
+      "Bash(grep -r \"drag\\\\|tilt\\\\|InteractiveCardTilt\\\\|DixitCard\" C:/Users/jairo/Desktop/guess/src --include=*.tsx -l)",
+      "Bash(grep -r \"InteractiveCardTilt\\\\|tilt\" C:/Users/jairo/Desktop/guess/src --include=*.tsx -l)",
+      "Bash(grep -r \"tactic\\\\|TacticalHelper\\\\|TacticalPicker\\\\|tactical\" C:/Users/jairo/Desktop/guess/src --include=*.tsx --include=*.ts -l)",
+      "Bash(grep -n \"intuitionTokens\\\\|challengeLeaderUsed\\\\|corruptedCards\" C:/Users/jairo/Desktop/guess/app/room/[code]/game.tsx)",
+      "Bash(grep -n \"currentPlayer\\\\|useGameStore\\\\|players\" C:/Users/jairo/Desktop/guess/app/room/[code]/game.tsx)",
+      "Bash(npx --version)",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration"
     ]
   }
 }

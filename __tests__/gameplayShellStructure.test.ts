@@ -7,17 +7,14 @@ const gameScreenSource = fs.readFileSync(
 )
 
 test('gameplay shell mounts live standings between the HUD and economy badges', () => {
-  const gameStatusHudIndex = gameScreenSource.indexOf('<GameStatusHUD')
-  const liveStandingsIndex = gameScreenSource.indexOf('<LiveStandingsStrip')
-  const economyBadgesIndex = gameScreenSource.indexOf('<EconomyBadges')
+  const unifiedHudIndex = gameScreenSource.indexOf('<UnifiedHUD')
+  const narratorTurnIndex = gameScreenSource.indexOf("status === 'narrator_turn'")
 
-  expect(gameStatusHudIndex).toBeGreaterThan(-1)
-  expect(liveStandingsIndex).toBeGreaterThan(gameStatusHudIndex)
-  expect(economyBadgesIndex).toBeGreaterThan(liveStandingsIndex)
+  expect(unifiedHudIndex).toBeGreaterThan(-1)
+  expect(narratorTurnIndex).toBeGreaterThan(unifiedHudIndex)
 })
 
 test('narrator waiting shell overrides the tactical helper copy to narrator-only guidance', () => {
-  expect(gameScreenSource).toMatch(
-    /status === 'narrator_turn'[\s\S]*?<TacticalActionPicker[\s\S]*?helperTextOverrideKey="game\.tactics\.notes\.onlyNarratorRisk"/,
-  )
+  expect(gameScreenSource).toMatch(/status === 'narrator_turn'[\s\S]*?<WaitingCard/)
+  expect(gameScreenSource).toContain("contextMessage={t('game.waitingForNarrator')}")
 })

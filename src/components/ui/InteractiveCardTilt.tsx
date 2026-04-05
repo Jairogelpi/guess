@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react'
-import { Pressable, View, Platform, StyleSheet, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native'
+import { Pressable, View, Platform, StyleSheet, type StyleProp, type ViewStyle } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   useAnimatedStyle,
@@ -125,15 +125,115 @@ function resolveWebSurfaceFrameStyle(style: ViewStyle | undefined) {
   return Object.keys(nextStyle).length > 0 ? nextStyle : undefined
 }
 
+function findFirstBorderRadiusInChildren(children: React.ReactNode): ClipShapeStyle | null {
+  const arr = React.Children.toArray(children)
+  if (arr.length !== 1) return null
+  const child = arr[0]
+  if (!React.isValidElement(child)) return null
+  const childStyle = StyleSheet.flatten((child.props as any).style) ?? undefined
+  const shape = extractClipShape(childStyle)
+  if (hasClipShape(shape)) return shape
+  return findFirstBorderRadiusInChildren((child.props as any).children)
+}
+
 function resolveClipShape({ wrapperStyle, children }: { wrapperStyle?: StyleProp<ViewStyle>; children: React.ReactNode }) {
   const flattened = StyleSheet.flatten(wrapperStyle) ?? undefined
   const wrapperShape = extractClipShape(flattened)
-  // Simplified clip shape resolution to avoid recursive overhead in lists
+  if (hasClipShape(wrapperShape)) {
+    return { clipShape: wrapperShape, shouldRenderPolishLayers: true }
+  }
+  const childShape = findFirstBorderRadiusInChildren(children)
   return {
-    clipShape: hasClipShape(wrapperShape) ? wrapperShape : { borderRadius: DEFAULT_OVERLAY_RADIUS },
+    clipShape: childShape ?? { borderRadius: DEFAULT_OVERLAY_RADIUS },
     shouldRenderPolishLayers: true,
   }
 }
+
+// ── Standalone controller factory ──────────────────────────────────────────
+
+interface CreateControllerConfig {
+  profileName?: CardTiltProfileName
+  regionKey?: string
+  disabled?: boolean
+  reducedMotion?: boolean
+  onPress?: () => void
+  onLongPress?: () => void
+}
+
+export function createInteractiveCardTiltController(config: CreateControllerConfig) {
+  const profile = getCardTiltProfile(config.profileName ?? 'standard')
+  const ownerId = Symbol(config.regionKey ?? 'default')
+  let engaged = false
+  let suppressNextPress = false
+  let currentLastState = cardTiltMath.getNeutralTiltState()
+
+  const releaseOwnership = () => {
+    const rKey = config.regionKey ?? 'default'
+    if (activeRegionOwners.get(rKey) === ownerId) {
+      activeRegionOwners.delete(rKey)
+    }
+  }
+
+  const acquireOwnership = () => {
+    const rKey = config.regionKey ?? 'default'
+    const current = activeRegionOwners.get(rKey)
+    if (!current || current === ownerId) {
+      activeRegionOwners.set(rKey, ownerId)
+      return true
+    }
+    return false
+  }
+
+  return {
+    press() {
+      if (suppressNextPress) { suppressNextPress = false; return }
+      if (!config.disabled) config.onPress?.()
+    },
+    longPress() {
+      if (!config.disabled) { suppressNextPress = true; config.onLongPress?.() }
+    },
+    beginGesture() {
+      if (config.disabled || config.reducedMotion) return false
+      engaged = acquireOwnership()
+      if (!engaged) currentLastState = cardTiltMath.getNeutralTiltState()
+      return engaged
+    },
+    updateGesture(input: GestureUpdateInput) {
+      if (!engaged || !input.layout) return cardTiltMath.getNeutralTiltState()
+      if (!profile.preventScrollRelease && cardTiltMath.shouldReleaseToScroll({ dx: input.dx, dy: input.dy })) {
+        engaged = false; releaseOwnership(); return cardTiltMath.getNeutralTiltState()
+      }
+      const target = cardTiltMath.computeCardTiltStateFromDrag({
+        profile, layout: input.layout, drag: { dx: input.dx, dy: input.dy },
+        pointer: { x: input.x, y: input.y }, velocity: { vx: input.vx, vy: input.vy },
+        previousState: currentLastState,
+      })
+      currentLastState = cardTiltMath.blendCardTiltState(currentLastState, target, MOTION_BLEND_ALPHA)
+      return currentLastState
+    },
+    finalizeGesture() {
+      engaged = false; releaseOwnership(); currentLastState = cardTiltMath.getNeutralTiltState()
+      return currentLastState
+    },
+    dispose() { engaged = false; releaseOwnership() },
+  }
+}
+
+// ── Test helpers ────────────────────────────────────────────────────────────
+
+let _controllerObserver: ((c: ReturnType<typeof createInteractiveCardTiltController> | undefined) => void) | undefined
+
+export function __resetInteractiveCardTiltRegistry() {
+  activeRegionOwners.clear()
+}
+
+export function __setInteractiveCardTiltControllerObserver(
+  observer: ((c: ReturnType<typeof createInteractiveCardTiltController> | undefined) => void) | undefined,
+) {
+  _controllerObserver = observer
+}
+
+// ── Component ───────────────────────────────────────────────────────────────
 
 export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
   const {
@@ -152,7 +252,7 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
   const layout = useSharedValue<ControllerLayout | undefined>(undefined)
   const gestureActive = useSharedValue(false)
   const lastTiltState = useSharedValue(cardTiltMath.getNeutralTiltState())
-  
+
   const rotateX = useSharedValue(0)
   const rotateY = useSharedValue(0)
   const translateX = useSharedValue(0)
@@ -198,26 +298,26 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
       longPress: () => {
         if (!propsRef.current.disabled) { suppressNextPress = true; propsRef.current.onLongPress?.() }
       },
-      begin: () => {
+      beginGesture: () => {
         if (propsRef.current.disabled || propsRef.current.reducedMotion) return false
         engaged = acquire()
         if (!engaged) currentLastState = cardTiltMath.getNeutralTiltState()
         return engaged
       },
-      update: (input: GestureUpdateInput) => {
+      updateGesture: (input: GestureUpdateInput) => {
         if (!engaged || !input.layout) return cardTiltMath.getNeutralTiltState()
         if (!profile.preventScrollRelease && cardTiltMath.shouldReleaseToScroll({ dx: input.dx, dy: input.dy })) {
           engaged = false; release(); return cardTiltMath.getNeutralTiltState()
         }
         const target = cardTiltMath.computeCardTiltStateFromDrag({
-          profile, layout: input.layout, drag: { dx: input.dx, dy: input.dy }, 
-          pointer: { x: input.x, y: input.y }, velocity: { vx: input.vx, vy: input.vy }, 
+          profile, layout: input.layout, drag: { dx: input.dx, dy: input.dy },
+          pointer: { x: input.x, y: input.y }, velocity: { vx: input.vx, vy: input.vy },
           previousState: currentLastState
         })
         currentLastState = cardTiltMath.blendCardTiltState(currentLastState, target, MOTION_BLEND_ALPHA)
         return currentLastState
       },
-      finalize: () => {
+      finalizeGesture: () => {
         engaged = false; release(); currentLastState = cardTiltMath.getNeutralTiltState()
         return currentLastState
       },
@@ -244,6 +344,13 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
 
   useEffect(() => {
     return () => controller.dispose()
+  }, [controller])
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      _controllerObserver?.(controller)
+      return () => { _controllerObserver?.(undefined) }
+    }
   }, [controller])
 
   // ANIMATION WORKLETS
@@ -279,7 +386,6 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
     ],
     opacity: floating ? riseAnim.value : 1,
     zIndex: gestureActive.value ? 999 : (StyleSheet.flatten(style)?.zIndex ?? 1),
-    ...(Platform.OS === 'web' ? { width: '100%', height: '100%' } : {}),
   }))
 
   const shadowBloomStyle = useAnimatedStyle(() => ({
@@ -290,8 +396,8 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
   const highlightBloomStyle = useAnimatedStyle(() => ({
     opacity: highlightOpacity.value,
     transform: [
-      { translateX: shadowShiftX.value * -0.55 }, 
-      { translateY: shadowShiftY.value * -0.45 }, 
+      { translateX: shadowShiftX.value * -0.55 },
+      { translateY: shadowShiftY.value * -0.45 },
       { rotate: `${rotateY.value * 0.65}deg` }
     ],
   }))
@@ -299,41 +405,46 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
   const flattenedPropsStyle = useMemo(() => StyleSheet.flatten(style) ?? undefined, [style])
   const webFrameStyle = useMemo(() => extractStyleKeys(flattenedPropsStyle, WEB_FRAME_STYLE_KEYS), [flattenedPropsStyle])
   const webContentStyle = useMemo(() => omitStyleKeys(flattenedPropsStyle, WEB_FRAME_STYLE_KEYS), [flattenedPropsStyle])
+  const webSurfaceFrameStyle = useMemo(
+    () => resolveWebSurfaceFrameStyle(flattenedPropsStyle),
+    [flattenedPropsStyle],
+  )
   const clipRes = useMemo(() => resolveClipShape({ wrapperStyle: style, children }), [style, children])
   const innerClip = useMemo(() => insetClipShape(clipRes.clipShape, 1), [clipRes.clipShape])
 
   const panGesture = useMemo(() => Gesture.Pan()
     .minDistance(0)
-    .activeOffsetX([-1.5, 1.5])
-    .activeOffsetY([-1.5, 1.5])
     .onBegin((e) => {
       if (!layout.value) return
-      if (controller.begin()) {
+      if (controller.beginGesture()) {
         gestureActive.value = true
         applyTilt(cardTiltMath.blendCardTiltState(lastTiltState.value, cardTiltMath.computeCardTiltStateFromDrag({
-          profile, layout: layout.value, drag: { dx: 0, dy: 0 }, velocity: { vx: 0, vy: 0 }, 
+          profile, layout: layout.value, drag: { dx: 0, dy: 0 }, velocity: { vx: 0, vy: 0 },
           previousState: lastTiltState.value, pointer: { x: e.x, y: e.y }
         }), MOTION_BLEND_ALPHA))
       }
     })
     .onUpdate((e) => {
       if (!gestureActive.value || !layout.value) return
-      applyTilt(controller.update({
+      applyTilt(controller.updateGesture({
         dx: e.translationX, dy: e.translationY, vx: e.velocityX, vy: e.velocityY, x: e.x, y: e.y, layout: layout.value
       }))
     })
     .onFinalize(() => {
       gestureActive.value = false
-      springTilt(controller.finalize())
+      springTilt(controller.finalizeGesture())
     }), [controller, profile])
 
   const surface = (
-    <Animated.View 
+    <Animated.View
+      testID={testID}
       onLayout={(e) => { layout.value = e.nativeEvent.layout }}
-      style={[Platform.OS === 'web' ? webContentStyle : style, animatedStyle]}
+      style={Platform.OS === 'web'
+        ? [webContentStyle, webSurfaceFrameStyle, animatedStyle]
+        : [style, animatedStyle]}
     >
       {showPolish && (
-        <View pointerEvents="none" style={[styles.polishRoot, clipRes.clipShape]}>
+        <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden', ...clipRes.clipShape }}>
           <Animated.View style={[styles.shadowLayer, shadowBloomStyle]} />
           <Animated.View style={[styles.highlightLayer, highlightBloomStyle]} />
           <Animated.View style={[styles.highlightEdge, innerClip]} />
@@ -341,10 +452,10 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
       )}
       <View style={[styles.contentWrap, clipRes.clipShape]}>{children}</View>
       {(onPress || onLongPress) && (
-        <Pressable 
-          style={styles.gestureSurface} 
-          disabled={disabled} 
-          onPress={controller.press} 
+        <Pressable
+          style={styles.gestureSurface}
+          disabled={disabled}
+          onPress={controller.press}
           onLongPress={controller.longPress}
           testID={`${testID}-press`}
         />
@@ -365,7 +476,7 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
 
 const styles = StyleSheet.create({
   contentWrap: { flex: 1, overflow: 'hidden' },
-  polishRoot: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  polishRoot: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' },
   shadowLayer: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.18)' },
   highlightLayer: {
     position: 'absolute', left: '-10%', top: '-14%', width: '100%', height: '60%',

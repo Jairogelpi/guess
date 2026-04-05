@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
 import { api } from '@/lib/api'
-import { supabase } from '@/lib/supabase'
 import { useUIStore } from '@/stores/useUIStore'
 import type { EdgeFunctionError } from '@/types/game'
 
@@ -17,8 +16,10 @@ export function useGameActions() {
   const { t } = useTranslation()
 
   function handleError(error: unknown) {
-    const code = (error as { error?: EdgeFunctionError })?.error?.code
-    const message = code ? t(`errors.${code}`, t('errors.generic')) : t('errors.generic')
+    const edgeError = (error as { error?: EdgeFunctionError })?.error
+    const code = edgeError?.code
+    const translated = code ? t(`errors.${code}`, '') : ''
+    const message = translated || edgeError?.message || t('errors.generic')
     showToast(message, 'error')
   }
 
@@ -64,16 +65,15 @@ export function useGameActions() {
         return null
       }
     },
-    /** Insert a card for the current user in a given round. */
-    insertCard: async (roundId: string, userId: string, imageUrl: string, prompt: string) => {
+    /** Insert a card for the current user via the authorized edge function. */
+    insertCard: async (roomCode: string, imageUrl: string, prompt: string) => {
       try {
-        const { data, error } = await supabase
-          .from('cards')
-          .insert({ round_id: roundId, player_id: userId, image_url: imageUrl, prompt })
-          .select('id')
-          .single()
-        if (error) throw error
-        return data?.id ?? null
+        const result = await api.gameAction<{ cardId: string }>({
+          roomCode,
+          action: 'insert_card',
+          payload: { imageUrl, prompt },
+        })
+        return result?.cardId ?? null
       } catch (e) {
         handleError(e)
         return null

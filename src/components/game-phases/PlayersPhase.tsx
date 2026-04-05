@@ -6,27 +6,45 @@ import { useGameStore } from '@/stores/useGameStore'
 import { useGameActions } from '@/hooks/useGameActions'
 import { CardGenerator } from '@/components/game/CardGenerator'
 import { DixitCard } from '@/components/ui/DixitCard'
+import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
 import { Button } from '@/components/ui/Button'
 import { HandActionDock } from '@/components/game/HandActionDock'
 import { deriveHandActionDockState } from '@/components/game/handActionState'
 import type { HydratedHandSlot } from '@/components/game/handActionState'
+import { WaitingCard } from '@/components/game/WaitingCard'
 import { colors, fonts, radii, shadows } from '@/constants/theme'
-import type { GalleryCard } from '@/types/game'
+import type { GalleryCard, RoomPlayer } from '@/types/game'
 
 interface Props {
   roomCode: string
   narratorClue: string | null
   isWaiting: boolean
   wildcardsRemaining: number
+  narratorName: string
+  narratorAvatar?: string
+  submittedPlayerIds: string[]
+  expectedCount: number
+  currentUserId: string
+  waitingPlayers: RoomPlayer[]
 }
 
 type SelectedPlayerCard =
   | { kind: 'generated'; imageUrl: string; prompt: string; cardId: string }
   | { kind: 'gallery'; imageUrl: string; prompt: string; galleryCardId: string }
 
-export function PlayersPhase({ roomCode, narratorClue, isWaiting, wildcardsRemaining }: Props) {
+export function PlayersPhase({
+  roomCode,
+  narratorClue,
+  isWaiting,
+  wildcardsRemaining,
+  narratorName,
+  narratorAvatar,
+  submittedPlayerIds,
+  expectedCount,
+  currentUserId,
+  waitingPlayers,
+}: Props) {
   const { t } = useTranslation()
-  const { userId } = useAuth()
   const round = useGameStore((s) => s.round)
   const myPlayedCardId = useGameStore((s) => s.myPlayedCardId)
   const setMyPlayedCardId = useGameStore((s) => s.setMyPlayedCardId)
@@ -36,8 +54,8 @@ export function PlayersPhase({ roomCode, narratorClue, isWaiting, wildcardsRemai
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSelectCard(imageUrl: string, prompt: string) {
-    if (!round || !userId) return
-    const cardId = await insertCard(round.id, userId, imageUrl, prompt)
+    if (!round) return
+    const cardId = await insertCard(roomCode, imageUrl, prompt)
     if (cardId) {
       setSelectedCard({ kind: 'generated', imageUrl, prompt, cardId })
     }
@@ -75,23 +93,82 @@ export function PlayersPhase({ roomCode, narratorClue, isWaiting, wildcardsRemai
   }
 
   if (isWaiting || myPlayedCardId) {
-    const waitingTitle = !narratorClue
-      ? t('game.waitingNarratorTitle')
-      : myPlayedCardId
-        ? t('game.waitingPlayersTitle')
-        : t('game.waitingSubmissionTitle')
-
-    const waitingBody = !narratorClue
-      ? t('game.waitingNarratorBody')
-      : myPlayedCardId
-        ? t('game.waitingPlayersBody')
-        : t('game.waitingSubmissionBody')
-
     return (
       <View style={styles.waiting}>
-        <ActivityIndicator color={colors.gold} size="large" />
-        <Text style={styles.waitingTitle}>{waitingTitle}</Text>
-        <Text style={styles.waitingBody}>{waitingBody}</Text>
+        <WaitingCard
+          narratorName={narratorName}
+          narratorAvatar={narratorAvatar}
+          clue={narratorClue ?? undefined}
+          submittedCount={submittedPlayerIds.length}
+          expectedCount={expectedCount}
+          isCurrentUserNarrator={false}
+          currentUserId={currentUserId}
+          submittedPlayerIds={submittedPlayerIds}
+          orderedPlayers={waitingPlayers}
+          contextMessage={
+            myPlayedCardId ? t('game.waitingPlayersBody') : t('game.waitingSubmissionBody')
+          }
+        />
+      </View>
+    )
+  }
+
+  if (selectedCard) {
+    return (
+      <View style={styles.selectedRoot}>
+        {/* Tilt card — outside ScrollView so pan gesture works */}
+        <View style={styles.cardFloatArea}>
+          <InteractiveCardTilt
+            profileName="hero"
+            regionKey="players-selected"
+            style={styles.selectedCardTilt}
+            floating
+          >
+            <DixitCard uri={selectedCard.imageUrl} interactive={false} />
+          </InteractiveCardTilt>
+        </View>
+
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.selectedFormContent}>
+          {narratorClue && (
+            <View style={styles.clueCard}>
+              <Text style={styles.clueLabel}>{t('game.narratorClue')}</Text>
+              <Text style={styles.clueText}>{narratorClue}</Text>
+            </View>
+          )}
+
+          <Text style={styles.selectedHint}>{t('game.playersSelectedHint')}</Text>
+          {selectedCard.kind === 'gallery' && (
+            <Text style={styles.wildcardHint}>{t('game.wildcardSpendHint')}</Text>
+          )}
+
+          <HandActionDock
+            state={deriveHandActionDockState({
+              phase: 'players_turn',
+              focusedSlot: {
+                slotIndex: 0,
+                kind: 'filled',
+                cardId: selectedCard.kind === 'generated' ? selectedCard.cardId : null,
+                imageUri: selectedCard.imageUrl,
+                galleryCardId: selectedCard.kind === 'gallery' ? selectedCard.galleryCardId : null,
+              } satisfies HydratedHandSlot,
+              hasFreeGeneration: false,
+              generationTokens: 0,
+              generating: submitting,
+            })}
+            promptValue=""
+            onPromptChange={() => {}}
+            onSuggestPrompt={() => {}}
+            onUseWildcard={() => {}}
+            onPrimaryAction={handleSubmitCard}
+            onGenerate={() => {}}
+            wildcardsLeft={wildcardsRemaining}
+            generationTokens={0}
+            generating={submitting}
+          />
+          <Button onPress={() => setSelectedCard(null)} variant="ghost">
+            {t('game.changeCard')}
+          </Button>
+        </ScrollView>
       </View>
     )
   }
@@ -110,57 +187,14 @@ export function PlayersPhase({ roomCode, narratorClue, isWaiting, wildcardsRemai
         </View>
       )}
 
-      {!selectedCard ? (
-        <CardGenerator
-          scope="round"
-          roomCode={roomCode}
-          roundId={round?.id}
-          wildcardsRemaining={wildcardsRemaining}
-          onSelect={handleSelectCard}
-          onSelectGalleryCard={handleSelectGalleryCard}
-        />
-      ) : (
-        <View style={styles.selectionBlock}>
-          <View style={styles.selectedCardWrap}>
-            <DixitCard uri={selectedCard.imageUrl} />
-          </View>
-
-          <Text style={styles.selectedHint}>{t('game.playersSelectedHint')}</Text>
-          {selectedCard.kind === 'gallery' && (
-            <Text style={styles.wildcardHint}>{t('game.wildcardSpendHint')}</Text>
-          )}
-
-          <View style={styles.actions}>
-            <HandActionDock
-              state={deriveHandActionDockState({
-                phase: 'players_turn',
-                focusedSlot: {
-                  slotIndex: 0,
-                  kind: 'filled',
-                  cardId: selectedCard.kind === 'generated' ? selectedCard.cardId : null,
-                  imageUri: selectedCard.imageUrl,
-                  galleryCardId: selectedCard.kind === 'gallery' ? selectedCard.galleryCardId : null,
-                } satisfies HydratedHandSlot,
-                hasFreeGeneration: false,
-                generationTokens: 0,
-                generating: submitting,
-              })}
-              promptValue=""
-              onPromptChange={() => {}}
-              onSuggestPrompt={() => {}}
-              onUseWildcard={() => {}}
-              onPrimaryAction={handleSubmitCard}
-              onGenerate={() => {}}
-              wildcardsLeft={wildcardsRemaining}
-              generationTokens={0}
-              generating={submitting}
-            />
-            <Button onPress={() => setSelectedCard(null)} variant="ghost">
-              {t('game.changeCard')}
-            </Button>
-          </View>
-        </View>
-      )}
+      <CardGenerator
+        scope="round"
+        roomCode={roomCode}
+        roundId={round?.id}
+        wildcardsRemaining={wildcardsRemaining}
+        onSelect={handleSelectCard}
+        onSelectGalleryCard={handleSelectGalleryCard}
+      />
     </ScrollView>
   )
 }
@@ -168,6 +202,17 @@ export function PlayersPhase({ roomCode, narratorClue, isWaiting, wildcardsRemai
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { gap: 20, padding: 16 },
+  selectedRoot: { flex: 1 },
+  cardFloatArea: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  selectedCardTilt: {
+    width: '52%',
+    alignSelf: 'center',
+  },
+  selectedFormContent: { gap: 16, padding: 16 },
   waiting: {
     flex: 1,
     alignItems: 'center',
@@ -232,13 +277,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.title,
     textAlign: 'center',
     letterSpacing: 0.5,
-  },
-  selectionBlock: {
-    gap: 16,
-  },
-  selectedCardWrap: {
-    width: '55%',
-    alignSelf: 'center',
   },
   selectedHint: {
     color: colors.textSecondary,

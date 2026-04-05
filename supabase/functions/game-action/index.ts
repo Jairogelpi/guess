@@ -25,13 +25,17 @@ const schema = z.object({
 })
 
 const POINTS_TO_WIN = 30
-const BASE_INCOME = 2
+const BASE_INCOME = 1
 const MAX_INTUITION_TOKENS = 10
+const SNIPER_TOKEN_COST = 1
+const NARROW_TOKEN_COST = 1
+const AMBUSH_TOKEN_COST = 2
+const CORRUPTED_CARD_TOKEN_COST = 1
+const CHALLENGE_LEADER_TOKEN_COST = 1
 
 function getInterest(bank: number) {
-  if (bank >= 8) return 3
-  if (bank >= 6) return 2
-  if (bank >= 4) return 1
+  if (bank >= 8) return 2
+  if (bank >= 5) return 1
   return 0
 }
 
@@ -56,7 +60,7 @@ function getPositionBonuses(scoresAfter: Record<string, number>, playerIds: stri
     }
 
     const percentile = sortedPlayerIds.length === 1 ? 0 : index / maxRankIndex
-    const bonus = percentile <= 0.2 ? 2 : percentile >= 0.8 ? 0 : 1
+    const bonus = percentile <= 0.25 ? 1 : 0
 
     for (let cursor = index; cursor < groupEnd; cursor += 1) {
       bonuses[sortedPlayerIds[cursor]!] = bonus
@@ -126,10 +130,18 @@ function getSubmitSpendCost(input: {
   bet_tokens?: 0 | 1 | 2
   challenge_leader?: boolean
 }) {
-  return (input.risk_clue_profile === 'ambush' ? 1 : 0) +
-    (input.is_corrupted ? 1 : 0) +
+  const riskCost = input.risk_clue_profile === 'sniper'
+    ? SNIPER_TOKEN_COST
+    : input.risk_clue_profile === 'narrow'
+    ? NARROW_TOKEN_COST
+    : input.risk_clue_profile === 'ambush'
+    ? AMBUSH_TOKEN_COST
+    : 0
+
+  return riskCost +
+    (input.is_corrupted ? CORRUPTED_CARD_TOKEN_COST : 0) +
     (input.bet_tokens ?? 0) +
-    (input.challenge_leader ? 1 : 0)
+    (input.challenge_leader ? CHALLENGE_LEADER_TOKEN_COST : 0)
 }
 
 async function createCardFromGallery(
@@ -403,7 +415,7 @@ async function handleSubmitClue(
   })
 
   if (spendCost > 0 || p.challenge_leader) {
-    await sb
+    const updateQuery = sb
       .from('room_players')
       .update({
         intuition_tokens: currentPlayer.intuition_tokens - spendCost,
@@ -411,10 +423,16 @@ async function handleSubmitClue(
       })
       .eq('room_id', room.id)
       .eq('player_id', userId)
+    const { data: updatedRows } = spendCost > 0
+      ? await updateQuery.gte('intuition_tokens', spendCost).select('id')
+      : await updateQuery.select('id')
+    if (spendCost > 0 && (!updatedRows || updatedRows.length === 0)) {
+      return errorResponse('NOT_ENOUGH_INTUITION_TOKENS', 'Insufficient tokens', 400)
+    }
   }
 
-  await sb.from('rounds').update({ 
-    clue: p.clue, 
+  await sb.from('rounds').update({
+    clue: p.clue,
     status: 'players_turn',
     phase_started_at: new Date().toISOString()
   }).eq('id', round.id)
@@ -511,8 +529,8 @@ async function handleSubmitCard(
     challenge_leader: p.challenge_leader,
   })
 
-  if (spendCost > 0 || p.challenge_leader) {
-    await sb
+  if (spendCost > 0 || p.challenge_leader || p.is_corrupted) {
+    let updateQuery = sb
       .from('room_players')
       .update({
         intuition_tokens: currentPlayer.intuition_tokens - spendCost,
@@ -523,6 +541,12 @@ async function handleSubmitCard(
       })
       .eq('room_id', room.id)
       .eq('player_id', userId)
+    if (spendCost > 0) updateQuery = updateQuery.gte('intuition_tokens', spendCost)
+    if (p.is_corrupted) updateQuery = updateQuery.gte('corrupted_cards_remaining', 1)
+    const { data: updatedRows } = await updateQuery.select('id')
+    if (spendCost > 0 && (!updatedRows || updatedRows.length === 0)) {
+      return errorResponse('NOT_ENOUGH_INTUITION_TOKENS', 'Insufficient tokens', 400)
+    }
   }
 
   // Count active non-narrator players vs played non-narrator cards
@@ -624,7 +648,7 @@ async function handleSubmitVote(
   })
 
   if (spendCost > 0 || p.challenge_leader) {
-    await sb
+    const updateQuery = sb
       .from('room_players')
       .update({
         intuition_tokens: currentPlayer.intuition_tokens - spendCost,
@@ -632,6 +656,12 @@ async function handleSubmitVote(
       })
       .eq('room_id', room.id)
       .eq('player_id', userId)
+    const { data: updatedRows } = spendCost > 0
+      ? await updateQuery.gte('intuition_tokens', spendCost).select('id')
+      : await updateQuery.select('id')
+    if (spendCost > 0 && (!updatedRows || updatedRows.length === 0)) {
+      return errorResponse('NOT_ENOUGH_INTUITION_TOKENS', 'Insufficient tokens', 400)
+    }
   }
 
   // Check if all non-narrators voted
@@ -710,14 +740,24 @@ async function handleSubmitVote(
         )
 
         for (const playedCard of playedCards) {
-          if (playedCard.player_id === round.narrator_id && playedCard.risk_clue_profile === 'ambush') {
-            spentByPlayer[playedCard.player_id] = (spentByPlayer[playedCard.player_id] ?? 0) + 1
+          if (playedCard.player_id === round.narrator_id) {
+            const narratorRiskSpend = playedCard.risk_clue_profile === 'sniper'
+              ? SNIPER_TOKEN_COST
+              : playedCard.risk_clue_profile === 'narrow'
+              ? NARROW_TOKEN_COST
+              : playedCard.risk_clue_profile === 'ambush'
+              ? AMBUSH_TOKEN_COST
+              : 0
+            spentByPlayer[playedCard.player_id] =
+              (spentByPlayer[playedCard.player_id] ?? 0) + narratorRiskSpend
           }
           if (playedCard.player_id !== round.narrator_id && playedCard.is_corrupted) {
-            spentByPlayer[playedCard.player_id] = (spentByPlayer[playedCard.player_id] ?? 0) + 1
+            spentByPlayer[playedCard.player_id] =
+              (spentByPlayer[playedCard.player_id] ?? 0) + CORRUPTED_CARD_TOKEN_COST
           }
           if (playedCard.challenge_leader) {
-            spentByPlayer[playedCard.player_id] = (spentByPlayer[playedCard.player_id] ?? 0) + 1
+            spentByPlayer[playedCard.player_id] =
+              (spentByPlayer[playedCard.player_id] ?? 0) + CHALLENGE_LEADER_TOKEN_COST
           }
         }
 
@@ -725,7 +765,8 @@ async function handleSubmitVote(
           spentByPlayer[vote.voter_id] =
             (spentByPlayer[vote.voter_id] ?? 0) + Number(vote.bet_tokens ?? 0)
           if (vote.challenge_leader) {
-            spentByPlayer[vote.voter_id] = (spentByPlayer[vote.voter_id] ?? 0) + 1
+            spentByPlayer[vote.voter_id] =
+              (spentByPlayer[vote.voter_id] ?? 0) + CHALLENGE_LEADER_TOKEN_COST
           }
         }
 
@@ -824,6 +865,47 @@ async function handleNextRound(sb: SupabaseClient, _userId: string, roomCode: st
   return okResponse({ ok: true })
 }
 
+async function handleInsertCard(
+  sb: SupabaseClient,
+  userId: string,
+  roomCode: string,
+  payload: unknown,
+) {
+  const raw = (payload ?? {}) as { imageUrl?: unknown; prompt?: unknown }
+  const imageUrl = typeof raw.imageUrl === 'string' ? raw.imageUrl.trim() : ''
+  const prompt = typeof raw.prompt === 'string' ? raw.prompt.trim() : ''
+  if (!imageUrl || !prompt) return errorResponse('INVALID_PAYLOAD', 'imageUrl and prompt required')
+
+  const { data: room } = await sb.from('rooms').select('id').eq('code', roomCode).single()
+  if (!room) return errorResponse('ROOM_NOT_FOUND', 'Room not found', 404)
+
+  const { data: player } = await sb
+    .from('room_players').select('id')
+    .eq('room_id', room.id).eq('player_id', userId).eq('is_active', true).single()
+  if (!player) return errorResponse('NOT_IN_ROOM', 'Player not in room', 403)
+
+  const { data: round } = await sb
+    .from('rounds').select('id, status')
+    .eq('room_id', room.id).order('round_number', { ascending: false }).limit(1).single()
+  if (!round) return errorResponse('ROUND_NOT_FOUND', 'No active round', 404)
+  if (!['narrator_turn', 'players_turn'].includes(round.status)) {
+    return errorResponse('INVALID_STATE', 'Round is not accepting cards')
+  }
+
+  const { data: card, error } = await sb
+    .from('cards')
+    .insert({ round_id: round.id, player_id: userId, image_url: imageUrl, prompt })
+    .select('id').single()
+  if (error) {
+    if (error.message.includes('NO_TOKENS_LEFT')) {
+      return errorResponse('NO_TOKENS_LEFT', 'Not enough generation tokens', 400)
+    }
+    return errorResponse('DB_ERROR', error.message, 500)
+  }
+
+  return okResponse({ cardId: card.id })
+}
+
 Deno.serve(async (req) => {
   const corsResult = handleCors(req)
   if (corsResult) return corsResult
@@ -840,12 +922,7 @@ Deno.serve(async (req) => {
   const { data: { user }, error: authError } = await sb.auth.getUser(token)
   
   if (authError || !user) {
-    const internalUrl = Deno.env.get('SUPABASE_URL')
-    return errorResponse(
-      'UNAUTHORIZED', 
-      `${authError?.message || 'Invalid token'} (Token start: ${token.substring(0, 10)}... | Func URL: ${internalUrl})`, 
-      401
-    )
+    return errorResponse('UNAUTHORIZED', 'Invalid or expired token', 401)
   }
 
   const body = schema.safeParse(await req.json())
@@ -860,6 +937,7 @@ Deno.serve(async (req) => {
     case 'submit_card': return handleSubmitCard(sb, user.id, roomCode, payload)
     case 'submit_vote': return handleSubmitVote(sb, user.id, roomCode, payload)
     case 'next_round': return handleNextRound(sb, user.id, roomCode)
+    case 'insert_card': return handleInsertCard(sb, user.id, roomCode, payload)
     default: return errorResponse('INVALID_ACTION', 'Unknown action')
   }
 })

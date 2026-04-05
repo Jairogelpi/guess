@@ -16,13 +16,12 @@ describe('tacticalActions unified competitive UI contract', () => {
         intuitionTokens: 1,
         isPhaseOwner: true,
         corruptedCardsRemaining: 2,
-      }).map((action) => [action.id, action.enabled]),
+      }).map((action) => [action.id, action.enabled, action.costTokens]),
     ).toEqual([
-      ['risk_normal', true],
-      ['risk_sniper', true],
-      ['risk_narrow', true],
-      ['risk_ambush', true],
-    ] satisfies Array<[TacticalActionId, boolean]>)
+      ['risk_sniper', true, 1],
+      ['risk_narrow', true, 1],
+      ['risk_ambush', false, 2],
+    ] satisfies Array<[TacticalActionId, boolean, number]>)
 
     expect(
       getPhaseTacticalActions({
@@ -142,7 +141,7 @@ describe('tacticalActions unified competitive UI contract', () => {
       expect.objectContaining({
         id: 'risk_ambush',
         icon: 'target-account',
-        costTokens: 1,
+        costTokens: 2,
       }),
     )
     expect(getTacticalActionDefinition('bet_2')).toEqual(

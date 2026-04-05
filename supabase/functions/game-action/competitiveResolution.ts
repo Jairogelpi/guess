@@ -1,7 +1,7 @@
 import type { ScoreEntry } from './scoring'
 
 const MAX_INTUITION_TOKENS = 10
-const BASE_INCOME = 2
+const BASE_INCOME = 1
 
 interface ScoreBefore {
   player_id: string
@@ -33,9 +33,8 @@ function sumPointsByPlayer(scoreEntries: ScoreEntry[]) {
 }
 
 function getInterest(bank: number) {
-  if (bank >= 8) return 3
-  if (bank >= 6) return 2
-  if (bank >= 4) return 1
+  if (bank >= 8) return 2
+  if (bank >= 5) return 1
   return 0
 }
 
@@ -60,7 +59,7 @@ function getPositionBonuses(scoresAfter: Record<string, number>, playerIds: stri
     }
 
     const percentile = sortedPlayerIds.length === 1 ? 0 : index / maxRankIndex
-    const bonus = percentile <= 0.2 ? 2 : percentile >= 0.8 ? 0 : 1
+    const bonus = percentile <= 0.25 ? 1 : 0
 
     for (let cursor = index; cursor < groupEnd; cursor += 1) {
       bonuses[sortedPlayerIds[cursor]!] = bonus
@@ -96,6 +95,7 @@ export function applyChallengeLeaderBonuses({
 
   const roundTotals = sumPointsByPlayer(scoreEntries)
   const leaderRoundScore = roundTotals[leaderId] ?? 0
+  const challengeBonus = scoresBefore.length <= 3 ? 1 : 2
   const challengerIds = new Set<string>([
     ...playedCards
       .filter((card) => card.challenge_leader && card.player_id !== leaderId)
@@ -109,7 +109,7 @@ export function applyChallengeLeaderBonuses({
     .filter((playerId) => (roundTotals[playerId] ?? 0) >= leaderRoundScore + 2)
     .map<ScoreEntry>((playerId) => ({
       player_id: playerId,
-      points: 2,
+      points: challengeBonus,
       reason: 'challenge_leader_bonus',
     }))
 }

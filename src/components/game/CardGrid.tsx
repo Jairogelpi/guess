@@ -1,8 +1,9 @@
-import { FlatList, View, Text, Image, StyleSheet } from 'react-native'
+import { FlatList, View, Text, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import type { MaskedCard } from '@/stores/useGameStore'
-import { colors, radii, shadows, fonts } from '@/constants/theme'
+import { colors, radii, fonts } from '@/constants/theme'
 import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
+import { DixitCard } from '@/components/ui/DixitCard'
 
 interface CardGridProps {
   cards: MaskedCard[]
@@ -47,10 +48,12 @@ export function CardGrid({
                 isNarrator && styles.cardWrapNarrator,
               ]}
             >
-              <Image
-                source={{ uri: item.image_url }}
-                style={styles.image}
-                resizeMode="cover"
+              <DixitCard
+                uri={item.image_url}
+                interactive={false}
+                selected={isSelected || isNarrator}
+                glowing={isNarrator}
+                compact
               />
               {isNarrator && (
                 <View style={styles.narratorBadge}>
@@ -75,7 +78,7 @@ export function CardGrid({
 
 const styles = StyleSheet.create({
   row: { gap: 12 },
-  content: { gap: 12, padding: 16 },
+  content: { gap: 12, paddingTop: 4 },
   cardTilt: {
     flex: 1,
   },
@@ -83,67 +86,54 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   cardWrap: {
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     overflow: 'hidden',
-    borderWidth: 2.5,
-    borderColor: colors.cardBorder,
+    backgroundColor: 'transparent',
+    gap: 0,
     aspectRatio: 2 / 3,
-    backgroundColor: colors.surfaceDeep,
-    ...shadows.card,
   },
   cardWrapSelected: {
-    borderColor: colors.goldLight,
-    borderWidth: 3,
     shadowColor: colors.gold,
     shadowOpacity: 0.45,
     shadowRadius: 16,
   },
   cardWrapNarrator: {
-    borderColor: colors.gold,
-    borderWidth: 3,
     shadowColor: colors.gold,
     shadowOpacity: 0.6,
     shadowRadius: 20,
   },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
   narratorBadge: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(230, 184, 0, 0.9)',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(230, 184, 0, 0.92)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.full,
     zIndex: 2,
   },
   narratorBadgeText: {
     color: '#0a0602',
-    fontSize: 10,
-    fontFamily: fonts.title,
-    fontWeight: '800',
+    fontSize: 9,
+    fontFamily: fonts.titleHeavy,
     textAlign: 'center',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
   nameBadge: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(10,6,2,0.82)',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderTopWidth: 1,
-    borderTopColor: colors.goldBorder,
+    backgroundColor: 'rgba(8,6,4,0.84)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     zIndex: 2,
   },
   nameText: {
-    color: colors.textSecondary,
-    fontSize: 11,
+    color: colors.textPrimary,
+    fontSize: 12,
     textAlign: 'center',
-    fontWeight: '600',
+    fontFamily: fonts.title,
     letterSpacing: 0.4,
   },
   selectedRing: {

@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { Animated, View, Text, Image, StyleSheet } from 'react-native'
+import { Animated, View, Text, StyleSheet } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { colors, fonts, radii } from '@/constants/theme'
 import { InteractiveCardTilt } from '@/components/ui/InteractiveCardTilt'
+import { DixitCard } from '@/components/ui/DixitCard'
 
 interface Props {
   cardUri: string | null | undefined
@@ -17,7 +18,6 @@ export function ResultsReveal({ cardUri, clue }: Props) {
   const cardOpacity = useRef(new Animated.Value(0)).current
   const cardRotateY = useRef(new Animated.Value(-15)).current
   const glowOpacity = useRef(new Animated.Value(0)).current
-  const labelOpacity = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
     // Stage 1: card snaps in
@@ -30,14 +30,16 @@ export function ResultsReveal({ cardUri, clue }: Props) {
       Animated.sequence([
         Animated.timing(glowOpacity, { toValue: 0.8, duration: 300, useNativeDriver: true }),
         Animated.timing(glowOpacity, { toValue: 0.2, duration: 400, useNativeDriver: true }),
-        Animated.timing(labelOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
       ]).start()
     })
-  }, [cardScale, cardOpacity, cardRotateY, glowOpacity, labelOpacity])
+  }, [cardScale, cardOpacity, cardRotateY, glowOpacity])
 
   return (
     <View style={styles.container}>
-      <Text style={styles.revealLabel}>{t('game.narratorCardReveal')}</Text>
+      <View style={styles.header}>
+        <Text style={styles.revealLabel}>{t('game.narratorCardReveal')}</Text>
+        <Text style={styles.clueText}>"{clue}"</Text>
+      </View>
 
       <Animated.View
         style={[
@@ -50,15 +52,7 @@ export function ResultsReveal({ cardUri, clue }: Props) {
       >
         <InteractiveCardTilt profileName="hero" regionKey="results-reveal" style={styles.cardTilt}>
           <View style={styles.cardFrame}>
-            {cardUri ? (
-              <Image source={{ uri: cardUri }} style={styles.card} resizeMode="cover" />
-            ) : (
-              <Image
-                source={require('../../../assets/carta.png')}
-                style={styles.card}
-                resizeMode="cover"
-              />
-            )}
+            <DixitCard uri={cardUri} interactive={false} glowing />
             {/* Gold flash overlay */}
             <Animated.View
               style={[
@@ -71,11 +65,6 @@ export function ResultsReveal({ cardUri, clue }: Props) {
           </View>
         </InteractiveCardTilt>
       </Animated.View>
-
-      <Animated.View style={[styles.clueBlock, { opacity: labelOpacity }]}>
-        <Text style={styles.clueLabel}>{t('game.narratorClue')}</Text>
-        <Text style={styles.clueText}>"{clue}"</Text>
-      </Animated.View>
     </View>
   )
 }
@@ -83,59 +72,48 @@ export function ResultsReveal({ cardUri, clue }: Props) {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(25, 13, 10, 0.7)',
+    gap: 16,
+    backgroundColor: 'rgba(25, 13, 10, 0.76)',
     borderWidth: 1.5,
     borderColor: 'rgba(244, 192, 119, 0.35)',
-    borderRadius: radii.md,
-    padding: 16,
+    borderRadius: radii.xl,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+  },
+  header: {
+    alignItems: 'center',
+    gap: 8,
   },
   revealLabel: {
-    color: colors.gold,
-    fontSize: 9,
-    fontFamily: fonts.title,
-    letterSpacing: 2.5,
+    color: colors.goldLight,
+    fontSize: 11,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 2.8,
     textTransform: 'uppercase',
+    textAlign: 'center',
   },
   cardWrap: {
-    width: '55%',
+    width: '62%',
   },
   cardTilt: {
     width: '100%',
     zIndex: 2,
   },
   cardFrame: {
-    aspectRatio: 2 / 3,
-    borderRadius: radii.md,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: colors.gold,
-    shadowColor: colors.gold,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    elevation: 12,
+    borderRadius: radii.lg,
   },
-  card: { width: '100%', height: '100%' },
   glowOverlay: {
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     backgroundColor: 'rgba(230, 184, 0, 0.35)',
-  },
-  clueBlock: { alignItems: 'center', gap: 4 },
-  clueLabel: {
-    color: 'rgba(255, 241, 222, 0.3)',
-    fontSize: 8,
-    fontFamily: fonts.title,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
   },
   clueText: {
     color: '#fff7ea',
-    fontSize: 15,
-    fontWeight: '700',
-    fontStyle: 'italic',
+    fontSize: 28,
     fontFamily: fonts.title,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 34,
+    textShadowColor: 'rgba(0,0,0,0.72)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 5,
   },
 })

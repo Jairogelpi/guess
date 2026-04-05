@@ -28,7 +28,7 @@ describe('competitiveResolution unified economy', () => {
     ).toBeNull()
   })
 
-  test('challenge the leader awards +2 only when challenger beats the solo leader by 2+ round points', () => {
+  test('challenge the leader awards +2 in larger tables when challenger beats the solo leader by 2+ round points', () => {
     const baseEntries: ScoreEntry[] = [
       { player_id: 'leader', points: 1, reason: 'received_vote' },
       { player_id: 'challenger', points: 3, reason: 'market_correct_vote' },
@@ -41,6 +41,7 @@ describe('competitiveResolution unified economy', () => {
             { player_id: 'leader', score: 10 },
             { player_id: 'challenger', score: 8 },
             { player_id: 'other', score: 6 },
+            { player_id: 'p4', score: 4 },
           ],
           scoreEntries: baseEntries,
           playedCards: [
@@ -54,6 +55,26 @@ describe('competitiveResolution unified economy', () => {
       points: 2,
       reason: 'challenge_leader_bonus',
     })
+  })
+
+  test('challenge the leader only awards +1 in 3-player tables', () => {
+    expect(
+      applyChallengeLeaderBonuses({
+        scoresBefore: [
+          { player_id: 'leader', score: 10 },
+          { player_id: 'challenger', score: 8 },
+          { player_id: 'other', score: 5 },
+        ],
+        scoreEntries: [
+          { player_id: 'leader', points: 1, reason: 'received_vote' },
+          { player_id: 'challenger', points: 3, reason: 'market_correct_vote' },
+        ],
+        playedCards: [{ id: 'challenger-card', player_id: 'challenger', challenge_leader: true }],
+        votes: [],
+      }),
+    ).toEqual([
+      { player_id: 'challenger', points: 1, reason: 'challenge_leader_bonus' },
+    ])
   })
 
   test('challenge the leader gives nothing on ties, +1 leads, or when first place is tied', () => {
@@ -87,7 +108,7 @@ describe('competitiveResolution unified economy', () => {
     ).toEqual([])
   })
 
-  test('applies base income, percentile band bonus, interest, and clamps at 10', () => {
+  test('applies lighter base income, leader bonus, interest, and clamps at 10', () => {
     expect(
       applyIntuitionChanges({
         playersBefore: [
@@ -107,10 +128,10 @@ describe('competitiveResolution unified economy', () => {
       }),
     ).toEqual({
       p1: 10,
-      p2: 10,
-      p3: 8,
-      p4: 6,
-      p5: 3,
+      p2: 9,
+      p3: 6,
+      p4: 4,
+      p5: 2,
     })
   })
 })

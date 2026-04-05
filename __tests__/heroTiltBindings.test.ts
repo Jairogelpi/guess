@@ -28,8 +28,8 @@ describe('hero tilt bindings', () => {
 
   test('keeps preview-only surfaces out of the hero tilt binding swap', () => {
     expect(readSource('src', 'components', 'game', 'ResultsReveal.tsx')).toContain('profileName="hero"')
-    expect(readSource('src', 'components', 'game-phases', 'NarratorPhase.tsx')).not.toContain('<InteractiveCardTilt')
-    expect(readSource('src', 'components', 'game-phases', 'PlayersPhase.tsx')).not.toContain('<InteractiveCardTilt')
-    expect(readSource('src', 'components', 'game', 'CardGenerator.tsx')).not.toContain('<InteractiveCardTilt')
+    expect(readSource('src', 'components', 'game', 'NarratorSelectedCardFlow.tsx')).toContain('profileName="hero"')
+    expect(readSource('src', 'components', 'game-phases', 'PlayersPhase.tsx')).toContain('profileName="hero"')
+    expect(readSource('src', 'components', 'game', 'CardGenerator.tsx')).toContain('profileName="hero"')
   })
 })

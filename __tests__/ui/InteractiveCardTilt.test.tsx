@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import React, { act } from 'react'
 const ReactDOMClient = require('react-dom/client') as {
   createRoot: (container: unknown) => {
@@ -17,6 +19,11 @@ function createHostComponent(tagName: string, displayName: string) {
       }
 
       if (key === 'onLayout' || key === 'onLongPress' || key === 'onPress' || key === 'gesture') {
+        continue
+      }
+
+      if (key === 'style') {
+        mappedProps.style = flattenStyle(value)
         continue
       }
 
@@ -141,6 +148,10 @@ const {
   createInteractiveCardTiltController,
 } = require('../../src/components/ui/InteractiveCardTilt') as typeof import('../../src/components/ui/InteractiveCardTilt')
 const { DixitCard } = require('../../src/components/ui/DixitCard') as typeof import('../../src/components/ui/DixitCard')
+const interactiveCardTiltSource = fs.readFileSync(
+  path.join(__dirname, '..', '..', 'src', 'components', 'ui', 'InteractiveCardTilt.tsx'),
+  'utf8',
+)
 
 class FakeNode {
   nodeType: number
@@ -839,6 +850,11 @@ describe('InteractiveCardTilt controller', () => {
     expect(surface?.style.width).toBe('100%')
 
     rendered.unmount()
+  })
+
+  test('web animated surface keeps the reanimated style separate from static style merging', () => {
+    expect(interactiveCardTiltSource).toContain('? [webContentStyle, webSurfaceFrameStyle, animatedStyle]')
+    expect(interactiveCardTiltSource).not.toContain('Object.assign({}, webContentStyle, animatedStyle as any)')
   })
 
   test('web surface keeps concrete height when frame sizing is fixed', () => {

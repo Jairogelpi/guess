@@ -1,0 +1,92 @@
+<h2>Nuevo Flujo de Carta</h2>
+<p class="subtitle">Opciones para que generar, seleccionar y preparar la carta ocurra con menos saltos y mejor jerarquía.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A. Flujo unificado</div>
+        <div class="mockup-body" style="background:#120a06;padding:16px;display:flex;flex-direction:column;gap:12px;">
+          <div style="color:#f4c077;font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.75;">Paso 1</div>
+          <div style="border:1px solid rgba(255,241,222,.28);border-radius:18px;padding:14px;color:#fff1de;">Prompt + generar</div>
+          <div style="border:1.5px solid rgba(230,184,0,.55);border-radius:22px;padding:10px;background:rgba(18,10,6,.72);">
+            <div style="height:180px;border-radius:16px;background:linear-gradient(180deg,#dde8e7,#6d7b79);margin-bottom:10px;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="color:#fff1de;font-size:14px;">Carta generada</div>
+              <div style="padding:6px 12px;border-radius:999px;background:#f97316;color:#fff7ea;font-size:12px;">Seleccionada</div>
+            </div>
+          </div>
+          <div style="border:1px solid rgba(255,241,222,.22);border-radius:18px;padding:14px;color:#fff1de;">Título opcional</div>
+          <div style="border:1px solid rgba(255,241,222,.22);border-radius:18px;padding:14px;color:#fff1de;">Tácticas</div>
+          <div style="height:52px;border-radius:26px;background:#f97316;color:#fff7ea;display:flex;align-items:center;justify-content:center;font-weight:700;">ENVIAR PISTA</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Flujo unificado</h3>
+      <p>Mi recomendación. La carta nace en la misma pantalla, se selecciona ahí mismo y luego aparecen debajo el título, tácticas y acción final. Menos saltos, más continuidad.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B. Expandir al tocar</div>
+        <div class="mockup-body" style="background:#120a06;padding:16px;display:flex;flex-direction:column;gap:12px;">
+          <div style="border:1px solid rgba(255,241,222,.28);border-radius:18px;padding:14px;color:#fff1de;">Prompt + generar</div>
+          <div style="height:190px;border-radius:16px;background:linear-gradient(180deg,#dde8e7,#6d7b79);"></div>
+          <div style="color:rgba(255,241,222,.6);font-size:12px;text-align:center;">Toca la carta para expandir opciones</div>
+          <div style="border:1px dashed rgba(230,184,0,.35);border-radius:18px;padding:18px;color:#f4c077;text-align:center;">Panel oculto: título + tácticas + jugar</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Expandir al tocar</h3>
+      <p>Más teatral y algo más limpio de inicio, pero mete una interacción extra y hace menos obvio qué pasa después de generar.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">C. Doble columna modular</div>
+        <div class="mockup-body" style="background:#120a06;padding:16px;display:grid;grid-template-columns:1.2fr .9fr;gap:12px;">
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="border:1px solid rgba(255,241,222,.28);border-radius:18px;padding:14px;color:#fff1de;">Prompt + generar</div>
+            <div style="height:210px;border-radius:16px;background:linear-gradient(180deg,#dde8e7,#6d7b79);"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="border:1px solid rgba(255,241,222,.22);border-radius:16px;padding:12px;color:#fff1de;">Título</div>
+            <div style="border:1px solid rgba(255,241,222,.22);border-radius:16px;padding:12px;color:#fff1de;">Tácticas</div>
+            <div style="height:50px;border-radius:25px;background:#f97316;color:#fff7ea;display:flex;align-items:center;justify-content:center;font-weight:700;">JUGAR</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Doble columna modular</h3>
+      <p>Muy ordenado en desktop, pero en móvil obliga a apilar y puede volver a sentirse cargado. Menos natural para esta pantalla.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="pros-cons">
+    <div class="pros">
+      <h4>Qué mejora el flujo recomendado</h4>
+      <ul>
+        <li>La generación ya no te expulsa a otra “subpantalla” mental</li>
+        <li>La carta aparece exactamente donde el usuario está mirando</li>
+        <li>Título y tácticas solo aparecen cuando ya hay una carta elegida</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <h4>Mi recomendación</h4>
+      <ul>
+        <li>A. Flujo unificado</li>
+        <li>Una sola superficie progresiva</li>
+        <li>Mejor UI/UX en móvil y menos fricción cognitiva</li>
+      </ul>
+    </div>
+  </div>
+</div>

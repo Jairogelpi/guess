@@ -48,23 +48,67 @@ Deno.serve(async (req) => {
     } = await supabase.auth.getUser(token)
 
     if (authError || !user) {
-      const internalUrl = Deno.env.get('SUPABASE_URL')
-      return errorResponse(
-        'UNAUTHORIZED', 
-        `${authError?.message || 'Invalid token'} (Token start: ${token.substring(0, 10)}... | Func URL: ${internalUrl})`, 
-        401
-      )
+      return errorResponse('UNAUTHORIZED', 'Invalid or expired token', 401)
     }
 
     const body = schema.safeParse(await req.json())
     if (!body.success) return errorResponse('INVALID_PAYLOAD', body.error.message)
 
-    if (body.data.scope === 'round' && (!body.data.roomCode || !body.data.roundId)) {
-      return errorResponse(
-        AI_ERROR_CODES.MISSING_ROOM_CONTEXT,
-        'Round generation requires room context',
-        400,
-      )
+    let isFree = true;
+    let roomId = '';
+    let currentTokens = 0;
+
+    if (body.data.scope === 'round') {
+      if (!body.data.roomCode || !body.data.roundId) {
+        return errorResponse(
+          AI_ERROR_CODES.MISSING_ROOM_CONTEXT,
+          'Round generation requires room context',
+          400,
+        )
+      }
+
+      // Resolve roomId
+      const { data: room } = await supabase
+        .from('rooms')
+        .select('id')
+        .eq('code', body.data.roomCode)
+        .single();
+      
+      if (!room) {
+        return errorResponse('INVALID_ROOM', 'Room not found', 404)
+      }
+      roomId = room.id;
+
+      // Check if this is the first generation for this round
+      const { count } = await supabase
+        .from('temporary_generation_assets')
+        .select('*', { count: 'exact', head: true })
+        .eq('round_id', body.data.roundId)
+        .eq('owner_id', user.id);
+
+      isFree = (count ?? 0) === 0;
+
+      // Check tokens
+      const { data: player } = await supabase
+        .from('room_players')
+        .select('generation_tokens')
+        .eq('room_id', roomId)
+        .eq('player_id', user.id)
+        .single();
+      
+      if (!player) {
+         return errorResponse('INVALID_PLAYER', 'Player not found in room', 404)
+      }
+
+      currentTokens = player.generation_tokens;
+
+      if (!isFree && currentTokens < 1) {
+        return errorResponse(
+          'INSUFFICIENT_TOKENS',
+          'Not enough generation tokens. Need at least 1.',
+          400
+        )
+      }
     }
 
     const generationRequest = resolveGenerationBriefRequest(body.data.prompt)
@@ -174,6 +218,14 @@ Deno.serve(async (req) => {
         expires_at: expiresAt,
       },
     })
+
+    if (!isFree && body.data.scope === 'round' && roomId) {
+      await supabase
+        .from('room_players')
+        .update({ generation_tokens: currentTokens - 1 })
+        .eq('room_id', roomId)
+        .eq('player_id', user.id);
+    }
 
     return okResponse({
       imageUrl,

@@ -23,6 +23,18 @@ export default function RootLayout() {
     CinzelDecorative_900Black,
   })
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleRejection = (e: PromiseRejectionEvent) => {
+        if (e.reason?.message?.includes('steal')) {
+          e.preventDefault();
+        }
+      }
+      window.addEventListener('unhandledrejection', handleRejection)
+      return () => window.removeEventListener('unhandledrejection', handleRejection)
+    }
+  }, [])
+
   // Keep ref in sync so the auth callback always reads current segments
   useEffect(() => {
     segmentsRef.current = segments

@@ -2,7 +2,9 @@ import type { RiskClueProfile, VoteBetTokens } from '@/types/game'
 
 export const MAX_INTUITION_TOKENS = 10
 export const CORRUPTED_CARD_TOKEN_COST = 1
-export const AMBUSH_TOKEN_COST = 1
+export const SNIPER_TOKEN_COST = 1
+export const NARROW_TOKEN_COST = 1
+export const AMBUSH_TOKEN_COST = 2
 export const BET_ONE_TOKEN_COST = 1
 export const BET_TWO_TOKEN_COST = 2
 export const CHALLENGE_LEADER_TOKEN_COST = 1
@@ -102,7 +104,7 @@ const TACTICAL_ACTIONS: Record<TacticalActionId, TacticalActionDefinition> = {
     detailKey: 'game.tactics.actions.risk_sniper.detail',
     rewardKey: 'game.tactics.actions.risk_sniper.reward',
     riskKey: 'game.tactics.actions.risk_sniper.risk',
-    costTokens: 0,
+    costTokens: SNIPER_TOKEN_COST,
     riskClueProfile: 'sniper',
   },
   risk_narrow: {
@@ -114,7 +116,7 @@ const TACTICAL_ACTIONS: Record<TacticalActionId, TacticalActionDefinition> = {
     detailKey: 'game.tactics.actions.risk_narrow.detail',
     rewardKey: 'game.tactics.actions.risk_narrow.reward',
     riskKey: 'game.tactics.actions.risk_narrow.risk',
-    costTokens: 0,
+    costTokens: NARROW_TOKEN_COST,
     riskClueProfile: 'narrow',
   },
   risk_ambush: {
@@ -196,6 +198,7 @@ function getBlockedReason(action: TacticalActionDefinition, context: TacticalAct
 export function getPhaseTacticalActions(context: TacticalActionContext): TacticalActionState[] {
   return Object.values(TACTICAL_ACTIONS)
     .filter((action) => action.phase === context.phase)
+    .filter((action) => action.id !== 'risk_normal')
     .map((action) => {
       const disabledReasonKey = getBlockedReason(action, context)
       return {

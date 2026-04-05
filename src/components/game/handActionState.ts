@@ -101,7 +101,7 @@ export function deriveHandActionDockState(
 
   if (input.focusedSlot.kind === 'filled') {
     return {
-      ctaLabel: 'Siguiente: escribir pista',
+      ctaLabel: 'Enviar pista',
       disabled: false,
       mode: 'next',
     }

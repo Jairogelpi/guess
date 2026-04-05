@@ -128,13 +128,15 @@ export default function Welcome() {
 
         <View style={styles.container}>
           <InteractiveCardTilt profileName="hero" regionKey="welcome-hero" testID="welcome-hero-tilt" showPolish={false}>
-            <Animated.View style={[styles.mainCard, animatedStyle, { width: cardWidth, height: cardHeight }]}>
-              <Image
-                source={require('../../assets/carta.png')}
-                style={styles.cardImage}
-                resizeMode="cover"
-                blurRadius={WELCOME_HERO_IMAGE_BLUR_RADIUS}
-              />
+            <View style={[styles.mainCard, { width: cardWidth, height: cardHeight }]}>
+              <Animated.View style={[styles.cardImageLayer, animatedStyle]}>
+                <Image
+                  source={require('../../assets/carta.png')}
+                  style={styles.cardImage}
+                  resizeMode="cover"
+                  blurRadius={WELCOME_HERO_IMAGE_BLUR_RADIUS}
+                />
+              </Animated.View>
 
               <LinearGradient colors={WELCOME_HERO_OVERLAY_COLORS} style={styles.cardOverlay}>
                 <View style={styles.cardColumn}>
@@ -224,7 +226,7 @@ export default function Welcome() {
                   </View>
                 </View>
               </LinearGradient>
-            </Animated.View>
+            </View>
           </InteractiveCardTilt>
         </View>
 
@@ -266,6 +268,9 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 30,
     transform: [{ scale: WELCOME_HERO_IMAGE_SCALE }],
+  },
+  cardImageLayer: {
+    ...StyleSheet.absoluteFillObject,
   },
   cardOverlay: {
     ...StyleSheet.absoluteFillObject,

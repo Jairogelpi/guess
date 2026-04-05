@@ -25,12 +25,7 @@ Deno.serve(async (req) => {
     } = await supabase.auth.getUser(token)
     
     if (authError || !user) {
-      const internalUrl = Deno.env.get('SUPABASE_URL')
-      return errorResponse(
-        'UNAUTHORIZED', 
-        `${authError?.message || 'Invalid token'} (Token start: ${token.substring(0, 10)}... | Func URL: ${internalUrl})`, 
-        401
-      )
+      return errorResponse('UNAUTHORIZED', 'Invalid or expired token', 401)
     }
 
     const reqBody = await req.json().catch(() => ({}))

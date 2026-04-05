@@ -12,6 +12,12 @@
     "delete": "Delete",
     "back": "Back"
   },
+  "roomExit": {
+    "title": "Leave the match",
+    "message": "If you leave now, you will exit the current room.",
+    "confirm": "Leave",
+    "gameWarning": "If fewer than 3 players remain after you leave, the match will end and everyone will be sent to the results screen."
+  },
   "home": {
     "createRoom": "Create room",
     "joinRoom": "Join",
@@ -92,6 +98,9 @@
     "votingHint": "Look at every card, tap one option, then confirm your vote when you are sure.",
     "voteEmptyHint": "Select one card before voting.",
     "voteSelectedHint": "You already picked a card. If you are sure, confirm your vote.",
+    "votePreviewTitle": "Choose card",
+    "votePreviewEyebrow": "Card description",
+    "voteConfirmCard": "Choose this card",
     "vote": "Vote",
     "results": "Results",
     "resultsHint": "Here you can see the narrator's real card and how the score changed after the round.",
@@ -102,7 +111,14 @@
     "waitingMore_one": "{{count}} player left",
     "waitingMore_other": "{{count}} players left",
     "waitingForNarrator": "Waiting for the narrator to share the clue.",
+    "playerLeftNotice": "{{name}} left the match.",
+    "playersLeftNotice": "{{names}} left the match.",
     "waitingForVotes": "Waiting for the other votes.",
+    "waitingOrder": "Order",
+    "waitingCurrentPlayer": "Waiting now: {{name}}",
+    "waitingDone": "Done",
+    "waitingNowShort": "Now",
+    "waitingPending": "Pending",
     "waitingConfirm": "Waiting for confirmation",
     "waitingNarratorTitle": "The narrator is setting up the round",
     "waitingNarratorBody": "As soon as the clue is ready, you will be able to choose your card.",
@@ -114,6 +130,14 @@
     "waitingVotesBody": "Now we just need the other votes before showing the round result.",
     "narratorClue": "Narrator's clue",
     "narratorCard": "Narrator's card",
+    "narratorCardReveal": "Narrator's real card",
+    "narratorBadge": "Narrator",
+    "roundCardsTitle": "Round cards",
+    "roundStandingsTitle": "Standings after the round",
+    "roundRecapTitle": "Round recap",
+    "roundRecapTopMovers": "Biggest swings",
+    "roundRecapCurrentLeader": "Current leader",
+    "roundRecapNoSummary": "The round is over. Standings are coming up next.",
     "score": "Score",
     "suggestIdea": "Suggest Dixit idea",
     "generatingIdea": "Generating idea...",
@@ -128,8 +152,9 @@
     "playSelectedCard": "Play this card",
     "nextWriteClue": "Next: write clue",
     "endGame": "End game",
-    "firstGenerationFree": "Your first generation this round is free",
-    "generationCostsOne": "This generation will spend 1 token",
+    "firstGenerationFree": "First one is free",
+    "generationCostsOne": "Costs 1 GEN",
+    "regenerateCostLabel": "Regenerate costs 1 GEN",
     "generationUnavailableNoTokens": "Free generation spent and no tokens left",
     "tactics": {
       "eyebrow": "Tactics",
@@ -142,11 +167,26 @@
       "sheetTitle": "Tactical detail",
       "costIntuition_one": "Costs {{count}} intuition",
       "costIntuition_other": "Costs {{count}} intuition",
+      "costInline_one": "Costs {{count}} INT",
+      "costInline_other": "Costs {{count}} INT",
+      "freeInline": "Free",
       "detailLabel": "How it works",
       "rewardLabel": "Reward",
       "riskLabel": "Risk",
       "activateChallenge": "Activate challenge",
       "useThisTactic": "Use this tactic",
+      "launcher": {
+        "eyebrow": "Optional tactic",
+        "title": "Add a tactic",
+        "body": "Write your clue first. If you want to reinforce the round, activate a tactic before you submit it.",
+        "statusLabel": "Status",
+        "noneActive": "No tactic",
+        "willLaunch": "It will launch together with your clue.",
+        "wontLaunch": "No tactic will be launched this round.",
+        "activate": "Add tactic",
+        "change": "Change tactic",
+        "hide": "Hide tactics"
+      },
       "actions": {
         "risk_normal": {
           "name": "Normal risk",
@@ -157,21 +197,21 @@
         },
         "risk_sniper": {
           "name": "Sniper risk",
-          "short": "A very precise clue built to hit just one player.",
+          "short": "Spend 1 INT on a very precise clue that should only land for a few players.",
           "detail": "You aim for a narrow mental target and try to make the round land on a single reader.",
           "reward": "Potentially higher upside if almost everyone misses except one player.",
           "risk": "If you overfocus the clue, nobody follows it and the round slips away."
         },
         "risk_narrow": {
           "name": "Narrow risk",
-          "short": "Tighter clue framing with less room for interpretation.",
+          "short": "Spend 1 INT to tighten the clue and force a narrower table read.",
           "detail": "You intentionally shrink the space of possible readings to create a more controlled table split.",
-          "reward": "Lets you push a more specific outcome without spending intuition.",
+          "reward": "Lets you push a more specific outcome with tighter control over the table.",
           "risk": "A clue that is too narrow can become obvious or simply stop working."
         },
         "risk_ambush": {
           "name": "Ambush",
-          "short": "Spend intuition to force a more aggressive clue line.",
+          "short": "Spend 2 INT to force a far more aggressive clue line.",
           "detail": "You unlock an offensive tactic that tries to disrupt the table's expected reading.",
           "reward": "Higher upside than the default line when the trap lands well.",
           "risk": "You spend intuition up front and may get nothing back if the table stays stable."
@@ -262,7 +302,28 @@
     "title": "Game Over",
     "gameOver": "GAME OVER",
     "finalScore": "Final Score",
-    "goHome": "Go home"
+    "goHome": "Go home",
+    "playerSnapshot": "Final player snapshot",
+    "reason": {
+      "hostCancelledSelfTitle": "You cancelled the room",
+      "hostCancelledSelfBody": "The room was closed before the match started.",
+      "hostCancelledOtherTitle": "The room was cancelled",
+      "hostCancelledOtherBody": "The host closed the room before the match started.",
+      "allPlayersLeftSelfTitle": "You were the last player",
+      "allPlayersLeftSelfBody": "Everyone else had already left the room.",
+      "allPlayersLeftTitle": "Everyone left",
+      "allPlayersLeftBody": "The room was closed because nobody was left inside.",
+      "tooFewPlayersSelfTitle": "The match cannot continue",
+      "tooFewPlayersSelfBody": "After you left, there were not enough players left to keep playing.",
+      "tooFewPlayersTitle": "The match ended due to too few players",
+      "tooFewPlayersBody": "A player left and there were not enough players left to continue the match.",
+      "roomFinishedTitle": "Match finished",
+      "roomFinishedBody": "The match reached its natural end and these are the final results.",
+      "invalidTitle": "Room unavailable",
+      "invalidBody": "The room no longer exists or its final state could not be recovered.",
+      "defaultTitle": "Match ended",
+      "defaultBody": "The match ended and you can review the final results here."
+    }
   },
   "errors": {
     "AI_CONFIG_ERROR": "The AI provider is not configured on the server.",
@@ -275,6 +336,7 @@
     "INVALID_SCOPE": "The generation request is invalid.",
     "GALLERY_LIMIT_REACHED": "You already reached the 8-card gallery limit.",
     "NO_WILDCARDS_LEFT": "You already spent your 3 wildcards in this match.",
+    "NO_TOKENS_LEFT": "You have no generation tokens left.",
     "INVALID_GALLERY_CARD": "The selected gallery card is invalid.",
     "MISSING_ROOM_CONTEXT": "Round card generation is missing room context.",
     "ROOM_FULL": "Room is full",
@@ -284,6 +346,8 @@
     "MIN_PLAYERS_REQUIRED": "At least 3 players required",
     "PLAYERS_NOT_READY": "All guests must be ready before starting",
     "INVALID_CARD": "Invalid card",
+    "phaseCrashTitle": "This phase ran into an error",
+    "phaseCrashBody": "Something failed in this part of the match. Please try again or reload the room.",
     "generic": "Something went wrong. Please try again."
   }
 }

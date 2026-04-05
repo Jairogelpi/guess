@@ -27,16 +27,34 @@ interface ScoreInput {
   playedCards: PlayedCard[]
 }
 
-const CLUE_RISK_TARGETS: Record<'sniper' | 'narrow' | 'ambush', number> = {
-  sniper: 1,
-  narrow: 2,
-  ambush: 0,
-}
-
 function getMarketCorrectVotePoints(correctVoteCount: number) {
   if (correctVoteCount <= 0) return 0
   if (correctVoteCount === 1) return 4
   if (correctVoteCount === 2) return 3
+  return 2
+}
+
+function getClueRiskTarget(
+  profile: 'sniper' | 'narrow' | 'ambush',
+  nonNarratorCount: number,
+) {
+  if (profile === 'sniper') {
+    return nonNarratorCount >= 5 ? 2 : 1
+  }
+
+  if (profile === 'narrow') {
+    return Math.max(2, Math.min(nonNarratorCount - 1, Math.round(nonNarratorCount * 0.5)))
+  }
+
+  return nonNarratorCount <= 3 ? 0 : 1
+}
+
+function getClueRiskBonusPoints(
+  profile: 'sniper' | 'narrow' | 'ambush',
+  nonNarratorCount: number,
+) {
+  if (profile === 'sniper' && nonNarratorCount >= 5) return 3
+  if (profile === 'ambush' && nonNarratorCount >= 5) return 3
   return 2
 }
 
@@ -198,13 +216,13 @@ export function calculateScores({
 
   const riskProfile = narratorCard.risk_clue_profile
   if (riskProfile && riskProfile !== 'normal') {
-    const targetCorrectGuessers = CLUE_RISK_TARGETS[riskProfile]
+    const targetCorrectGuessers = getClueRiskTarget(riskProfile, nonNarrators.length)
     const delta = Math.abs(correctVoters.length - targetCorrectGuessers)
 
     if (delta === 0) {
       entries.push({
         player_id: narratorId,
-        points: 2,
+        points: getClueRiskBonusPoints(riskProfile, nonNarrators.length),
         reason: 'clue_risk_bonus',
       })
     } else if (delta > 1) {

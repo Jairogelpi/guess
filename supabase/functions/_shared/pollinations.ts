@@ -6,8 +6,8 @@ export interface BuildPollinationsImageUrlParams {
 
 export function getPollinationsModels() {
   return {
-    primary: 'flux',
-    fallback: 'dirtberry',
+    primary: 'gptimage-large',
+    fallback: 'nanobanana-2',
   } as const
 }
 

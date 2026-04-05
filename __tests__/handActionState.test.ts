@@ -89,7 +89,7 @@ describe('handActionState', () => {
     ).toBeNull()
   })
 
-  test('disables paid generation when the free turn is spent and tokens are zero', () => {
+test('disables paid generation when the free turn is spent and tokens are zero', () => {
     expect(
       deriveHandActionDockState({
         phase: 'players_turn',
@@ -103,5 +103,27 @@ describe('handActionState', () => {
       disabled: true,
       mode: 'generate',
     })
+  })
+})
+
+test('uses the direct narrator CTA once a card is selected', () => {
+  expect(
+    deriveHandActionDockState({
+      phase: 'narrator_turn',
+      focusedSlot: {
+        slotIndex: 0,
+        kind: 'filled',
+        cardId: 'card-1',
+        imageUri: 'https://img/1',
+        galleryCardId: null,
+      },
+      hasFreeGeneration: false,
+      generationTokens: 0,
+      generating: false,
+    }),
+  ).toMatchObject({
+    ctaLabel: 'Enviar pista',
+    disabled: false,
+    mode: 'next',
   })
 })

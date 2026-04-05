@@ -13,4 +13,4 @@ export const INITIAL_HAND_SLOTS = [
 ]
 
 /** Seconds shown in the results countdown before auto-advancing to the next round. */
-export const COUNTDOWN_SECONDS = 10
+export const COUNTDOWN_SECONDS = 20

@@ -28,6 +28,7 @@ interface TacticalActionPickerProps {
   selectedAction: TacticalActionId | null
   selectedChallengeLeader: boolean
   helperTextOverrideKey?: string
+  showHeader?: boolean
   onSelectAction: (action: TacticalActionId | null) => void
   onSelectChallengeLeader: (selected: boolean) => void
 }
@@ -36,6 +37,13 @@ function isChallengeState(
   state: TacticalActionState | ChallengeLeaderState | null,
 ): state is ChallengeLeaderState {
   return state?.id === 'challenge_leader'
+}
+
+function isFourUpNarratorGrid(
+  phase: TacticalPhase,
+  phaseActions: TacticalActionState[],
+) {
+  return phase === 'narrator_turn' && phaseActions.length === 3
 }
 
 export function TacticalActionPicker({
@@ -50,6 +58,7 @@ export function TacticalActionPicker({
   selectedAction,
   selectedChallengeLeader,
   helperTextOverrideKey,
+  showHeader = true,
   onSelectAction,
   onSelectChallengeLeader,
 }: TacticalActionPickerProps) {
@@ -83,21 +92,24 @@ export function TacticalActionPicker({
   const selectedActionDefinition = phaseActions.find((action) => action.id === selectedAction) ?? null
   const primaryHelperReasonKey = getPrimaryTacticalHelperReason(phaseActions, challengeLeaderState)
   const helperReasonKey = helperTextOverrideKey ?? primaryHelperReasonKey
+  const renderChallengeInGrid = isFourUpNarratorGrid(phase, phaseActions)
 
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.eyebrow}>{t('game.tactics.eyebrow')}</Text>
-          <Text style={styles.title}>{t('game.tactics.title')}</Text>
+      {showHeader ? (
+        <View style={styles.header}>
+          <View style={styles.headerTextBlock}>
+            <Text style={styles.eyebrow}>{t('game.tactics.eyebrow')}</Text>
+            <Text style={styles.title}>{t('game.tactics.title')}</Text>
+          </View>
+          <View style={styles.tokenPill}>
+            <MaterialCommunityIcons name="star-four-points" size={14} color={colors.gold} />
+            <Text style={styles.tokenText}>
+              {t('game.tactics.intuitionTokens', { count: intuitionTokens })}
+            </Text>
+          </View>
         </View>
-        <View style={styles.tokenPill}>
-          <MaterialCommunityIcons name="star-four-points" size={14} color={colors.gold} />
-          <Text style={styles.tokenText}>
-            {t('game.tactics.intuitionTokens', { count: intuitionTokens })}
-          </Text>
-        </View>
-      </View>
+      ) : null}
 
       <View style={styles.chipRow}>
         {phaseActions.map((action) => {
@@ -113,61 +125,151 @@ export function TacticalActionPicker({
                 blocked && styles.chipBlocked,
               ]}
             >
-              <MaterialCommunityIcons
-                name={action.icon as never}
-                size={16}
-                color={selected ? '#0a0602' : blocked ? 'rgba(255,241,222,0.4)' : colors.gold}
-              />
+              <View style={styles.chipTopRow}>
+                <MaterialCommunityIcons
+                  name={action.icon as never}
+                  size={16}
+                  color={selected ? '#0a0602' : blocked ? 'rgba(255,241,222,0.4)' : colors.gold}
+                />
+                <Text
+                  style={[
+                    styles.chipText,
+                    selected && styles.chipTextSelected,
+                    blocked && styles.chipTextBlocked,
+                  ]}
+                >
+                  {t(action.nameKey)}
+                </Text>
+              </View>
               <Text
                 style={[
-                  styles.chipText,
-                  selected && styles.chipTextSelected,
-                  blocked && styles.chipTextBlocked,
+                  styles.chipMetaText,
+                  selected && styles.chipMetaTextSelected,
+                  blocked && styles.chipMetaTextBlocked,
                 ]}
               >
-                {t(action.nameKey)}
+                {action.costTokens > 0
+                  ? t('game.tactics.costInline', { count: action.costTokens })
+                  : t('game.tactics.freeInline')}
               </Text>
-              {action.costTokens > 0 && (
-                <View style={[styles.costTag, selected && styles.costTagSelected]}>
-                  <Text style={[styles.costTagText, selected && styles.costTagTextSelected]}>
-                    {action.costTokens}
-                  </Text>
-                </View>
-              )}
+              <View style={styles.trailingSlot}>
+                {action.costTokens > 0 && (
+                  <View style={[styles.costTag, selected && styles.costTagSelected]}>
+                    <Text style={[styles.costTagText, selected && styles.costTagTextSelected]}>
+                      {action.costTokens}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </Pressable>
           )
         })}
-        <Pressable
-          onPress={() => setDetailState(challengeLeaderState)}
-          style={[
-            styles.chip,
-            styles.challengeChip,
-            selectedChallengeLeader && styles.challengeChipSelected,
-            !challengeLeaderState.enabled && styles.challengeChipBlocked,
-          ]}
-        >
-          <MaterialCommunityIcons
-            name={challengeLeaderState.icon as never}
-            size={16}
-            color={
-              selectedChallengeLeader
-                ? '#0a0602'
-                : challengeLeaderState.enabled
-                  ? colors.gold
-                  : 'rgba(255,241,222,0.4)'
-            }
-          />
-          <Text
+        {renderChallengeInGrid && (
+          <Pressable
+            onPress={() => setDetailState(challengeLeaderState)}
             style={[
-              styles.challengeText,
-              selectedChallengeLeader && styles.challengeTextSelected,
-              !challengeLeaderState.enabled && styles.chipTextBlocked,
+              styles.chip,
+              styles.challengeChip,
+              selectedChallengeLeader && styles.challengeChipSelected,
+              !challengeLeaderState.enabled && styles.challengeChipBlocked,
             ]}
           >
-            {t(challengeLeaderState.nameKey)}
-          </Text>
-        </Pressable>
+            <View style={styles.chipTopRow}>
+              <MaterialCommunityIcons
+                name={challengeLeaderState.icon as never}
+                size={16}
+                color={
+                  selectedChallengeLeader
+                    ? '#0a0602'
+                    : challengeLeaderState.enabled
+                      ? colors.gold
+                      : 'rgba(255,241,222,0.4)'
+                }
+              />
+              <Text
+                style={[
+                  styles.challengeText,
+                  selectedChallengeLeader && styles.challengeTextSelected,
+                  !challengeLeaderState.enabled && styles.chipTextBlocked,
+                ]}
+              >
+                {t(challengeLeaderState.nameKey)}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.chipMetaText,
+                selectedChallengeLeader && styles.chipMetaTextSelected,
+                !challengeLeaderState.enabled && styles.chipMetaTextBlocked,
+              ]}
+            >
+              {t('game.tactics.costInline', { count: challengeLeaderState.costTokens })}
+            </Text>
+            <View style={styles.trailingSlot}>
+              <View style={[styles.costTag, selectedChallengeLeader && styles.costTagSelected]}>
+                <Text style={[styles.costTagText, selectedChallengeLeader && styles.costTagTextSelected]}>
+                  {challengeLeaderState.costTokens}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        )}
       </View>
+
+      {!renderChallengeInGrid ? (
+        <View style={styles.specialActionBlock}>
+          <Text style={styles.specialActionLabel}>{t('game.tactics.challengeLeader.name')}</Text>
+          <Pressable
+            onPress={() => setDetailState(challengeLeaderState)}
+            style={[
+              styles.chip,
+              styles.challengeChip,
+              styles.specialChip,
+              selectedChallengeLeader && styles.challengeChipSelected,
+              !challengeLeaderState.enabled && styles.challengeChipBlocked,
+            ]}
+          >
+            <View style={styles.chipTopRow}>
+              <MaterialCommunityIcons
+                name={challengeLeaderState.icon as never}
+                size={16}
+                color={
+                  selectedChallengeLeader
+                    ? '#0a0602'
+                    : challengeLeaderState.enabled
+                      ? colors.gold
+                      : 'rgba(255,241,222,0.4)'
+                }
+              />
+              <Text
+                style={[
+                  styles.challengeText,
+                  selectedChallengeLeader && styles.challengeTextSelected,
+                  !challengeLeaderState.enabled && styles.chipTextBlocked,
+                ]}
+              >
+                {t(challengeLeaderState.nameKey)}
+              </Text>
+            </View>
+            <Text
+              style={[
+                styles.chipMetaText,
+                selectedChallengeLeader && styles.chipMetaTextSelected,
+                !challengeLeaderState.enabled && styles.chipMetaTextBlocked,
+              ]}
+            >
+              {t('game.tactics.costInline', { count: challengeLeaderState.costTokens })}
+            </Text>
+            <View style={styles.trailingSlot}>
+              <View style={[styles.costTag, selectedChallengeLeader && styles.costTagSelected]}>
+                <Text style={[styles.costTagText, selectedChallengeLeader && styles.costTagTextSelected]}>
+                  {challengeLeaderState.costTokens}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        </View>
+      ) : null}
 
       {helperReasonKey ? (
         <View testID="tactical-helper-row" style={styles.helperRow}>
@@ -254,6 +356,11 @@ const styles = StyleSheet.create({
     gap: 12,
     alignItems: 'center',
   },
+  headerTextBlock: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+  },
   eyebrow: {
     color: 'rgba(255, 241, 222, 0.45)',
     fontSize: 11,
@@ -265,10 +372,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 16,
     fontFamily: fonts.titleHeavy,
+    lineHeight: 20,
   },
   tokenPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'center',
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -280,6 +389,7 @@ const styles = StyleSheet.create({
   tokenText: {
     color: colors.gold,
     fontSize: 11,
+    lineHeight: 14,
     fontFamily: fonts.titleHeavy,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
@@ -288,14 +398,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+    justifyContent: 'space-between',
   },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
+    width: '48.5%',
+    minHeight: 68,
     paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: radii.full,
+    paddingVertical: 10,
+    borderRadius: 22,
     backgroundColor: 'rgba(230, 184, 0, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(230, 184, 0, 0.2)',
@@ -310,9 +423,10 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: colors.textPrimary,
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: fonts.titleHeavy,
-    letterSpacing: 1.2,
+    lineHeight: 14,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   chipTextSelected: {
@@ -325,6 +439,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 122, 0, 0.08)',
     borderColor: 'rgba(255, 152, 0, 0.28)',
   },
+  specialActionBlock: {
+    gap: 8,
+  },
+  specialActionLabel: {
+    color: 'rgba(255, 241, 222, 0.42)',
+    fontSize: 10,
+    fontFamily: fonts.titleHeavy,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+  },
+  specialChip: {
+    width: '100%',
+  },
   challengeChipSelected: {
     backgroundColor: 'rgba(255, 188, 71, 0.95)',
     borderColor: '#ffd27d',
@@ -335,10 +462,30 @@ const styles = StyleSheet.create({
   },
   challengeText: {
     color: colors.textPrimary,
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: fonts.titleHeavy,
-    letterSpacing: 1.1,
+    lineHeight: 14,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
+  },
+  chipMetaText: {
+    color: 'rgba(255, 241, 222, 0.62)',
+    fontSize: 10,
+    lineHeight: 13,
+    fontFamily: fonts.title,
+  },
+  chipMetaTextSelected: {
+    color: 'rgba(10, 6, 2, 0.75)',
+  },
+  chipMetaTextBlocked: {
+    color: 'rgba(255, 241, 222, 0.34)',
+  },
+  chipTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: '100%',
+    paddingRight: 24,
   },
   challengeTextSelected: {
     color: '#0a0602',
@@ -384,13 +531,21 @@ const styles = StyleSheet.create({
   costTag: {
     backgroundColor: 'rgba(230, 184, 0, 0.15)',
     borderRadius: radii.full,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    minWidth: 18,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    minWidth: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(230, 184, 0, 0.3)',
+  },
+  trailingSlot: {
+    position: 'absolute',
+    top: 9,
+    right: 10,
+    width: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   costTagSelected: {
     backgroundColor: 'rgba(10, 6, 2, 0.2)',
@@ -398,7 +553,7 @@ const styles = StyleSheet.create({
   },
   costTagText: {
     color: colors.gold,
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: fonts.titleHeavy,
   },
   costTagTextSelected: {

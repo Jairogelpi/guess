@@ -12,6 +12,13 @@
     "delete": "Eliminar",
     "back": "Volver"
   },
+  "roomExit": {
+    "title": "Salir de la partida",
+    "message": "Si sales ahora, abandonarás la sala actual.",
+    "confirm": "Salir",
+    "gameWarning": "Si al salir quedan menos de 3 jugadores, la partida terminará y todos verán la pantalla final."
+  },
+  
   "home": {
     "createRoom": "Crear sala",
     "joinRoom": "Unirse",
@@ -92,6 +99,9 @@
     "votingHint": "Mira todas las cartas, toca una sola opcion y confirma tu voto cuando lo tengas claro.",
     "voteEmptyHint": "Selecciona una carta antes de votar.",
     "voteSelectedHint": "Ya has elegido una carta. Si estas seguro, confirma tu voto.",
+    "votePreviewTitle": "Elegir carta",
+    "votePreviewEyebrow": "Descripcion de la carta",
+    "voteConfirmCard": "Elegir esta carta",
     "vote": "Votar",
     "results": "Resultados",
     "resultsHint": "Aqui ves cual era la carta real del narrador y como queda la puntuacion tras la ronda.",
@@ -102,7 +112,14 @@
     "waitingMore_one": "Falta {{count}} jugador",
     "waitingMore_other": "Faltan {{count}} jugadores",
     "waitingForNarrator": "Esperando a que el narrador comparta su pista.",
+    "playerLeftNotice": "{{name}} ha salido de la partida.",
+    "playersLeftNotice": "{{names}} han salido de la partida.",
     "waitingForVotes": "Esperando a que voten los demas.",
+    "waitingOrder": "Orden",
+    "waitingCurrentPlayer": "Esperando ahora: {{name}}",
+    "waitingDone": "Hecho",
+    "waitingNowShort": "Ahora",
+    "waitingPending": "Pendiente",
     "waitingConfirm": "Esperando confirmacion",
     "waitingNarratorTitle": "El narrador esta preparando la ronda",
     "waitingNarratorBody": "En cuanto comparta su pista, podras elegir una carta para responder.",
@@ -114,6 +131,14 @@
     "waitingVotesBody": "Solo falta que voten los demas para mostrar el resultado de la ronda.",
     "narratorClue": "Pista del narrador",
     "narratorCard": "Carta del narrador",
+    "narratorCardReveal": "Carta real del narrador",
+    "narratorBadge": "Narrador",
+    "roundCardsTitle": "Cartas de la ronda",
+    "roundStandingsTitle": "Clasificacion tras la ronda",
+    "roundRecapTitle": "Resumen de la ronda",
+    "roundRecapTopMovers": "Quienes mas se movieron",
+    "roundRecapCurrentLeader": "Lider actual",
+    "roundRecapNoSummary": "La ronda ha terminado. Enseguida veras la clasificacion.",
     "score": "Puntuacion",
     "suggestIdea": "Sugerir idea Dixit",
     "generatingIdea": "Generando idea...",
@@ -128,8 +153,9 @@
     "playSelectedCard": "Jugar esta carta",
     "nextWriteClue": "Siguiente: escribir pista",
     "endGame": "Terminar partida",
-    "firstGenerationFree": "Tu primera generacion de esta ronda es gratis",
-    "generationCostsOne": "Esta generacion consumira 1 ficha",
+    "firstGenerationFree": "La primera es gratis",
+    "generationCostsOne": "Cuesta 1 GEN",
+    "regenerateCostLabel": "Regenerar cuesta 1 GEN",
     "generationUnavailableNoTokens": "Ya gastaste la gratis y no te quedan fichas de generacion",
     "tactics": {
       "eyebrow": "Tacticas",
@@ -142,11 +168,26 @@
       "sheetTitle": "Detalle tactico",
       "costIntuition_one": "Cuesta {{count}} intuicion",
       "costIntuition_other": "Cuesta {{count}} intuiciones",
+      "costInline_one": "Cuesta {{count}} INT",
+      "costInline_other": "Cuesta {{count}} INT",
+      "freeInline": "Gratis",
       "detailLabel": "Como funciona",
       "rewardLabel": "Recompensa",
       "riskLabel": "Riesgo",
       "activateChallenge": "Activar desafio",
       "useThisTactic": "Usar esta tactica",
+      "launcher": {
+        "eyebrow": "Tactica opcional",
+        "title": "Anadir tactica",
+        "body": "Primero prepara la pista. Si quieres reforzar la ronda, activa una tactica antes de enviarla.",
+        "statusLabel": "Estado",
+        "noneActive": "Sin tactica",
+        "willLaunch": "Se lanzara junto con tu pista.",
+        "wontLaunch": "No se lanzara ninguna tactica en esta ronda.",
+        "activate": "Anadir tactica",
+        "change": "Cambiar tactica",
+        "hide": "Ocultar tacticas"
+      },
       "actions": {
         "risk_normal": {
           "name": "Riesgo normal",
@@ -157,21 +198,21 @@
         },
         "risk_sniper": {
           "name": "Riesgo sniper",
-          "short": "Pista muy precisa para intentar que solo una persona acierte.",
+          "short": "Invierte 1 INT en una pista muy precisa para que solo unas pocas personas acierten.",
           "detail": "Buscas una conexion muy concreta con un jugador para maximizar el impacto de la ronda.",
           "reward": "Si casi todos fallan salvo una persona, la recompensa potencial sube.",
           "risk": "Si te pasas de preciso, nadie seguira la pista y perderas el control de la ronda."
         },
         "risk_narrow": {
           "name": "Riesgo estrecho",
-          "short": "Pista ajustada que reduce el margen de interpretacion.",
+          "short": "Gasta 1 INT para cerrar la lectura y forzar una mesa mas dividida.",
           "detail": "Cierras el abanico de lecturas para forzar una mesa mas dividida y menos caotica.",
-          "reward": "Puedes empujar un resultado muy concreto sin gastar intuicion.",
+          "reward": "Puedes empujar un resultado muy concreto y controlar mejor la mesa.",
           "risk": "Si la pista queda demasiado cerrada, se vuelve obvia o directamente confusa."
         },
         "risk_ambush": {
           "name": "Emboscada",
-          "short": "Gasta intuicion para forzar una linea de riesgo mas agresiva.",
+          "short": "Invierte 2 INT para forzar una linea de riesgo mucho mas agresiva.",
           "detail": "Activas una jugada ofensiva que busca descolocar la lectura general de la mesa.",
           "reward": "Te permite aspirar a una ronda con recompensa mayor que la base.",
           "risk": "Pagas intuicion y puedes quedarte sin retorno si la mesa no cae en la trampa."
@@ -262,7 +303,28 @@
     "title": "Fin del juego",
     "gameOver": "Fin del juego",
     "finalScore": "Puntuacion final",
-    "goHome": "Volver al inicio"
+    "goHome": "Volver al inicio",
+    "playerSnapshot": "Estado final de jugadores",
+    "reason": {
+      "hostCancelledSelfTitle": "Has cancelado la sala",
+      "hostCancelledSelfBody": "La sala se ha cerrado antes de empezar la partida.",
+      "hostCancelledOtherTitle": "La sala se ha cancelado",
+      "hostCancelledOtherBody": "El anfitrión ha cerrado la sala antes de empezar.",
+      "allPlayersLeftSelfTitle": "Te has quedado solo",
+      "allPlayersLeftSelfBody": "Todos los demás jugadores ya habían salido de la sala.",
+      "allPlayersLeftTitle": "Todos se han ido",
+      "allPlayersLeftBody": "La sala se ha cerrado porque ya no quedaba nadie dentro.",
+      "tooFewPlayersSelfTitle": "La partida no puede continuar",
+      "tooFewPlayersSelfBody": "Al salir, ya no quedan suficientes jugadores para seguir jugando.",
+      "tooFewPlayersTitle": "La partida terminó por falta de jugadores",
+      "tooFewPlayersBody": "Un jugador salió y ya no quedan suficientes personas para continuar la partida.",
+      "roomFinishedTitle": "Partida terminada",
+      "roomFinishedBody": "La partida llegó a su final y aquí tienes el resultado definitivo.",
+      "invalidTitle": "Sala no disponible",
+      "invalidBody": "La sala ya no existe o no se pudo recuperar su estado final.",
+      "defaultTitle": "Partida finalizada",
+      "defaultBody": "La partida terminó y puedes revisar el resultado final."
+    }
   },
   "errors": {
     "AI_CONFIG_ERROR": "Falta configurar la IA en el servidor.",
@@ -275,6 +337,7 @@
     "INVALID_SCOPE": "La solicitud de generacion no es valida.",
     "GALLERY_LIMIT_REACHED": "Ya has alcanzado el limite de 8 cartas en tu galeria.",
     "NO_WILDCARDS_LEFT": "Ya has gastado tus 3 comodines en esta partida.",
+    "NO_TOKENS_LEFT": "No te quedan fichas de generacion.",
     "INVALID_GALLERY_CARD": "La carta elegida de la galeria no es valida.",
     "MISSING_ROOM_CONTEXT": "Para generar una carta de partida faltan datos de la ronda.",
     "ROOM_FULL": "La sala esta llena",
@@ -284,6 +347,8 @@
     "MIN_PLAYERS_REQUIRED": "Se necesitan al menos 3 jugadores",
     "PLAYERS_NOT_READY": "Todos los invitados deben estar listos",
     "INVALID_CARD": "Carta invalida",
+    "phaseCrashTitle": "Esta fase se ha cerrado por un error",
+    "phaseCrashBody": "Algo ha fallado en esta parte de la partida. Vuelve a intentarlo o recarga la sala.",
     "generic": "Algo salio mal. Intentalo de nuevo."
   }
 }

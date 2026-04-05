@@ -40,8 +40,8 @@ describe('welcome hero treatment', () => {
     expect(WELCOME_HERO_IMAGE_BLUR_RADIUS).toBe(0)
     expect(WELCOME_HERO_OVERLAY_COLORS).toEqual([
       'rgba(0, 0, 0, 0)',
-      'rgba(12, 7, 2, 0.14)',
-      'rgba(5, 2, 1, 0.28)',
+      'rgba(0, 0, 0, 0)',
+      'rgba(0, 0, 0, 0)',
     ])
   })
 
@@ -52,8 +52,8 @@ describe('welcome hero treatment', () => {
     expect(welcomeScreenSource).toContain("style={[styles.brandTitle, styles.brandTitleHighlight, styles.promptTitleFill, { fontSize: highlightSize }]}")
     expect(welcomeScreenSource).not.toContain('styles.promptLetter')
     expect(welcomeScreenSource).toContain("color: '#fff7ea'")
-    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(10, 4, 1, 0.95)'")
-    expect(welcomeScreenSource).toContain("textShadowOffset: { width: 0, height: 3 }")
+    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(4, 1, 0, 0.46)'")
+    expect(welcomeScreenSource).toContain("textShadowOffset: { width: 1, height: 2 }")
     expect(welcomeScreenSource).toContain('textShadowRadius: 0')
   })
 
@@ -62,7 +62,7 @@ describe('welcome hero treatment', () => {
   })
 
   test('uses a slightly more compact card ratio to keep content grouped', () => {
-    expect(WELCOME_HERO_CARD_RATIO).toBe(1.42)
+    expect(WELCOME_HERO_CARD_RATIO).toBe(1.45)
   })
 
   test('keeps the hero card modestly sized in the overall composition', () => {
@@ -82,22 +82,22 @@ describe('welcome hero treatment', () => {
 
   test('returns to a centered single-stack layout but uses more vertical spacing to open the elements up', () => {
     expect(WELCOME_HERO_OVERLAY_JUSTIFY_CONTENT).toBe('center')
-    expect(WELCOME_HERO_STACK_GAP).toBe(24)
+    expect(WELCOME_HERO_STACK_GAP).toBe(16)
     expect('getWelcomeHeroPanelMetrics' in welcomeHero).toBe(false)
     expect('WELCOME_HERO_FOOTER_MARGIN_TOP' in welcomeHero).toBe(false)
   })
 
   test('keeps the guest CTA inside the frame with a brighter cleaner button treatment', () => {
-    expect(WELCOME_HERO_CTA_WIDTH_FACTOR).toBe(0.92)
-    expect(WELCOME_HERO_CTA_HEIGHT).toBe(48)
+    expect(WELCOME_HERO_CTA_WIDTH_FACTOR).toBe(0.80)
+    expect(WELCOME_HERO_CTA_HEIGHT).toBe(38)
     expect(WELCOME_HERO_CTA_SHADOW_OPACITY).toBe(0)
   })
 
   test('keeps the secondary actions lighter and more visually separated', () => {
     expect(WELCOME_HERO_FOOTER_GAP).toBe(16)
-    expect(WELCOME_HERO_SECONDARY_CTA_HEIGHT).toBe(40)
+    expect(WELCOME_HERO_SECONDARY_CTA_HEIGHT).toBe(32)
     expect(WELCOME_HERO_SECONDARY_ACTION_GAP).toBe(16)
-    expect(WELCOME_HERO_SECONDARY_HINT_MARGIN_TOP).toBe(12)
+    expect(WELCOME_HERO_SECONDARY_HINT_MARGIN_TOP).toBe(6)
   })
 
   test('keeps the welcome screen wired to tilt wrapper and direct CTA sizing constants', () => {
@@ -105,6 +105,8 @@ describe('welcome hero treatment', () => {
     expect(welcomeScreenSource).toContain('WELCOME_HERO_CTA_WIDTH_FACTOR')
     expect(welcomeScreenSource).toContain('WELCOME_HERO_CTA_HEIGHT')
     expect(welcomeScreenSource).toContain('WELCOME_HERO_SHOW_LOGO &&')
+    expect(welcomeScreenSource).toContain('<View style={[styles.mainCard, { width: cardWidth, height: cardHeight }]}>')
+    expect(welcomeScreenSource).toContain('<Animated.View style={[styles.cardImageLayer, animatedStyle]}>')
     expect(welcomeScreenSource).not.toContain('getWelcomeHeroPanelMetrics(compactHero)')
     expect(welcomeScreenSource).not.toContain('getWelcomeHeroCtaMetrics(compactHero)')
   })
@@ -126,45 +128,44 @@ describe('welcome hero treatment', () => {
   })
 
   test('uses lighter button surfaces instead of the darker premium-card treatment', () => {
-    expect(welcomeScreenSource).not.toContain("colors={['rgba(255, 239, 222, 0.96)', 'rgba(255, 176, 82, 0.97)', 'rgba(234, 88, 12, 0.96)']}")
-    expect(welcomeScreenSource).toContain("backgroundColor: '#e68a2e'")
+    expect(welcomeScreenSource).toContain("colors={['#FF8C00', '#E65100']}")
+    expect(welcomeScreenSource).not.toContain("backgroundColor: '#e68a2e'")
     expect(welcomeScreenSource).not.toContain('styles.guestBtnHighlight')
-    expect(welcomeScreenSource).toContain("backgroundColor: 'rgba(255, 239, 221, 0.44)'")
-    expect(welcomeScreenSource).toContain("backgroundColor: 'rgba(255, 204, 122, 0.5)'")
-    expect(welcomeScreenSource).toContain("borderColor: 'rgba(255, 244, 220, 0.5)'")
-    expect(welcomeScreenSource).toContain("borderColor: 'rgba(255, 218, 145, 0.62)'")
+    expect(welcomeScreenSource).toContain("backgroundColor: 'rgba(255, 180, 50, 0.12)'")
+    expect(welcomeScreenSource).toContain("backgroundColor: 'rgba(220, 140, 20, 0.82)'")
+    expect(welcomeScreenSource).toContain("borderColor: 'rgba(255, 210, 100, 0.55)'")
+    expect(welcomeScreenSource).toContain("borderColor: 'rgba(255, 220, 110, 0.90)'")
     expect(welcomeScreenSource).not.toContain('styles.secondaryBtnFace')
     expect(welcomeScreenSource).not.toContain('styles.registerBtnFace')
   })
 
   test('adds subtle 3d relief to button surfaces and a darker outline to button text', () => {
-    expect(welcomeScreenSource).toContain("shadowOffset: { width: 0, height: 4 }")
-    expect(welcomeScreenSource).toContain('shadowRadius: 8')
-    expect(welcomeScreenSource).toContain("shadowColor: 'rgba(26, 10, 2, 0.92)'")
-    expect(welcomeScreenSource).toContain('shadowOpacity: 0.22')
-    expect(welcomeScreenSource).toContain('elevation: 4')
-    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(0,0,0,0.58)'")
-    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(0,0,0,0.64)'")
-    expect(welcomeScreenSource).toContain('textShadowRadius: 2')
+    expect(welcomeScreenSource).not.toContain("shadowOffset: { width: 0, height: 4 }")
+    expect(welcomeScreenSource).not.toContain('shadowRadius: 8')
+    expect(welcomeScreenSource).not.toContain("shadowColor: 'rgba(26, 10, 2, 0.92)'")
+    expect(welcomeScreenSource).not.toContain('shadowOpacity: 0.22')
+    expect(welcomeScreenSource).not.toContain('elevation: 4')
+    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(3, 1, 0, 0.38)'")
+    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(3, 1, 0, 0.50)'")
+    expect(welcomeScreenSource).toContain('textShadowRadius: 1')
   })
 
   test('raises title presence and text legibility relative to the calmer base version', () => {
-    expect(welcomeScreenSource).toContain('const titleSize = compactHero ? 42 : 50')
-    expect(welcomeScreenSource).toContain('const highlightSize = compactHero ? 62 : 74')
+    expect(welcomeScreenSource).toContain('const titleSize = compactHero ? 36 : 44')
+    expect(welcomeScreenSource).toContain('const highlightSize = compactHero ? 56 : 68')
     expect(welcomeScreenSource).toContain('const subtitleSize = compactHero ? 14 : 16')
     expect(welcomeScreenSource).toContain('paddingTop: 4')
     expect(welcomeScreenSource).toContain('gap: 12')
     expect(welcomeScreenSource).toContain('marginVertical: 6')
-    expect(welcomeScreenSource).toContain('marginTop: 10')
+    expect(welcomeScreenSource).toContain('marginTop: -8')
     expect(welcomeScreenSource).toContain("color: '#fff7ea'")
     expect(welcomeScreenSource).toContain("color: 'rgba(255, 241, 222, 0.96)'")
-    expect(welcomeScreenSource).toContain("color: 'rgba(255, 241, 222, 0.9)'")
-    expect(welcomeScreenSource).toContain("textShadowOffset: { width: 0, height: 0 }")
-    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(24, 10, 4, 0.88)'")
-    expect(welcomeScreenSource).toContain('textShadowRadius: 2')
-    expect(welcomeScreenSource).toContain("textShadowOffset: { width: 0, height: 2 }")
-    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(0,0,0,0.58)'")
-    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(0,0,0,0.64)'")
+    expect(welcomeScreenSource).toContain("color: 'rgba(255, 241, 222, 0.65)'")
+    expect(welcomeScreenSource).toContain("textShadowOffset: { width: 1, height: 2 }")
+    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(5, 1, 0, 0.42)'")
+    expect(welcomeScreenSource).toContain("textShadowOffset: { width: 1, height: 1 }")
+    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(3, 1, 0, 0.38)'")
+    expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(3, 1, 0, 0.50)'")
     expect(welcomeScreenSource).toContain("color: '#fffaf1'")
   })
 

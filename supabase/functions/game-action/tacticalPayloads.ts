@@ -72,7 +72,8 @@ export function parseSubmitCluePayload(rawPayload: unknown): SubmitCluePayload {
     challenge_leader?: unknown
   }
 
-  if (typeof payload.clue !== 'string' || payload.clue.trim().length === 0) {
+  const clue = typeof payload.clue === 'string' ? payload.clue.trim() : ''
+  if (clue.length === 0 || clue.length > 200) {
     throw new TacticalPayloadError('INVALID_PAYLOAD')
   }
 
@@ -83,7 +84,7 @@ export function parseSubmitCluePayload(rawPayload: unknown): SubmitCluePayload {
   })
 
   return {
-    clue: payload.clue.trim(),
+    clue,
     card_id: typeof payload.card_id === 'string' ? payload.card_id : undefined,
     gallery_card_id:
       typeof payload.gallery_card_id === 'string' ? payload.gallery_card_id : undefined,

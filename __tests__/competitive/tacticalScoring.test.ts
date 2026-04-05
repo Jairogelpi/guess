@@ -53,6 +53,38 @@ describe('calculateScores unified tactical scoring', () => {
     )
   })
 
+  test('sniper scales to +3 in larger tables when exactly two players guess correctly', () => {
+    const scores = calculateScores({
+      narratorId: 'narrator',
+      players: ['narrator', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6'],
+      votes: [
+        { voter_id: 'p1', card_id: 'narrator-card', bet_tokens: 0 },
+        { voter_id: 'p2', card_id: 'narrator-card', bet_tokens: 0 },
+        { voter_id: 'p3', card_id: 'p4-card', bet_tokens: 0 },
+        { voter_id: 'p4', card_id: 'p3-card', bet_tokens: 0 },
+        { voter_id: 'p5', card_id: 'p6-card', bet_tokens: 0 },
+        { voter_id: 'p6', card_id: 'p5-card', bet_tokens: 0 },
+      ],
+      playedCards: [
+        { id: 'narrator-card', player_id: 'narrator', risk_clue_profile: 'sniper', is_corrupted: false },
+        { id: 'p1-card', player_id: 'p1', is_corrupted: false },
+        { id: 'p2-card', player_id: 'p2', is_corrupted: false },
+        { id: 'p3-card', player_id: 'p3', is_corrupted: false },
+        { id: 'p4-card', player_id: 'p4', is_corrupted: false },
+        { id: 'p5-card', player_id: 'p5', is_corrupted: false },
+        { id: 'p6-card', player_id: 'p6', is_corrupted: false },
+      ],
+    })
+
+    expect(scores).toContainEqual(
+      expect.objectContaining({
+        player_id: 'narrator',
+        reason: 'clue_risk_bonus',
+        points: 3,
+      }),
+    )
+  })
+
   test('corrupted card replaces normal vote reward, gives owner +2 and each fooled voter -1', () => {
     const scores = calculateScores({
       narratorId: 'narrator',
