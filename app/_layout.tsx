@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen'
 import { supabase } from '@/lib/supabase'
 import { ToastContainer } from '@/components/ui/Toast'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { attachUnhandledStealRejectionListener } from '@/lib/unhandledRejectionListener'
 import '@/i18n'
 
 // Keep splash screen visible while loading fonts/auth
@@ -24,15 +25,7 @@ export default function RootLayout() {
   })
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const handleRejection = (e: PromiseRejectionEvent) => {
-        if (e.reason?.message?.includes('steal')) {
-          e.preventDefault();
-        }
-      }
-      window.addEventListener('unhandledrejection', handleRejection)
-      return () => window.removeEventListener('unhandledrejection', handleRejection)
-    }
+    return attachUnhandledStealRejectionListener()
   }, [])
 
   // Keep ref in sync so the auth callback always reads current segments

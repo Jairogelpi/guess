@@ -11,6 +11,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated'
 import { radii } from '@/constants/theme'
+import { flattenStyleSafe } from '@/lib/flattenStyleSafe'
 import { getCardTiltProfile } from './cardTiltRegistry'
 import * as cardTiltMath from './cardTiltMath'
 import type { CardTiltProfileName } from './cardTiltProfiles'
@@ -130,14 +131,14 @@ function findFirstBorderRadiusInChildren(children: React.ReactNode): ClipShapeSt
   if (arr.length !== 1) return null
   const child = arr[0]
   if (!React.isValidElement(child)) return null
-  const childStyle = StyleSheet.flatten((child.props as any).style) ?? undefined
+  const childStyle = flattenStyleSafe<ViewStyle>((child.props as any).style, StyleSheet)
   const shape = extractClipShape(childStyle)
   if (hasClipShape(shape)) return shape
   return findFirstBorderRadiusInChildren((child.props as any).children)
 }
 
 function resolveClipShape({ wrapperStyle, children }: { wrapperStyle?: StyleProp<ViewStyle>; children: React.ReactNode }) {
-  const flattened = StyleSheet.flatten(wrapperStyle) ?? undefined
+  const flattened = flattenStyleSafe<ViewStyle>(wrapperStyle, StyleSheet)
   const wrapperShape = extractClipShape(flattened)
   if (hasClipShape(wrapperShape)) {
     return { clipShape: wrapperShape, shouldRenderPolishLayers: true }
@@ -385,7 +386,7 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
       { scale: pressScale.value },
     ],
     opacity: floating ? riseAnim.value : 1,
-    zIndex: gestureActive.value ? 999 : (StyleSheet.flatten(style)?.zIndex ?? 1),
+    zIndex: gestureActive.value ? 999 : (flattenStyleSafe<ViewStyle>(style, StyleSheet)?.zIndex ?? 1),
   }))
 
   const shadowBloomStyle = useAnimatedStyle(() => ({
@@ -402,7 +403,10 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
     ],
   }))
 
-  const flattenedPropsStyle = useMemo(() => StyleSheet.flatten(style) ?? undefined, [style])
+  const flattenedPropsStyle = useMemo(
+    () => flattenStyleSafe<ViewStyle>(style, StyleSheet),
+    [style],
+  )
   const webFrameStyle = useMemo(() => extractStyleKeys(flattenedPropsStyle, WEB_FRAME_STYLE_KEYS), [flattenedPropsStyle])
   const webContentStyle = useMemo(() => omitStyleKeys(flattenedPropsStyle, WEB_FRAME_STYLE_KEYS), [flattenedPropsStyle])
   const webSurfaceFrameStyle = useMemo(

@@ -1,3 +1,8 @@
+import type {
+  QuickMatchEnqueuePayload,
+  QuickMatchEnqueueResult,
+  QuickMatchTicketResult,
+} from '@/types/game'
 import { supabase } from './supabase'
 
 async function callFunction<T>(name: string, body: unknown): Promise<T> {
@@ -32,6 +37,15 @@ export const api = {
 
   roomLeave: (payload: { code: string }) =>
     callFunction<void>('room-leave', payload),
+
+  matchmakingEnqueue: (payload: QuickMatchEnqueuePayload) =>
+    callFunction<QuickMatchEnqueueResult>('matchmaking-enqueue', payload),
+
+  matchmakingCancel: () =>
+    callFunction<{ ok: true }>('matchmaking-cancel', {}),
+
+  matchmakingStatus: () =>
+    callFunction<QuickMatchTicketResult>('matchmaking-status', {}),
 
   gameAction: <T = { ok: true }>(payload: { roomCode: string; action: string; payload?: unknown }) =>
     callFunction<T>('game-action', payload),

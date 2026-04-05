@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   View,
   Text,
@@ -39,7 +39,7 @@ import { buildLeaveRoomConfirmCopy } from '@/lib/leaveRoomConfirm'
 import type { RoomPlayer } from '@/types/game'
 
 export default function LobbyScreen() {
-  const { code } = useLocalSearchParams<{ code: string }>()
+  const { code, quickMatch } = useLocalSearchParams<{ code: string; quickMatch?: string }>()
   const { t } = useTranslation()
   const router = useRouter()
   const showToast = useUIStore((s) => s.showToast)
@@ -48,6 +48,7 @@ export default function LobbyScreen() {
   const { userId } = useAuth()
   const [starting, setStarting] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<RoomPlayer | null>(null)
+  const autoStartTriggered = useRef(false)
 
   const hydrationPhase = getLobbyHydrationPhase({
     roomResolved: room !== null,
@@ -64,6 +65,7 @@ export default function LobbyScreen() {
   const startState = getLobbyStartState({ isHost, activeCount, hydratingPlayers, allGuestsReady })
   const playersNeeded = getPlayersNeededToStart(activeCount)
   const canStart = isHost && !hydratingPlayers && activeCount >= 3 && allGuestsReady
+  const isQuickMatchHandoff = quickMatch === '1'
 
   const { allowNextNavigation } = useConfirmRoomExit({
     enabled: !!code,
@@ -87,6 +89,29 @@ export default function LobbyScreen() {
       router.replace(`/room/${code}/ended`)
     }
   }, [allowNextNavigation, code, room?.status, router])
+
+  useEffect(() => {
+    if (!code || !isQuickMatchHandoff || !isHost || !canStart || starting || autoStartTriggered.current) {
+      return
+    }
+
+    autoStartTriggered.current = true
+    setStarting(true)
+
+    void gameAction(code, 'start_game')
+      .then(async (ok) => {
+        if (ok) {
+          allowNextNavigation()
+          router.replace(`/room/${code}/game`)
+        } else {
+          autoStartTriggered.current = false
+          await refresh()
+        }
+      })
+      .finally(() => {
+        setStarting(false)
+      })
+  }, [allowNextNavigation, canStart, code, gameAction, isHost, isQuickMatchHandoff, refresh, router, starting])
 
   async function handleStart() {
     if (!code || !canStart) return

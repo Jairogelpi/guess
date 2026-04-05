@@ -1,167 +1,229 @@
-import { useState } from 'react'
-import { View, Text, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native'
+import { useEffect, useRef } from 'react'
+import { View, Text, ScrollView, StyleSheet, Pressable, Animated, Easing } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 import { AppHeader } from '@/components/layout/AppHeader'
-import { useGameActions } from '@/hooks/useGameActions'
 import { useUIStore } from '@/stores/useUIStore'
-import { CREATE_ROOM_CODE_FONT_SIZE, CREATE_ROOM_CODE_LETTER_SPACING } from '@/constants/welcomeHero'
 import { colors, fonts, radii } from '@/constants/theme'
 
 export default function HomeScreen() {
   const { t } = useTranslation()
   const router = useRouter()
-  const { createRoom, joinRoom } = useGameActions()
   const showToast = useUIStore((s) => s.showToast)
+  const revealValues = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current
+  const privateBreathValue = useRef(new Animated.Value(0)).current
 
-  const [displayName, setDisplayName] = useState('')
-  const [joinCode, setJoinCode] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [joining, setJoining] = useState(false)
-
-  const trimmedName = displayName.trim()
-  const trimmedJoinCode = joinCode.trim()
-  const hasJoinCode = trimmedJoinCode.length > 0
-  const canCreate = !!trimmedName && !hasJoinCode
-  const canJoin = !!trimmedName && trimmedJoinCode.length === 6
-
-  async function handleCreate() {
-    if (!trimmedName) return
-    if (hasJoinCode) {
-      showToast(
-        t('home.createBlockedByCode', {
-          defaultValue: 'Ya escribiste un codigo. Pulsa UNIRSE o borralo para crear una sala nueva.',
+  useEffect(() => {
+    const revealAnimation = Animated.stagger(
+      90,
+      revealValues.map((value) =>
+        Animated.timing(value, {
+          toValue: 1,
+          duration: 430,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
         }),
-        'info',
-      )
-      return
+      ),
+    )
+
+    const privateBreathAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(privateBreathValue, {
+          toValue: 1,
+          duration: 1550,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(privateBreathValue, {
+          toValue: 0,
+          duration: 1550,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]),
+    )
+
+    revealAnimation.start()
+    privateBreathAnimation.start()
+
+    return () => {
+      revealAnimation.stop()
+      privateBreathAnimation.stop()
     }
-    setCreating(true)
-    const result = await createRoom(trimmedName)
-    setCreating(false)
-    if (result) router.push(`/room/${result.code}/lobby`)
+  }, [privateBreathValue, revealValues])
+
+  const cardEntryStyles = revealValues.map((value) => ({
+    opacity: value,
+    transform: [
+      {
+        translateY: value.interpolate({
+          inputRange: [0, 1],
+          outputRange: [18, 0],
+        }),
+      },
+    ],
+  }))
+
+  const privateBreathScaleStyle = {
+    transform: [
+      {
+        scale: privateBreathValue.interpolate({
+          inputRange: [0, 1],
+          outputRange: [1, 1.028],
+        }),
+      },
+    ],
   }
 
-  async function handleJoin() {
-    if (!trimmedName || !trimmedJoinCode) return
-    const normalizedCode = trimmedJoinCode.toUpperCase()
-    setJoining(true)
-    const ok = await joinRoom(normalizedCode, trimmedName)
-    setJoining(false)
-    if (ok) router.push(`/room/${normalizedCode}/lobby`)
+  const privateBreathGlowStyle = {
+    opacity: privateBreathValue.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.22, 0.5],
+    }),
+    transform: [
+      {
+        scale: privateBreathValue.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.98, 1.06],
+        }),
+      },
+    ],
+  }
+
+  function handleUnavailableMode() {
+    // Ranked remains unavailable for now.
+    router.push('/(tabs)/quick-match')
   }
 
   return (
     <>
-      <AppHeader title={t('home.createRoom')} />
+      <AppHeader title={t('home.playTitle', { defaultValue: 'JUGAR' })} />
       <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <KeyboardAvoidingView
+        <ScrollView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
         >
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-          >
-            {hasJoinCode ? (
-              <View style={styles.intentBanner}>
-                <MaterialCommunityIcons name="target" size={14} color="#f8c574" />
-                <Text style={styles.intentBannerText}>
-                  {t('home.joinIntentActive', {
-                    defaultValue: 'Modo UNIRSE activo: detectamos un codigo escrito.',
-                  })}
-                </Text>
-              </View>
-            ) : null}
+          <View style={styles.introCard}>
+            <Text style={styles.introTitle}>
+              {t('home.modeSelectHint', {
+                defaultValue: 'Elige un modo para empezar a jugar.',
+              })}
+            </Text>
+          </View>
 
-            <View style={styles.introCard}>
-              <Text style={styles.introTitle}>{t('home.stepsHint')}</Text>
-            </View>
-
-            <Input
-              label={t('home.yourName')}
-              value={displayName}
-              onChangeText={setDisplayName}
-              maxLength={30}
-              autoCapitalize="words"
-              testID="home-display-name-input"
-            />
-            <Text style={styles.fieldHint}>{t('home.nameHint')}</Text>
-
-            <View style={[styles.section, hasJoinCode && styles.sectionMuted]}>
-              <Text style={styles.sectionLabel}>{t('home.createRoom')}</Text>
-              <Text style={styles.sectionHint}>{t('home.createHint')}</Text>
-              <Button
-                onPress={handleCreate}
-                loading={creating}
-                disabled={!canCreate}
-                testID="home-create-room-button"
+          <View style={styles.playModesWrap}>
+            <Animated.View style={cardEntryStyles[0]}>
+              <Pressable
+                onPress={handleUnavailableMode}
+                style={styles.modeCardTouch}
+                accessibilityRole="button"
+                testID="home-play-quick-button"
               >
-                {t('home.createRoom')}
-              </Button>
-              {hasJoinCode ? (
-                <Text style={styles.intentWarning}>
-                  {t('home.joinIntentWarning', {
-                    defaultValue: 'Codigo detectado: para evitar errores, CREAR SALA se desactiva mientras haya codigo.',
-                  })}
-                </Text>
-              ) : null}
-            </View>
-
-            <View style={styles.separator}>
-              <View style={styles.separatorLine} />
-              <Text style={styles.separatorText}>{t('home.or')}</Text>
-              <View style={styles.separatorLine} />
-            </View>
-
-            <View style={[styles.section, hasJoinCode && styles.sectionActive]}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionLabel}>{t('home.joinRoom')}</Text>
-                {hasJoinCode ? (
-                  <View style={styles.activeChip}>
-                    <Text style={styles.activeChipText}>
-                      {t('home.active', { defaultValue: 'ACTIVO' })}
+                {({ pressed }) => (
+                  <View style={[styles.modeCard, pressed && styles.modeCardPressed]}>
+                    <View style={styles.modeCardHeader}>
+                      <View style={styles.modeCardTitleRow}>
+                        <MaterialCommunityIcons name="flash" size={16} color={colors.gold} />
+                        <Text style={styles.modeCardTitle}>
+                          {t('home.quickMatch', { defaultValue: 'Partida rapida' })}
+                        </Text>
+                      </View>
+                      <View style={styles.modeLiveChip}>
+                        <Text style={styles.modeLiveChipText}>{t('home.availableNow', { defaultValue: 'DISPONIBLE' })}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeCardHint}>
+                      {t('home.quickMatchHint', {
+                        defaultValue: 'Entra en cola con tu preferencia de jugadores y te emparejamos automaticamente.',
+                      })}
                     </Text>
                   </View>
-                ) : null}
-              </View>
-              <Text style={styles.sectionHint}>{t('home.joinHint')}</Text>
-              <View style={[styles.codeInputWrap, hasJoinCode && styles.codeInputWrapActive]}>
-                <Input
-                  value={joinCode}
-                  onChangeText={(value) => setJoinCode(value.toUpperCase())}
-                  placeholder={t('home.codePlaceholder')}
-                  maxLength={6}
-                  autoCapitalize="characters"
-                  testID="home-join-code-input"
-                  style={styles.codeInput}
-                  wrapperStyle={styles.codeInputWrapperReset}
-                />
-              </View>
-              <Button
-                onPress={handleJoin}
-                loading={joining}
-                disabled={!canJoin}
-                variant="secondary"
-                testID="home-join-room-button"
+                )}
+              </Pressable>
+            </Animated.View>
+
+            <Animated.View style={cardEntryStyles[1]}>
+              <Pressable
+                onPress={() =>
+                  showToast(
+                    t('home.rankedModeSoon', { defaultValue: 'Partida clasificatoria estara disponible pronto.' }),
+                    'info',
+                  )}
+                style={styles.modeCardTouch}
+                accessibilityRole="button"
+                testID="home-play-ranked-button"
               >
-                {t('home.joinRoom')}
-              </Button>
-              {hasJoinCode && !canJoin ? (
-                <Text style={styles.joinHelperText}>
-                  {t('home.completeNameToJoin', {
-                    defaultValue: 'Completa tu nombre para continuar con UNIRSE.',
-                  })}
-                </Text>
-              ) : null}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+                {({ pressed }) => (
+                  <View style={[styles.modeCard, pressed && styles.modeCardPressed]}>
+                    <View style={styles.modeCardHeader}>
+                      <View style={styles.modeCardTitleRow}>
+                        <MaterialCommunityIcons name="trophy-outline" size={16} color={colors.gold} />
+                        <Text style={styles.modeCardTitle}>
+                          {t('home.rankedMatch', { defaultValue: 'Partida clasificatoria' })}
+                        </Text>
+                      </View>
+                      <View style={styles.modeSoonChip}>
+                        <Text style={styles.modeSoonChipText}>{t('common.soon', { defaultValue: 'PROX.' })}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.modeCardHint}>
+                      {t('home.rankedMatchHint', {
+                        defaultValue: 'Compite por posicion y progreso competitivo.',
+                      })}
+                    </Text>
+                  </View>
+                )}
+              </Pressable>
+            </Animated.View>
+
+            <Animated.View style={cardEntryStyles[2]}>
+              <Pressable
+                onPress={() => router.push('/(tabs)/private')}
+                style={styles.modeCardTouch}
+                accessibilityRole="button"
+                testID="home-play-private-button"
+              >
+                {({ pressed }) => (
+                  <View style={styles.privateCardWrap}>
+                    <Animated.View style={[styles.privateBreathGlow, privateBreathGlowStyle]} />
+                    <Animated.View
+                      style={[
+                        styles.modeCard,
+                        styles.modeCardPrivate,
+                        privateBreathScaleStyle,
+                        pressed && styles.modeCardPressed,
+                      ]}
+                    >
+                      <View style={styles.modeCardHeader}>
+                        <View style={styles.modeCardTitleRow}>
+                          <MaterialCommunityIcons name="lock-outline" size={16} color={colors.gold} />
+                          <Text style={styles.modeCardTitle}>
+                            {t('home.privateMatch', { defaultValue: 'Partida privada' })}
+                          </Text>
+                        </View>
+                        <View style={styles.modeLiveChip}>
+                          <Text style={styles.modeLiveChipText}>{t('home.availableNow', { defaultValue: 'DISPONIBLE' })}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.modeCardHint}>
+                        {t('home.privateMatchHint', {
+                          defaultValue: 'Crea o unete con codigo en la pantalla de partida privada.',
+                        })}
+                      </Text>
+                    </Animated.View>
+                  </View>
+                )}
+              </Pressable>
+            </Animated.View>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </>
   )
@@ -173,28 +235,10 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: 'center',
-    gap: 14,
+    gap: 18,
     paddingHorizontal: 24,
     paddingTop: 30,
     paddingBottom: 120,
-  },
-  intentBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: 'rgba(248, 197, 116, 0.62)',
-    backgroundColor: 'rgba(48, 26, 8, 0.9)',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  intentBannerText: {
-    flex: 1,
-    color: '#f8c574',
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: fonts.title,
   },
   introCard: {
     backgroundColor: 'rgba(18, 8, 4, 0.78)',
@@ -205,116 +249,107 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(230, 184, 0, 0.45)',
   },
   introTitle: {
-    color: '#fff4d6',
+    color: '#ffe3be',
     fontSize: 14,
     lineHeight: 21,
     textAlign: 'center',
     fontFamily: fonts.title,
+    textShadowColor: 'rgba(32, 18, 9, 0.55)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 5,
   },
-  fieldHint: {
-    color: 'rgba(255, 228, 180, 0.65)',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: -8,
+  playModesWrap: {
+    gap: 14,
   },
-  section: {
+  modeCardTouch: {
+    borderRadius: radii.md,
+  },
+  privateCardWrap: {
+    position: 'relative',
+  },
+  privateBreathGlow: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(248, 197, 116, 0.2)',
+  },
+  modeCard: {
     gap: 10,
-    backgroundColor: 'rgba(18, 8, 4, 0.75)',
-    borderRadius: radii.lg,
-    padding: 16,
-    borderWidth: 1.5,
-    borderColor: 'rgba(230, 184, 0, 0.38)',
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 184, 0, 0.25)',
+    backgroundColor: 'rgba(25, 12, 5, 0.72)',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    minHeight: 110,
+    justifyContent: 'center',
   },
-  sectionMuted: {
-    opacity: 0.72,
+  modeCardPressed: {
+    opacity: 0.95,
   },
-  sectionActive: {
-    borderColor: 'rgba(244, 192, 119, 0.82)',
-    shadowColor: '#f59e0b',
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    elevation: 3,
+  modeCardPrivate: {
+    borderColor: 'rgba(248, 197, 116, 0.52)',
+    backgroundColor: 'rgba(30, 15, 6, 0.82)',
   },
-  sectionHeaderRow: {
+  modeCardHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 10,
+  },
+  modeCardTitleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexShrink: 1,
   },
-  sectionLabel: {
-    color: colors.gold,
-    fontSize: 11,
-    letterSpacing: 2.5,
-    fontFamily: fonts.title,
+  modeCardTitle: {
+    color: '#fff7ea',
+    fontSize: 18,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
+    fontFamily: fonts.titleHeavy,
+    flexShrink: 1,
+    textShadowColor: 'rgba(16, 8, 4, 0.78)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
-  activeChip: {
+  modeCardHint: {
+    color: '#f6c76f',
+    fontSize: 14,
+    lineHeight: 19,
+  },
+  modeSoonChip: {
     borderRadius: radii.full,
     borderWidth: 1,
-    borderColor: 'rgba(248, 197, 116, 0.62)',
-    backgroundColor: 'rgba(248, 197, 116, 0.12)',
-    paddingHorizontal: 8,
+    borderColor: 'rgba(255, 210, 125, 0.45)',
+    backgroundColor: 'rgba(255, 210, 125, 0.12)',
+    paddingHorizontal: 9,
     paddingVertical: 4,
   },
-  activeChipText: {
+  modeSoonChipText: {
     color: '#f8c574',
     fontSize: 9,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+    letterSpacing: 1,
     fontFamily: fonts.title,
+    textTransform: 'uppercase',
   },
-  sectionHint: {
-    color: 'rgba(255, 228, 180, 0.65)',
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  codeInputWrap: {
+  modeLiveChip: {
     borderRadius: radii.full,
     borderWidth: 1,
-    borderColor: 'rgba(230, 184, 0, 0.15)',
-    padding: 2,
+    borderColor: 'rgba(74, 222, 128, 0.55)',
+    backgroundColor: 'rgba(74, 222, 128, 0.12)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
   },
-  codeInputWrapActive: {
-    borderColor: 'rgba(248, 197, 116, 0.62)',
-    shadowColor: '#f59e0b',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  codeInputWrapperReset: {
-    gap: 0,
-  },
-  intentWarning: {
-    color: '#f8c574',
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  joinHelperText: {
-    color: '#f8c574',
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  separator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginVertical: 4,
-  },
-  separatorLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.goldBorder,
-  },
-  separatorText: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontFamily: fonts.title,
+  modeLiveChipText: {
+    color: '#86efac',
+    fontSize: 9,
     letterSpacing: 1,
-  },
-  codeInput: {
-    textAlign: 'center',
-    letterSpacing: CREATE_ROOM_CODE_LETTER_SPACING,
-    fontSize: CREATE_ROOM_CODE_FONT_SIZE,
     fontFamily: fonts.title,
+    textTransform: 'uppercase',
   },
 })

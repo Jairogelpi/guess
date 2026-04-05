@@ -1,7 +1,7 @@
 export const APP_VERSION = 'v1.0.0'
 
 export const APP_TAB_ITEMS = [
-  { route: 'index', titleKey: 'home.createRoom', icon: 'creation' },
+  { route: 'index', titleKey: 'home.playTitle', icon: 'creation' },
   { route: 'gallery', titleKey: 'gallery.title', icon: 'image-multiple-outline' },
   { route: 'profile', titleKey: 'profile.title', icon: 'account-circle-outline' },
 ] as const

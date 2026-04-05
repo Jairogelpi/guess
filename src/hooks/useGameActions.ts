@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { api } from '@/lib/api'
 import { useUIStore } from '@/stores/useUIStore'
-import type { EdgeFunctionError } from '@/types/game'
+import type { EdgeFunctionError, QuickMatchEnqueuePayload } from '@/types/game'
 
 /**
  * Provides all game-level actions: room management, game flow, and card insertion.
@@ -46,6 +46,31 @@ export function useGameActions() {
         await api.roomLeave({ code })
       } catch (e) {
         handleError(e)
+      }
+    },
+    enqueueQuickMatch: async (payload: QuickMatchEnqueuePayload) => {
+      try {
+        return await api.matchmakingEnqueue(payload)
+      } catch (e) {
+        handleError(e)
+        return null
+      }
+    },
+    cancelQuickMatch: async () => {
+      try {
+        await api.matchmakingCancel()
+        return true
+      } catch (e) {
+        handleError(e)
+        return false
+      }
+    },
+    getQuickMatchStatus: async (options?: { silent?: boolean }) => {
+      try {
+        return await api.matchmakingStatus()
+      } catch (e) {
+        if (!options?.silent) handleError(e)
+        return null
       }
     },
     gameAction: async (roomCode: string, action: string, payload?: unknown) => {

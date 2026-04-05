@@ -54,9 +54,11 @@ export default function TabsLayout() {
           }
         }}
       >
-        <Tabs.Screen name="index" options={{ title: t('home.createRoom') }} />
+        <Tabs.Screen name="index" options={{ title: t('home.playTitle', { defaultValue: 'Jugar' }) }} />
         <Tabs.Screen name="gallery" options={{ title: t('gallery.title') }} />
         <Tabs.Screen name="profile" options={{ title: t('profile.title') }} />
+        <Tabs.Screen name="private" options={{ href: null }} />
+        <Tabs.Screen name="quick-match" options={{ href: null }} />
       </Tabs>
     </Background>
   )

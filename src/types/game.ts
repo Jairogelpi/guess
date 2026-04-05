@@ -1,5 +1,25 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
+export type MatchmakingQueueStatus = 'searching' | 'matched' | 'cancelled' | 'expired'
+
+export interface QuickMatchTicketResult {
+  ticket: MatchmakingQueueTicket | null
+}
+
+export interface QuickMatchEnqueuePayload {
+  displayName: string
+  preferredPlayerCount: number
+}
+
+export interface QuickMatchEnqueueResult extends QuickMatchTicketResult {}
+
+export interface QuickMatchMatchedPlayer {
+  playerId: string
+  displayName: string
+  avatarUrl: string | null
+  isHost: boolean
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -133,6 +153,75 @@ export type Database = {
             columns: ['room_id']
             isOneToOne: false
             referencedRelation: 'rooms'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      matchmaking_queue: {
+        Row: {
+          cancelled_at: string | null
+          countdown_starts_at: string | null
+          created_at: string
+          display_name: string
+          expires_at: string
+          id: string
+          matched_room_code: string | null
+          matched_room_id: string | null
+          max_player_count: number
+          min_player_count: number
+          player_id: string
+          preferred_player_count: number
+          search_expanded: boolean
+          status: MatchmakingQueueStatus
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          countdown_starts_at?: string | null
+          created_at?: string
+          display_name: string
+          expires_at: string
+          id?: string
+          matched_room_code?: string | null
+          matched_room_id?: string | null
+          max_player_count: number
+          min_player_count: number
+          player_id: string
+          preferred_player_count: number
+          search_expanded?: boolean
+          status?: MatchmakingQueueStatus
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          countdown_starts_at?: string | null
+          created_at?: string
+          display_name?: string
+          expires_at?: string
+          id?: string
+          matched_room_code?: string | null
+          matched_room_id?: string | null
+          max_player_count?: number
+          min_player_count?: number
+          player_id?: string
+          preferred_player_count?: number
+          search_expanded?: boolean
+          status?: MatchmakingQueueStatus
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'matchmaking_queue_matched_room_id_fkey'
+            columns: ['matched_room_id']
+            isOneToOne: false
+            referencedRelation: 'rooms'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'matchmaking_queue_player_id_fkey'
+            columns: ['player_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
         ]
@@ -522,6 +611,7 @@ export type Vote = Database['public']['Tables']['votes']['Row']
 export type RoundScore = Database['public']['Tables']['round_scores']['Row']
 export type GalleryCard = Database['public']['Tables']['gallery_cards']['Row']
 export type LobbyMessage = Database['public']['Tables']['lobby_messages']['Row']
+export type MatchmakingQueueTicket = Database['public']['Tables']['matchmaking_queue']['Row']
 export type TemporaryGenerationAsset = Database['public']['Tables']['temporary_generation_assets']['Row']
 
 export type RoomStatus = 'lobby' | 'playing' | 'ended'
