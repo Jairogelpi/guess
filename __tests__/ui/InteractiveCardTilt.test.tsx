@@ -117,6 +117,7 @@ jest.mock('react-native-reanimated', () => ({
   default: {
     View: MockAnimatedView,
   },
+  makeMutable: (initial: unknown) => ({ value: initial }),
   useSharedValue: (initial: number) => ({ value: initial }),
   useAnimatedStyle: (factory: () => unknown) => factory(),
   withSpring: (value: number) => value,
@@ -855,6 +856,18 @@ describe('InteractiveCardTilt controller', () => {
   test('web animated surface keeps the reanimated style separate from static style merging', () => {
     expect(interactiveCardTiltSource).toContain('? [webContentStyle, webSurfaceFrameStyle, animatedStyle]')
     expect(interactiveCardTiltSource).not.toContain('Object.assign({}, webContentStyle, animatedStyle as any)')
+  })
+
+  test('animated worklet does not call flattenStyleSafe directly inside useAnimatedStyle', () => {
+    expect(interactiveCardTiltSource).not.toContain(
+      "zIndex: gestureActive.value ? 999 : (flattenStyleSafe<ViewStyle>(style, StyleSheet)?.zIndex ?? 1)",
+    )
+  })
+
+  test('gesture worklet does not call the JS controller methods directly', () => {
+    expect(interactiveCardTiltSource).not.toContain('controller.beginGesture()')
+    expect(interactiveCardTiltSource).not.toContain('controller.updateGesture(')
+    expect(interactiveCardTiltSource).not.toContain('controller.finalizeGesture()')
   })
 
   test('web surface keeps concrete height when frame sizing is fixed', () => {

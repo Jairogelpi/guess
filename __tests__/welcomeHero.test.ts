@@ -49,7 +49,8 @@ describe('welcome hero treatment', () => {
     expect(WELCOME_HERO_PROMPT_GLOW_COLOR).toBe('rgba(255, 158, 44, 0.28)')
     expect(WELCOME_HERO_PROMPT_GLOW_RADIUS).toBe(6)
     expect(welcomeScreenSource).not.toContain("@react-native-masked-view/masked-view")
-    expect(welcomeScreenSource).toContain("style={[styles.brandTitle, styles.brandTitleHighlight, styles.promptTitleFill, { fontSize: highlightSize }]}")
+    expect(welcomeScreenSource).toContain('styles.promptTitleFill')
+    expect(welcomeScreenSource).toContain('fontSize: highlightSize')
     expect(welcomeScreenSource).not.toContain('styles.promptLetter')
     expect(welcomeScreenSource).toContain("color: '#fff7ea'")
     expect(welcomeScreenSource).toContain("textShadowColor: 'rgba(4, 1, 0, 0.46)'")
@@ -68,6 +69,7 @@ describe('welcome hero treatment', () => {
   test('keeps the hero card modestly sized in the overall composition', () => {
     expect(WELCOME_HERO_CARD_WIDTH_FACTOR).toBe(0.95)
     expect(WELCOME_HERO_CARD_MAX_WIDTH).toBe(442)
+    expect(welcomeScreenSource).toContain('screenWidth - 12')
   })
 
   test('does not place the card art over a solid black backing panel', () => {
@@ -82,7 +84,7 @@ describe('welcome hero treatment', () => {
 
   test('returns to a centered single-stack layout but uses more vertical spacing to open the elements up', () => {
     expect(WELCOME_HERO_OVERLAY_JUSTIFY_CONTENT).toBe('center')
-    expect(WELCOME_HERO_STACK_GAP).toBe(16)
+    expect(WELCOME_HERO_STACK_GAP).toBe(18)
     expect('getWelcomeHeroPanelMetrics' in welcomeHero).toBe(false)
     expect('WELCOME_HERO_FOOTER_MARGIN_TOP' in welcomeHero).toBe(false)
   })
@@ -94,9 +96,9 @@ describe('welcome hero treatment', () => {
   })
 
   test('keeps the secondary actions lighter and more visually separated', () => {
-    expect(WELCOME_HERO_FOOTER_GAP).toBe(16)
+    expect(WELCOME_HERO_FOOTER_GAP).toBe(18)
     expect(WELCOME_HERO_SECONDARY_CTA_HEIGHT).toBe(32)
-    expect(WELCOME_HERO_SECONDARY_ACTION_GAP).toBe(16)
+    expect(WELCOME_HERO_SECONDARY_ACTION_GAP).toBe(18)
     expect(WELCOME_HERO_SECONDARY_HINT_MARGIN_TOP).toBe(6)
   })
 
@@ -105,10 +107,71 @@ describe('welcome hero treatment', () => {
     expect(welcomeScreenSource).toContain('WELCOME_HERO_CTA_WIDTH_FACTOR')
     expect(welcomeScreenSource).toContain('WELCOME_HERO_CTA_HEIGHT')
     expect(welcomeScreenSource).toContain('WELCOME_HERO_SHOW_LOGO &&')
-    expect(welcomeScreenSource).toContain('<View style={[styles.mainCard, { width: cardWidth, height: cardHeight }]}>')
+    expect(welcomeScreenSource).toContain("style={{ width: cardWidth, height: cardHeight }}")
+    expect(welcomeScreenSource).toContain('<View style={[styles.mainCard, { borderRadius: cardRadius }]}>')
     expect(welcomeScreenSource).toContain('<Animated.View style={[styles.cardImageLayer, animatedStyle]}>')
     expect(welcomeScreenSource).not.toContain('getWelcomeHeroPanelMetrics(compactHero)')
     expect(welcomeScreenSource).not.toContain('getWelcomeHeroCtaMetrics(compactHero)')
+  })
+
+  test('centers the hero inside the free space between header and footer and adapts size by available height', () => {
+    expect(welcomeScreenSource).toContain('const [headerHeight, setHeaderHeight] = useState(0)')
+    expect(welcomeScreenSource).toContain('const [footerHeight, setFooterHeight] = useState(0)')
+    expect(welcomeScreenSource).toContain('const availableHeroHeight = Math.max(')
+    expect(welcomeScreenSource).toContain('availableHeroHeight / WELCOME_HERO_CARD_RATIO')
+    expect(welcomeScreenSource).toContain('paddingTop: headerHeight +')
+    expect(welcomeScreenSource).toContain('paddingBottom: footerHeight +')
+    expect(welcomeScreenSource).toContain('onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}')
+    expect(welcomeScreenSource).toContain('onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}')
+  })
+
+  test('scales inner hero typography spacing and footer copy from the current card size', () => {
+    expect(welcomeScreenSource).toContain('const heroLayoutScale = Math.max(')
+    expect(welcomeScreenSource).toContain('const heroTextScale = Math.max(')
+    expect(welcomeScreenSource).toContain('const scaleHeroLayoutValue = (value: number, min: number)')
+    expect(welcomeScreenSource).toContain('const scaleHeroTextValue = (value: number, min: number)')
+    expect(welcomeScreenSource).toContain('const cardRadius = scaleHeroLayoutValue(28, 22)')
+    expect(welcomeScreenSource).toContain('const footerFontSize = scaleHeroTextValue(14, 13)')
+    expect(welcomeScreenSource).toContain('paddingHorizontal: overlayHorizontalPadding')
+    expect(welcomeScreenSource).toContain('paddingBottom: overlayBottomPadding')
+    expect(welcomeScreenSource).toContain('gap: cardStackGap')
+    expect(welcomeScreenSource).toContain('fontSize: footerFontSize')
+    expect(welcomeScreenSource).toContain('letterSpacing: footerLetterSpacing')
+  })
+
+  test('keeps mobile typography readable instead of shrinking text with the full card scale', () => {
+    expect(welcomeScreenSource).toContain('const heroLayoutScale = Math.max(0.88, Math.min(cardWidth / 390, 1.02))')
+    expect(welcomeScreenSource).toContain('const heroTextScale = Math.max(0.98, Math.min(cardWidth / 390, 1.06))')
+    expect(welcomeScreenSource).toContain('const titleSize = scaleHeroTextValue(compactHero ? 42 : 50, 38)')
+    expect(welcomeScreenSource).toContain('const highlightSize = scaleHeroTextValue(compactHero ? 66 : 78, 62)')
+    expect(welcomeScreenSource).toContain('const subtitleSize = scaleHeroTextValue(compactHero ? 15 : 17, 15)')
+    expect(welcomeScreenSource).toContain('const guestFontSize = scaleHeroTextValue(compactHero ? 16 : 17, 15)')
+    expect(welcomeScreenSource).toContain('const secondaryFontSize = scaleHeroTextValue(compactHero ? 12 : 13, 11)')
+    expect(welcomeScreenSource).toContain('const accountHintFontSize = scaleHeroTextValue(12, 11)')
+  })
+
+  test('raises tap targets and functional copy so the hero feels native on phones', () => {
+    expect(welcomeScreenSource).toContain('const guestButtonHeight = scaleHeroLayoutValue(compactHero ? 44 : 48, 42)')
+    expect(welcomeScreenSource).toContain('const guestButtonPaddingHorizontal = scaleHeroLayoutValue(24, 18)')
+    expect(welcomeScreenSource).toContain('const hintFontSize = scaleHeroTextValue(14, 13)')
+    expect(welcomeScreenSource).toContain('const secondaryButtonHeight = scaleHeroLayoutValue(compactHero ? 38 : 40, 36)')
+    expect(welcomeScreenSource).toContain('const accountHintLineHeight = accountHintFontSize + scaleHeroLayoutValue(6, 4)')
+    expect(welcomeScreenSource).toContain("fontFamily: fonts.title")
+    expect(welcomeScreenSource).toContain("fontFamily: fonts.titleHeavy")
+  })
+
+  test('gives the guest CTA a wider compact mobile width so the label stays on one line', () => {
+    expect(welcomeScreenSource).toContain("width: compactHero ? '90%' : `${WELCOME_HERO_CTA_WIDTH_FACTOR * 100}%`")
+  })
+
+  test('keeps welcome component typography on the shared app font tokens instead of native font weights', () => {
+    expect(welcomeScreenSource).toContain("import { fonts } from '@/constants/theme'")
+    expect(welcomeScreenSource).toContain("fontFamily: fonts.titleHeavy")
+    expect(welcomeScreenSource).toContain("fontFamily: fonts.title")
+    expect(welcomeScreenSource).not.toContain("fontWeight: '800'")
+    expect(welcomeScreenSource).not.toContain("fontWeight: '700'")
+    expect(welcomeScreenSource).not.toContain("fontWeight: '600'")
+    expect(welcomeScreenSource).not.toContain("fontWeight: '500'")
   })
 
   test('cleans up long-running animations on unmount instead of leaving them active', () => {
@@ -151,13 +214,17 @@ describe('welcome hero treatment', () => {
   })
 
   test('raises title presence and text legibility relative to the calmer base version', () => {
-    expect(welcomeScreenSource).toContain('const titleSize = compactHero ? 36 : 44')
-    expect(welcomeScreenSource).toContain('const highlightSize = compactHero ? 56 : 68')
-    expect(welcomeScreenSource).toContain('const subtitleSize = compactHero ? 14 : 16')
-    expect(welcomeScreenSource).toContain('paddingTop: 4')
-    expect(welcomeScreenSource).toContain('gap: 12')
-    expect(welcomeScreenSource).toContain('marginVertical: 6')
-    expect(welcomeScreenSource).toContain('marginTop: -8')
+    expect(welcomeScreenSource).toContain('const titleSize = scaleHeroTextValue(compactHero ? 42 : 50, 38)')
+    expect(welcomeScreenSource).toContain('const highlightSize = scaleHeroTextValue(compactHero ? 66 : 78, 62)')
+    expect(welcomeScreenSource).toContain('const subtitleSize = scaleHeroTextValue(compactHero ? 15 : 17, 15)')
+    expect(welcomeScreenSource).toContain('const overlayTopPadding = scaleHeroLayoutValue(12, 8)')
+    expect(welcomeScreenSource).toContain('const overlayBottomPadding = scaleHeroLayoutValue(28, 18)')
+    expect(welcomeScreenSource).toContain('const cardContentGap = scaleHeroLayoutValue(16, 12)')
+    expect(welcomeScreenSource).toContain('const titleGroupGap = scaleHeroLayoutValue(16, 12)')
+    expect(welcomeScreenSource).toContain('const dividerMarginVertical = scaleHeroLayoutValue(10, 7)')
+    expect(welcomeScreenSource).toContain('const promptMarginTop = -scaleHeroLayoutValue(4, 3)')
+    expect(welcomeScreenSource).toContain('const footerMarginTop = scaleHeroLayoutValue(8, 4)')
+    expect(welcomeScreenSource).toContain('const actionGroupGap = scaleHeroLayoutValue(10, 8)')
     expect(welcomeScreenSource).toContain("color: '#fff7ea'")
     expect(welcomeScreenSource).toContain("color: 'rgba(255, 241, 222, 0.96)'")
     expect(welcomeScreenSource).toContain("color: 'rgba(255, 241, 222, 0.65)'")

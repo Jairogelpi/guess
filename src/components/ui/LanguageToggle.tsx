@@ -4,11 +4,19 @@ import { colors, fonts, radii } from '@/constants/theme'
 interface LanguageToggleProps {
   currentLang: 'es' | 'en'
   onChange: (lang: 'es' | 'en') => void
+  scale?: number
 }
 
-export function LanguageToggle({ currentLang, onChange }: LanguageToggleProps) {
+export function LanguageToggle({ currentLang, onChange, scale = 1 }: LanguageToggleProps) {
+  const groupPadding = Math.max(3, Math.round(4 * scale))
+  const buttonMinWidth = Math.max(28, Math.round(34 * scale))
+  const buttonHeight = Math.max(26, Math.round(30 * scale))
+  const buttonPaddingHorizontal = Math.max(6, Math.round(8 * scale))
+  const textFontSize = Math.max(10, Math.round(11 * scale))
+  const textLetterSpacing = Math.max(0.5, 0.8 * scale)
+
   return (
-    <View style={styles.langGroup} accessibilityRole="radiogroup">
+    <View style={[styles.langGroup, { padding: groupPadding }]} accessibilityRole="radiogroup">
       {(['es', 'en'] as const).map((lang) => {
         const active = currentLang === lang
 
@@ -18,9 +26,26 @@ export function LanguageToggle({ currentLang, onChange }: LanguageToggleProps) {
             accessibilityRole="radio"
             accessibilityState={{ checked: active }}
             onPress={() => onChange(lang)}
-            style={[styles.langButton, active && styles.langButtonActive]}
+            style={[
+              styles.langButton,
+              {
+                minWidth: buttonMinWidth,
+                height: buttonHeight,
+                paddingHorizontal: buttonPaddingHorizontal,
+              },
+              active && styles.langButtonActive,
+            ]}
           >
-            <Text style={[styles.langText, active && styles.langTextActive]}>
+            <Text
+              style={[
+                styles.langText,
+                {
+                  fontSize: textFontSize,
+                  letterSpacing: textLetterSpacing,
+                },
+                active && styles.langTextActive,
+              ]}
+            >
               {lang.toUpperCase()}
             </Text>
           </Pressable>
@@ -37,15 +62,11 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     borderWidth: 1,
     borderColor: 'rgba(255, 228, 186, 0.18)',
-    padding: 3,
   },
   langButton: {
-    minWidth: 30,
-    height: 26,
     borderRadius: radii.full,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 7,
   },
   langButtonActive: {
     backgroundColor: 'rgba(255, 228, 186, 0.16)',
@@ -53,8 +74,6 @@ const styles = StyleSheet.create({
   langText: {
     color: colors.textMuted,
     fontFamily: fonts.title,
-    fontSize: 10,
-    letterSpacing: 0.7,
   },
   langTextActive: {
     color: colors.textPrimary,

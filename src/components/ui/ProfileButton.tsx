@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Pressable, StyleSheet, View } from 'react-native'
-import { colors, radii } from '@/constants/theme'
+import { colors } from '@/constants/theme'
 import { ProfileAvatar } from '@/components/ui/ProfileAvatar'
 
 interface ProfileButtonProps {
@@ -9,6 +9,7 @@ interface ProfileButtonProps {
   avatarFallback: string | null
   accessibilityLabel: string
   onPress: () => void
+  size?: number
 }
 
 export function ProfileButton({
@@ -17,18 +18,21 @@ export function ProfileButton({
   avatarFallback,
   accessibilityLabel,
   onPress,
+  size = 32,
 }: ProfileButtonProps) {
+  const iconSize = Math.max(20, Math.round(size * 0.72))
+
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      style={styles.profileButton}
+      style={[styles.profileButton, { borderRadius: size / 2 }]}
     >
       {userId ? (
-        <ProfileAvatar avatarUrl={avatarUrl ?? undefined} fallback={avatarFallback ?? ''} size={32} />
+        <ProfileAvatar avatarUrl={avatarUrl ?? undefined} fallback={avatarFallback ?? ''} size={size} />
       ) : (
-        <View style={styles.profileIconShell}>
-          <MaterialCommunityIcons name="cards-playing-outline" size={24} color={colors.goldLight} />
+        <View style={[styles.profileIconShell, { width: size, height: size, borderRadius: size / 2 }]}>
+          <MaterialCommunityIcons name="cards-playing-outline" size={iconSize} color={colors.goldLight} />
         </View>
       )}
     </Pressable>
@@ -36,13 +40,8 @@ export function ProfileButton({
 }
 
 const styles = StyleSheet.create({
-  profileButton: {
-    borderRadius: radii.full,
-  },
+  profileButton: {},
   profileIconShell: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(10, 6, 2, 0.42)',

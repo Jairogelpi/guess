@@ -1,6 +1,13 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { APP_HEADER_LOGO_SCALE, APP_HEADER_THEME, APP_TAB_BAR_THEME, APP_VERSION, APP_TAB_ITEMS } from '../src/constants/appChrome'
 
 describe('app chrome config', () => {
+  const appHeaderSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'components', 'layout', 'AppHeader.tsx'),
+    'utf8',
+  )
+
   test('exposes the mobile footer navigation in the expected order', () => {
     expect(APP_TAB_ITEMS).toEqual([
       { route: 'index', titleKey: 'home.playTitle', icon: 'creation' },
@@ -29,5 +36,15 @@ describe('app chrome config', () => {
 
   test('crops the header logo art so the baked white canvas does not show', () => {
     expect(APP_HEADER_LOGO_SCALE).toBeGreaterThan(1)
+  })
+
+  test('keeps the welcome header responsive instead of using a fixed capsule layout', () => {
+    expect(appHeaderSource).toContain('useWindowDimensions')
+    expect(appHeaderSource).toContain('const headerScale = Math.max(0.96, Math.min(shellMaxWidth / 344, 1.04))')
+    expect(appHeaderSource).toContain('const shellMaxWidth = Math.min(')
+    expect(appHeaderSource).toContain('const profileButtonSize = Math.round(36 * headerScale)')
+    expect(appHeaderSource).toContain('scale={headerScale}')
+    expect(appHeaderSource).toContain('size={profileButtonSize}')
+    expect(appHeaderSource).toContain('style={[')
   })
 })

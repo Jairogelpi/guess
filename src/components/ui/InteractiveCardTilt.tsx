@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef } from 'react'
 import { Pressable, View, Platform, StyleSheet, type StyleProp, type ViewStyle } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
+  makeMutable,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -46,8 +48,11 @@ interface GestureUpdateInput {
 }
 
 const activeRegionOwners = new Map<string, symbol>()
+const activeRegionOwnerSignals = new Map<string, SharedValue<number>>()
 const MOTION_BLEND_ALPHA = 0.62
 const DEFAULT_OVERLAY_RADIUS = radii.md + 2
+const NO_ACTIVE_REGION_OWNER = 0
+let nextInteractiveCardOwnerId = 1
 const CLIP_RADIUS_KEYS = [
   'borderRadius',
   'borderTopLeftRadius',
@@ -150,6 +155,21 @@ function resolveClipShape({ wrapperStyle, children }: { wrapperStyle?: StyleProp
   }
 }
 
+function createInteractiveCardOwnerId() {
+  const ownerId = nextInteractiveCardOwnerId
+  nextInteractiveCardOwnerId += 1
+  return ownerId
+}
+
+function getActiveRegionOwnerSignal(regionKey: string) {
+  const existing = activeRegionOwnerSignals.get(regionKey)
+  if (existing) return existing
+
+  const signal = makeMutable(NO_ACTIVE_REGION_OWNER)
+  activeRegionOwnerSignals.set(regionKey, signal)
+  return signal
+}
+
 // ── Standalone controller factory ──────────────────────────────────────────
 
 interface CreateControllerConfig {
@@ -226,6 +246,8 @@ let _controllerObserver: ((c: ReturnType<typeof createInteractiveCardTiltControl
 
 export function __resetInteractiveCardTiltRegistry() {
   activeRegionOwners.clear()
+  activeRegionOwnerSignals.clear()
+  nextInteractiveCardOwnerId = 1
 }
 
 export function __setInteractiveCardTiltControllerObserver(
@@ -244,10 +266,12 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
 
   // PERSISTENT IDENTITIES
   const ownerId = useRef(Symbol(regionKey)).current
+  const workletOwnerId = useRef(createInteractiveCardOwnerId()).current
   const propsRef = useRef(props)
   propsRef.current = props
 
   const profile = useMemo(() => getCardTiltProfile(profileName), [profileName])
+  const regionOwner = useMemo(() => getActiveRegionOwnerSignal(regionKey), [regionKey])
 
   // SHARED VALUES
   const layout = useSharedValue<ControllerLayout | undefined>(undefined)
@@ -348,11 +372,37 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
   }, [controller])
 
   useEffect(() => {
+    return () => {
+      if (regionOwner.value === workletOwnerId) {
+        regionOwner.value = NO_ACTIVE_REGION_OWNER
+      }
+    }
+  }, [regionOwner, workletOwnerId])
+
+  useEffect(() => {
     if (process.env.NODE_ENV !== 'production') {
       _controllerObserver?.(controller)
       return () => { _controllerObserver?.(undefined) }
     }
   }, [controller])
+
+  const flattenedPropsStyle = useMemo(
+    () => flattenStyleSafe<ViewStyle>(style, StyleSheet),
+    [style],
+  )
+  // Reanimated worklets should capture plain values instead of invoking JS helpers.
+  const baseZIndex = useMemo(() => {
+    const zIndex = flattenedPropsStyle?.zIndex
+    return typeof zIndex === 'number' ? zIndex : 1
+  }, [flattenedPropsStyle])
+  const webFrameStyle = useMemo(() => extractStyleKeys(flattenedPropsStyle, WEB_FRAME_STYLE_KEYS), [flattenedPropsStyle])
+  const webContentStyle = useMemo(() => omitStyleKeys(flattenedPropsStyle, WEB_FRAME_STYLE_KEYS), [flattenedPropsStyle])
+  const webSurfaceFrameStyle = useMemo(
+    () => resolveWebSurfaceFrameStyle(flattenedPropsStyle),
+    [flattenedPropsStyle],
+  )
+  const clipRes = useMemo(() => resolveClipShape({ wrapperStyle: style, children }), [style, children])
+  const innerClip = useMemo(() => insetClipShape(clipRes.clipShape, 1), [clipRes.clipShape])
 
   // ANIMATION WORKLETS
   const applyTilt = (state: cardTiltMath.CardTiltState) => {
@@ -374,6 +424,13 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
     highlightOpacity.value = withSpring(state.highlightOpacity, config); lastTiltState.value = state
   }
 
+  const releaseGestureOwnership = () => {
+    'worklet'
+    if (regionOwner.value === workletOwnerId) {
+      regionOwner.value = NO_ACTIVE_REGION_OWNER
+    }
+  }
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       { perspective: 900 },
@@ -382,12 +439,12 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
       { translateX: translateX.value },
       { translateY: translateY.value + (floating ? (1 - riseAnim.value) * 30 : 0) },
       { translateY: lift.value },
-      { scale: scale.value * (floating ? breatheAnim.value : 1) },
-      { scale: pressScale.value },
-    ],
-    opacity: floating ? riseAnim.value : 1,
-    zIndex: gestureActive.value ? 999 : (flattenStyleSafe<ViewStyle>(style, StyleSheet)?.zIndex ?? 1),
-  }))
+        { scale: scale.value * (floating ? breatheAnim.value : 1) },
+        { scale: pressScale.value },
+      ],
+      opacity: floating ? riseAnim.value : 1,
+      zIndex: gestureActive.value ? 999 : baseZIndex,
+    }))
 
   const shadowBloomStyle = useAnimatedStyle(() => ({
     opacity: shadowOpacity.value,
@@ -403,41 +460,49 @@ export function InteractiveCardTilt(props: InteractiveCardTiltProps) {
     ],
   }))
 
-  const flattenedPropsStyle = useMemo(
-    () => flattenStyleSafe<ViewStyle>(style, StyleSheet),
-    [style],
-  )
-  const webFrameStyle = useMemo(() => extractStyleKeys(flattenedPropsStyle, WEB_FRAME_STYLE_KEYS), [flattenedPropsStyle])
-  const webContentStyle = useMemo(() => omitStyleKeys(flattenedPropsStyle, WEB_FRAME_STYLE_KEYS), [flattenedPropsStyle])
-  const webSurfaceFrameStyle = useMemo(
-    () => resolveWebSurfaceFrameStyle(flattenedPropsStyle),
-    [flattenedPropsStyle],
-  )
-  const clipRes = useMemo(() => resolveClipShape({ wrapperStyle: style, children }), [style, children])
-  const innerClip = useMemo(() => insetClipShape(clipRes.clipShape, 1), [clipRes.clipShape])
-
   const panGesture = useMemo(() => Gesture.Pan()
     .minDistance(0)
     .onBegin((e) => {
-      if (!layout.value) return
-      if (controller.beginGesture()) {
-        gestureActive.value = true
-        applyTilt(cardTiltMath.blendCardTiltState(lastTiltState.value, cardTiltMath.computeCardTiltStateFromDrag({
-          profile, layout: layout.value, drag: { dx: 0, dy: 0 }, velocity: { vx: 0, vy: 0 },
-          previousState: lastTiltState.value, pointer: { x: e.x, y: e.y }
-        }), MOTION_BLEND_ALPHA))
+      if (disabled || reducedMotion || !layout.value) return
+      const currentOwner = regionOwner.value
+      if (currentOwner !== NO_ACTIVE_REGION_OWNER && currentOwner !== workletOwnerId) {
+        lastTiltState.value = cardTiltMath.getNeutralTiltState()
+        return
       }
+
+      regionOwner.value = workletOwnerId
+      gestureActive.value = true
+
+      applyTilt(cardTiltMath.blendCardTiltState(lastTiltState.value, cardTiltMath.computeCardTiltStateFromDrag({
+        profile, layout: layout.value, drag: { dx: 0, dy: 0 }, velocity: { vx: 0, vy: 0 },
+        previousState: lastTiltState.value, pointer: { x: e.x, y: e.y }
+      }), MOTION_BLEND_ALPHA))
     })
     .onUpdate((e) => {
-      if (!gestureActive.value || !layout.value) return
-      applyTilt(controller.updateGesture({
-        dx: e.translationX, dy: e.translationY, vx: e.velocityX, vy: e.velocityY, x: e.x, y: e.y, layout: layout.value
-      }))
+      if (!gestureActive.value || !layout.value || regionOwner.value !== workletOwnerId) return
+
+      if (!profile.preventScrollRelease && cardTiltMath.shouldReleaseToScroll({ dx: e.translationX, dy: e.translationY })) {
+        gestureActive.value = false
+        releaseGestureOwnership()
+        applyTilt(cardTiltMath.getNeutralTiltState())
+        return
+      }
+
+      const target = cardTiltMath.computeCardTiltStateFromDrag({
+        profile,
+        layout: layout.value,
+        drag: { dx: e.translationX, dy: e.translationY },
+        velocity: { vx: e.velocityX, vy: e.velocityY },
+        previousState: lastTiltState.value,
+        pointer: { x: e.x, y: e.y },
+      })
+      applyTilt(cardTiltMath.blendCardTiltState(lastTiltState.value, target, MOTION_BLEND_ALPHA))
     })
     .onFinalize(() => {
       gestureActive.value = false
-      springTilt(controller.finalizeGesture())
-    }), [controller, profile])
+      releaseGestureOwnership()
+      springTilt(cardTiltMath.getNeutralTiltState())
+    }), [applyTilt, disabled, profile, reducedMotion, regionOwner, releaseGestureOwnership, springTilt, workletOwnerId])
 
   const surface = (
     <Animated.View
